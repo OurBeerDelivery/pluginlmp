@@ -2,7 +2,7 @@
     'use strict';
 
     /* ============================================================
-     * NETFLIX PREMIUM STYLE v5.2
+     * NETFLIX PREMIUM STYLE v5.3
      * Cinematic Red Accent, Smooth Rows, Movie Logo Headers
      * ============================================================ */
 
@@ -790,15 +790,20 @@
             :root {
                 --nfx-height: ${h};
                 --nfx-width: calc(var(--nfx-height) * 1.7778);
-                --nfx-bg: #090909;
-                --nfx-bg-soft: #171717;
-                --nfx-card-bg: #1a1a1a;
+                --nfx-bg: #0a0d12;
+                --nfx-bg-soft: #131923;
+                --nfx-card-bg: rgba(14, 18, 24, 0.52);
                 --nfx-red: #e50914;
                 --nfx-red-rgb: 229, 9, 20;
                 --nfx-red-deep: #b20710;
                 --nfx-text: #f5f5f1;
                 --nfx-muted: #b9b9b9;
                 --nfx-radius: ${radius};
+                --nfx-glass: rgba(15, 19, 26, 0.42);
+                --nfx-glass-strong: rgba(10, 13, 20, 0.64);
+                --nfx-glass-stroke: rgba(255, 255, 255, 0.16);
+                --nfx-glass-soft-stroke: rgba(255, 255, 255, 0.08);
+                --nfx-glass-blur: 15px;
                 --focus: var(--nfx-red);
                 --focus-rgb: 229, 9, 20;
                 --accent: var(--nfx-red);
@@ -816,9 +821,10 @@
             /* ===== BLOCK: GLOBAL BACKGROUND ===== */
             body {
                 background:
-                    radial-gradient(1200px 520px at 5% -10%, rgba(var(--nfx-red-rgb), 0.16), transparent 62%),
-                    radial-gradient(900px 400px at 90% 0%, rgba(255, 255, 255, 0.04), transparent 65%),
-                    linear-gradient(180deg, #070707 0%, #0b0b0b 30%, #111111 100%) !important;
+                    radial-gradient(1220px 560px at 5% -12%, rgba(var(--nfx-red-rgb), 0.2), transparent 62%),
+                    radial-gradient(760px 320px at 82% 0%, rgba(255, 255, 255, 0.08), transparent 64%),
+                    radial-gradient(880px 440px at 52% 100%, rgba(14, 30, 56, 0.36), transparent 72%),
+                    linear-gradient(180deg, #06080c 0%, #0a0f16 38%, #111923 100%) !important;
                 color: var(--nfx-text) !important;
                 font-family: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
             }
@@ -1023,8 +1029,14 @@
             .modal__content,
             .full-start,
             .full-start-new {
-                background: rgba(15, 15, 15, 0.88) !important;
-                backdrop-filter: blur(7px) !important;
+                background: linear-gradient(
+                    135deg,
+                    rgba(14, 18, 24, 0.74),
+                    rgba(10, 13, 20, 0.52)
+                ) !important;
+                border: 1px solid var(--nfx-glass-soft-stroke) !important;
+                backdrop-filter: blur(var(--nfx-glass-blur)) saturate(130%) !important;
+                -webkit-backdrop-filter: blur(var(--nfx-glass-blur)) saturate(130%) !important;
             }
 
             /* ===== BLOCK: FOCUSABLE ELEMENTS ===== */
@@ -1043,7 +1055,14 @@
             .files__item,
             .menu__version {
                 border-radius: 10px !important;
-                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                border: 1px solid var(--nfx-glass-soft-stroke) !important;
+                background: linear-gradient(
+                    130deg,
+                    rgba(22, 27, 36, 0.38),
+                    rgba(12, 16, 23, 0.2)
+                ) !important;
+                backdrop-filter: blur(8px) saturate(122%) !important;
+                -webkit-backdrop-filter: blur(8px) saturate(122%) !important;
                 transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
             }
 
@@ -1138,10 +1157,12 @@
             .settings-input__input,
             input[type="text"],
             input[type="password"] {
-                background: rgba(26, 26, 26, 0.96) !important;
-                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                background: linear-gradient(130deg, rgba(23, 28, 37, 0.62), rgba(14, 19, 27, 0.44)) !important;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
                 color: #fff !important;
                 border-radius: 9px !important;
+                backdrop-filter: blur(8px) saturate(122%) !important;
+                -webkit-backdrop-filter: blur(8px) saturate(122%) !important;
             }
 
             .settings-input__input:focus,
@@ -1151,13 +1172,105 @@
                 box-shadow: 0 0 0 2px rgba(var(--nfx-red-rgb), 0.24) !important;
             }
 
-            /* ===== BLOCK: FULL CARD LOGO + SUPPORT TEXT ===== */
-            .full-start__title,
-            .full-start-new__title {
-                min-height: clamp(98px, 15vw, 210px) !important;
+            /* ===== BLOCK: FULL CARD HERO (APPLECATION-INSPIRED, NETFLIX GLASS) ===== */
+            .full-start,
+            .full-start-new {
+                position: relative !important;
+                overflow: hidden !important;
+                border: none !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+            }
+
+            .full-start::before,
+            .full-start-new::before {
+                content: '' !important;
+                position: absolute !important;
+                inset: 0 !important;
+                background:
+                    radial-gradient(120% 70% at 6% 100%, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.62) 40%, rgba(0, 0, 0, 0.2) 74%, rgba(0, 0, 0, 0) 100%),
+                    linear-gradient(90deg, rgba(5, 8, 12, 0.86) 0%, rgba(5, 8, 12, 0.64) 35%, rgba(5, 8, 12, 0.28) 60%, rgba(5, 8, 12, 0.06) 84%, rgba(5, 8, 12, 0) 100%);
+                pointer-events: none !important;
+                z-index: 1 !important;
+            }
+
+            .full-start::after,
+            .full-start-new::after {
+                content: '' !important;
+                position: absolute !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                height: 36% !important;
+                background: linear-gradient(180deg, rgba(6, 10, 15, 0), rgba(6, 10, 15, 0.85) 52%, rgba(6, 10, 15, 0.98) 100%) !important;
+                pointer-events: none !important;
+                z-index: 1 !important;
+            }
+
+            .full-start__background {
+                height: calc(100% + 5.6em) !important;
+                top: -5.6em !important;
+                opacity: 1 !important;
+                filter: saturate(1.06) contrast(1.05) brightness(0.98) !important;
+                transform: translateZ(0) scale(1.01) !important;
+            }
+
+            .full-start__body,
+            .full-start-new__body {
+                position: relative !important;
+                z-index: 2 !important;
+                min-height: min(82vh, 920px) !important;
+                height: auto !important;
                 display: flex !important;
                 align-items: flex-end !important;
-                width: min(94vw, 1100px) !important;
+                padding: clamp(82px, 8vh, 122px) 4% clamp(28px, 3.4vh, 58px) !important;
+                box-sizing: border-box !important;
+            }
+
+            .full-start__left,
+            .full-start-new__left,
+            .full-start__poster,
+            .full-start-new__poster {
+                display: none !important;
+                width: 0 !important;
+                min-width: 0 !important;
+            }
+
+            .full-start__right,
+            .full-start-new__right {
+                width: min(62vw, 940px) !important;
+                max-width: 94vw !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.66em !important;
+                align-items: flex-start !important;
+            }
+
+            .full-start__head,
+            .full-start-new__head {
+                display: flex !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 0.4em !important;
+                max-width: min(90vw, 760px) !important;
+                padding: 8px 14px !important;
+                margin-bottom: 6px !important;
+                border-radius: 12px !important;
+                border: 1px solid var(--nfx-glass-stroke) !important;
+                background: linear-gradient(126deg, rgba(19, 24, 34, 0.5), rgba(10, 14, 22, 0.32)) !important;
+                color: rgba(245, 245, 245, 0.84) !important;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.48) !important;
+                backdrop-filter: blur(12px) saturate(128%) !important;
+                -webkit-backdrop-filter: blur(12px) saturate(128%) !important;
+            }
+
+            .full-start__title,
+            .full-start-new__title {
+                min-height: clamp(132px, 20vh, 292px) !important;
+                display: flex !important;
+                align-items: flex-end !important;
+                width: min(94vw, 920px) !important;
+                margin: 0 !important;
             }
 
             .nfx-title--with-logo {
@@ -1169,9 +1282,9 @@
             }
 
             .nfx-full-logo-holder {
-                width: min(92vw, 980px) !important;
+                width: min(92vw, 840px) !important;
                 max-width: 100% !important;
-                min-height: clamp(92px, 12vw, 190px) !important;
+                min-height: clamp(122px, 18vh, 286px) !important;
                 display: inline-flex !important;
                 align-items: flex-end !important;
             }
@@ -1179,10 +1292,10 @@
             .nfx-full-logo {
                 width: auto !important;
                 max-width: 100% !important;
-                height: clamp(96px, 14.6vw, 230px) !important;
-                max-height: clamp(96px, 14.6vw, 230px) !important;
+                height: clamp(132px, 20vh, 284px) !important;
+                max-height: clamp(132px, 20vh, 284px) !important;
                 object-fit: contain !important;
-                filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 16px rgba(var(--nfx-red-rgb), 0.3)) !important;
+                filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 20px rgba(var(--nfx-red-rgb), 0.26)) !important;
             }
 
             .full-start__tagline,
@@ -1190,31 +1303,94 @@
             .ifx-original-title {
                 display: block !important;
                 width: fit-content !important;
-                max-width: min(88vw, 900px) !important;
+                max-width: min(82vw, 700px) !important;
                 margin-top: 12px !important;
-                padding: 10px 14px !important;
-                border-left: 2px solid rgba(var(--nfx-red-rgb), 0.64) !important;
-                border-radius: 8px !important;
-                background: linear-gradient(90deg, rgba(12, 12, 12, 0.82), rgba(12, 12, 12, 0.46)) !important;
-                color: rgba(245, 245, 245, 0.68) !important;
-                font-size: clamp(14px, 1.02vw, 20px) !important;
-                font-weight: 450 !important;
-                line-height: 1.34 !important;
+                padding: 11px 16px !important;
+                border-left: 3px solid rgba(var(--nfx-red-rgb), 0.74) !important;
+                border-radius: 12px !important;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                background: linear-gradient(130deg, rgba(16, 21, 31, 0.56), rgba(10, 13, 20, 0.3)) !important;
+                color: rgba(245, 245, 245, 0.58) !important;
+                font-size: clamp(13px, 0.97vw, 18px) !important;
+                font-weight: 460 !important;
+                line-height: 1.35 !important;
                 letter-spacing: 0.01em !important;
-                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
-                backdrop-filter: blur(4px) !important;
-            }
-
-            .full-start__head,
-            .full-start-new__head {
-                opacity: 0.78 !important;
-                margin-bottom: 6px !important;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32) !important;
+                backdrop-filter: blur(12px) saturate(128%) !important;
+                -webkit-backdrop-filter: blur(12px) saturate(128%) !important;
             }
 
             .full-start__details,
             .full-start-new__details {
-                margin-top: 8px !important;
+                margin-top: 10px !important;
+                max-width: min(90vw, 780px) !important;
                 color: rgba(245, 245, 245, 0.84) !important;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.34) !important;
+            }
+
+            .full-start__buttons,
+            .full-start-new__buttons {
+                margin-top: 14px !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 10px !important;
+            }
+
+            .full-start__button {
+                border-radius: 14px !important;
+                border: 1px solid rgba(255, 255, 255, 0.16) !important;
+                background: linear-gradient(130deg, rgba(24, 30, 41, 0.5), rgba(12, 17, 24, 0.26)) !important;
+                box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34) !important;
+                backdrop-filter: blur(12px) saturate(128%) !important;
+                -webkit-backdrop-filter: blur(12px) saturate(128%) !important;
+            }
+
+            .full-start__button.button--play,
+            .full-start-new .button--play {
+                background: linear-gradient(102deg, rgba(var(--nfx-red-rgb), 0.98), var(--nfx-red-deep)) !important;
+                border-color: rgba(var(--nfx-red-rgb), 0.95) !important;
+                box-shadow: 0 0 0 1px rgba(var(--nfx-red-rgb), 0.84), 0 12px 28px rgba(var(--nfx-red-rgb), 0.34) !important;
+            }
+
+            /* ===== BLOCK: FULL CARD RESPONSIVE ===== */
+            @media (max-width: 1365px) {
+                .full-start__right,
+                .full-start-new__right {
+                    width: min(74vw, 920px) !important;
+                }
+
+                .full-start__title,
+                .full-start-new__title {
+                    min-height: clamp(116px, 18vh, 236px) !important;
+                }
+
+                .nfx-full-logo {
+                    height: clamp(116px, 17.4vh, 240px) !important;
+                    max-height: clamp(116px, 17.4vh, 240px) !important;
+                }
+            }
+
+            @media (max-width: 940px) {
+                .full-start__body,
+                .full-start-new__body {
+                    min-height: min(78vh, 840px) !important;
+                    padding: 74px 4.2% 26px !important;
+                }
+
+                .full-start__right,
+                .full-start-new__right {
+                    width: min(92vw, 720px) !important;
+                }
+
+                .nfx-full-logo-holder {
+                    min-height: clamp(94px, 13.2vh, 176px) !important;
+                }
+
+                .nfx-full-logo {
+                    height: clamp(96px, 13.8vh, 184px) !important;
+                    max-height: clamp(96px, 13.8vh, 184px) !important;
+                }
             }
 
             ::selection {
@@ -1245,7 +1421,7 @@
         style.textContent = css;
         document.head.appendChild(style);
 
-        console.log('[Netflix Premium] v5.2 styles injected');
+        console.log('[Netflix Premium] v5.3 styles injected');
     }
 
     /* BLOCK: Reactive setting updates (called from patched Storage.set) */
@@ -1362,7 +1538,7 @@
             /* Реєстрація плагіна в списку Extensions */
             Lampa.Plugin.display({
                 name: 'Netflix Premium Style',
-                version: '5.2.0',
+                version: '5.3.0',
                 description: 'Cinematic red UI + smooth scroll + logo titles',
                 type: 'style',
                 author: 'Lampac Agent',
@@ -1370,7 +1546,7 @@
             });
         }
 
-        console.log('[Netflix Premium] v5.2 ready');
+        console.log('[Netflix Premium] v5.3 ready');
     }
 
     /* BLOCK: Safe boot (відкладений старт, якщо Lampa ще не ініціалізована) */
