@@ -2,7 +2,7 @@
     'use strict';
 
     /* ============================================================
-     * NETFLIX PREMIUM STYLE v5.1
+     * NETFLIX PREMIUM STYLE v5.2
      * Cinematic Red Accent, Smooth Rows, Movie Logo Headers
      * ============================================================ */
 
@@ -262,8 +262,17 @@
         if (!label) {
             label = document.createElement('span');
             label.className = 'nfx-menu-primary-label';
-            item.appendChild(label);
         }
+
+        var icon = item.querySelector('.menu__item-icon');
+        if (icon) {
+            if (label.parentElement !== item || icon.nextSibling !== label) {
+                item.insertBefore(label, icon.nextSibling);
+            }
+        } else if (label.parentElement !== item) {
+            item.insertBefore(label, item.firstChild);
+        }
+
         return label;
     }
 
@@ -303,8 +312,20 @@
 
             if (!title) continue;
 
-            if (title !== line.previousElementSibling) parent.insertBefore(title, line);
-            parent.classList.add('nfx-section-wrap');
+            if (title.parentElement !== parent) continue;
+
+            var group = line.closest('.nfx-row-group');
+            if (!group || group.parentElement !== parent || !group.contains(title)) {
+                group = document.createElement('div');
+                group.className = 'nfx-row-group';
+                parent.insertBefore(group, line);
+                group.appendChild(title);
+                group.appendChild(line);
+            } else {
+                if (group.firstElementChild !== title) group.insertBefore(title, group.firstChild);
+                if (line.parentElement !== group) group.appendChild(line);
+            }
+
             title.classList.add('nfx-section-title');
         }
     }
@@ -824,12 +845,13 @@
                 text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
             }
 
-            .nfx-section-wrap {
+            .nfx-row-group {
                 display: block !important;
                 width: 100% !important;
+                margin-top: 12px !important;
             }
 
-            .nfx-section-wrap > .nfx-section-title {
+            .nfx-row-group > .nfx-section-title {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: space-between !important;
@@ -837,12 +859,12 @@
                 box-sizing: border-box !important;
                 padding-left: 4% !important;
                 padding-right: 4% !important;
-                margin-top: 12px !important;
-                margin-bottom: 8px !important;
+                margin: 0 0 8px !important;
             }
 
-            .nfx-section-wrap > .items-line {
-                padding-top: 12px !important;
+            .nfx-row-group > .items-line {
+                padding-top: 10px !important;
+                margin-top: 0 !important;
             }
 
             /* ===== BLOCK: HORIZONTAL ROW LAYOUT ===== */
@@ -860,6 +882,7 @@
                 scroll-padding-left: 4% !important;
                 scroll-padding-right: 4% !important;
                 overscroll-behavior-x: contain !important;
+                will-change: scroll-position !important;
             }
 
             .items-line::-webkit-scrollbar {
@@ -895,6 +918,8 @@
                             box-shadow 0.32s ease,
                             border-color 0.32s ease !important;
                 box-shadow: 0 6px 18px rgba(0, 0, 0, 0.44) !important;
+                will-change: transform !important;
+                transform: translateZ(0) !important;
             }
 
             .card__view::before {
@@ -927,6 +952,7 @@
                 object-fit: cover !important;
                 transform: scale(1.01) !important;
                 transition: transform 0.5s ease !important;
+                will-change: transform !important;
             }
 
             .card__title {
@@ -1040,6 +1066,7 @@
                 white-space: nowrap !important;
                 padding-left: 0.72em !important;
                 padding-right: 0.92em !important;
+                font-size: 0 !important; /* SAFEGUARD: ховає сирі текст-ноди в item */
             }
 
             .menu__item.nfx-menu-item .nfx-menu-primary-label {
@@ -1048,9 +1075,10 @@
                 visibility: visible !important;
                 width: auto !important;
                 max-width: none !important;
-                font-size: 1em !important;
+                font-size: clamp(18px, 1.05vw, 24px) !important;
                 font-weight: 600 !important;
                 letter-spacing: 0.02em !important;
+                line-height: 1.14 !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
                 color: #f3f3f3 !important;
@@ -1071,6 +1099,7 @@
 
             .menu__item.nfx-menu-item .menu__item-icon {
                 flex: 0 0 auto !important;
+                font-size: clamp(20px, 1.1vw, 26px) !important;
             }
 
             .menu__item.focus,
@@ -1167,9 +1196,9 @@
                 border-left: 2px solid rgba(var(--nfx-red-rgb), 0.64) !important;
                 border-radius: 8px !important;
                 background: linear-gradient(90deg, rgba(12, 12, 12, 0.82), rgba(12, 12, 12, 0.46)) !important;
-                color: rgba(245, 245, 245, 0.78) !important;
-                font-size: clamp(15px, 1.2vw, 24px) !important;
-                font-weight: 500 !important;
+                color: rgba(245, 245, 245, 0.68) !important;
+                font-size: clamp(14px, 1.02vw, 20px) !important;
+                font-weight: 450 !important;
                 line-height: 1.34 !important;
                 letter-spacing: 0.01em !important;
                 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
@@ -1180,6 +1209,12 @@
             .full-start-new__head {
                 opacity: 0.78 !important;
                 margin-bottom: 6px !important;
+            }
+
+            .full-start__details,
+            .full-start-new__details {
+                margin-top: 8px !important;
+                color: rgba(245, 245, 245, 0.84) !important;
             }
 
             ::selection {
@@ -1210,7 +1245,7 @@
         style.textContent = css;
         document.head.appendChild(style);
 
-        console.log('[Netflix Premium] v5.1 styles injected');
+        console.log('[Netflix Premium] v5.2 styles injected');
     }
 
     /* BLOCK: Reactive setting updates (called from patched Storage.set) */
@@ -1327,7 +1362,7 @@
             /* Реєстрація плагіна в списку Extensions */
             Lampa.Plugin.display({
                 name: 'Netflix Premium Style',
-                version: '5.1.0',
+                version: '5.2.0',
                 description: 'Cinematic red UI + smooth scroll + logo titles',
                 type: 'style',
                 author: 'Lampac Agent',
@@ -1335,7 +1370,7 @@
             });
         }
 
-        console.log('[Netflix Premium] v5.1 ready');
+        console.log('[Netflix Premium] v5.2 ready');
     }
 
     /* BLOCK: Safe boot (відкладений старт, якщо Lampa ще не ініціалізована) */
