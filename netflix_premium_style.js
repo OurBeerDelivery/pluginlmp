@@ -873,53 +873,65 @@ body {
 
 
 /* ================================================================
-   5) SIDEBAR — Elegant glass menu with thin red accent
+   5) SIDEBAR — Dark gloss glassmorphism, optimized for long text
    ================================================================ */
 
+/* Container: dark glossy glass, full-height coverage */
 .menu {
-    background: linear-gradient(to right,
-        rgba(10, 13, 18, 0.85) 0%,
-        rgba(10, 13, 18, 0.7) 70%,
-        rgba(10, 13, 18, 0.4) 100%) !important;
-    backdrop-filter: blur(30px) saturate(1.3) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(1.3) !important;
-    border-right: 1px solid rgba(255,255,255,0.04) !important;
+    background: rgba(10, 13, 18, 0.45) !important;
+    backdrop-filter: blur(30px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
     border-bottom: none !important;
+    min-width: 14em !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
 }
 
 .menu__list {
     background: transparent !important;
+    padding: 0 !important;
 }
 
-/* Inactive menu items: subtle glass tint */
+/* ── Menu Items: geometry & text fit ── */
 .menu__item {
     border-radius: 0 !important;
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
     border-left: 3px solid transparent !important;
+    padding: 0.55em 1.4em 0.55em 1em !important;
+    margin: 0 !important;
     transition: border-color 200ms ease,
                 background 200ms ease !important;
-    margin: 1px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.7em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
-/* Active / focused menu item: 3px thin red line + white text */
+/* ── Active / focused: 3px red line + subtle white glass ── */
 .menu__item.focus,
 .menu__item.hover,
 .menu__item.traverse,
 .menu__item.active {
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
     box-shadow: none !important;
     border-left: 3px solid #e50914 !important;
 }
 
+/* Active text: pure white */
 .menu__item.focus .menu__text,
 .menu__item.hover .menu__text,
 .menu__item.traverse .menu__text,
 .menu__item.active .menu__text {
     color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important;
 }
 
+/* Active icons: pure white */
 .menu__item.focus .menu__ico,
 .menu__item.hover .menu__ico,
 .menu__item.traverse .menu__ico,
@@ -934,22 +946,37 @@ body {
     fill: #ffffff !important;
 }
 
-/* Inactive text: muted */
+/* ── Inactive text: muted with subtle shadow ── */
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
+    font-size: 0.95em !important;
     color: rgba(255,255,255,0.5) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.3 !important;
 }
 
+/* ── Icons: slightly smaller ── */
 .menu__ico {
     color: rgba(255,255,255,0.5) !important;
     transition: color 200ms ease !important;
+    flex-shrink: 0 !important;
+    width: 1.1em !important;
+    height: 1.1em !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .menu__ico svg {
     fill: rgba(255,255,255,0.5) !important;
     transition: fill 200ms ease !important;
+    width: 1.1em !important;
+    height: 1.1em !important;
 }
 
 /* Header bar — 100% transparent */
