@@ -384,12 +384,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap');
 
 :root {
-  --nf2-bg-1: #0a0c11;
-  --nf2-bg-2: #11141b;
-  --nf2-amber: #2a2010;
+  --nf2-bg-1: #05070c;
+  --nf2-bg-2: #0c111a;
   --nf2-accent: #e50914;
   --nf2-accent-2: #b20710;
-  --nf2-text: #f6f6f6;
+  --nf2-text: #f4f5f7;
   --nf2-muted: #c1c4cb;
   --nf2-card-h: ${h};
   --nf2-card-w: calc(var(--nf2-card-h) * 16 / 9);
@@ -399,9 +398,9 @@
 
 body {
   background:
-    radial-gradient(1200px 580px at 50% -12%, rgba(229,9,20,0.18), transparent 62%),
-    radial-gradient(900px 540px at 18% 14%, rgba(255,165,69,0.12), transparent 62%),
-    linear-gradient(180deg, #0a0c11 0%, #0f131b 42%, #141924 100%) !important;
+    radial-gradient(900px 520px at 18% 10%, rgba(229,9,20,0.12), transparent 58%),
+    radial-gradient(1100px 540px at 78% -8%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(180deg, #05070c 0%, #0a0f17 38%, #0f1723 100%) !important;
   color: var(--nf2-text) !important;
   font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif !important;
 }
@@ -409,8 +408,8 @@ body {
 /* Rows */
 .items-line {
   display: flex !important;
-  gap: 16px !important;
-  padding: 46px 4% 64px !important;
+  gap: 14px !important;
+  padding: 40px 4% 56px !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
   scroll-snap-type: x proximity !important;
@@ -428,7 +427,7 @@ body {
   height: var(--nf2-card-h) !important;
   margin: 0 !important;
   transform-origin: center center !important;
-  transition: transform 420ms ease, z-index 0s !important;
+  transition: transform 360ms ease, z-index 0s !important;
 }
 .card__view {
   position: relative !important;
@@ -436,27 +435,19 @@ body {
   height: 100% !important;
   overflow: hidden !important;
   border-radius: var(--nf2-radius) !important;
-  background: linear-gradient(140deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
-  transition: transform 420ms ease, box-shadow 320ms ease, border-color 320ms ease !important;
+  background: #0f141d !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.32) !important;
+  transition: transform 360ms ease, box-shadow 280ms ease, border-color 280ms ease !important;
 }
 .card__view::after {
   content: '' !important;
   position: absolute !important;
   inset: 0 !important;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.6) 100%) !important;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%) !important;
   z-index: 1 !important;
 }
-.card__view::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  background: radial-gradient(120% 120% at 12% 12%, rgba(229,9,20,0.16), transparent 48%) !important;
-  opacity: 0 !important;
-  transition: opacity 240ms ease !important;
-  z-index: 1 !important;
-}
+.card__view::before { display: none !important; }
 .card__img {
   width: 100% !important;
   height: 100% !important;
@@ -468,14 +459,14 @@ body {
   position: absolute !important;
   left: 12px !important;
   right: 12px !important;
-  bottom: 8px !important;
+  bottom: 10px !important;
   z-index: 2 !important;
   color: #fff !important;
   font-family: 'Montserrat', sans-serif !important;
   font-weight: 700 !important;
   font-size: 13px !important;
-  line-height: 1.25 !important;
-  text-shadow: 0 8px 20px rgba(0,0,0,0.65) !important;
+  line-height: 1.2 !important;
+  text-shadow: 0 8px 18px rgba(0,0,0,0.6) !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
@@ -486,39 +477,38 @@ body {
   font-weight: 700 !important;
 }
 .card__vote {
-  background: linear-gradient(120deg, #e50914, #ff4b4b) !important;
+  background: rgba(0,0,0,0.76) !important;
   color: #fff !important;
   border-radius: 999px !important;
-  padding: 2px 7px !important;
-  top: 10px !important;
+  padding: 2px 8px !important;
+  top: auto !important;
+  bottom: 10px !important;
   right: 10px !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
 }
 
 /* Netflix-like neighbor shift */
 .items-line:hover .card,
-.items-line:focus-within .card { transform: translateX(-18%) !important; }
+.items-line:focus-within .card { transform: translateX(-10%) !important; }
 .card:hover ~ .card,
 .card.hover ~ .card,
-.card.focus ~ .card { transform: translateX(18%) !important; }
+.card.focus ~ .card { transform: translateX(10%) !important; }
 .card:hover,
 .card.hover,
 .card.focus {
-  transform: translateX(0) scale(1.22) !important;
+  transform: translateX(0) scale(1.12) !important;
   z-index: 8 !important;
 }
 .card:hover .card__view,
 .card.hover .card__view,
 .card.focus .card__view {
-  border-color: rgba(229,9,20,0.6) !important;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(229,9,20,0.35) !important;
+  border-color: rgba(255,255,255,0.35) !important;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.25) !important;
   transform: scale(1.01) !important;
 }
-.card:hover .card__view::before,
-.card.hover .card__view::before,
-.card.focus .card__view::before { opacity: 1 !important; }
 .card:hover .card__img,
 .card.hover .card__img,
-.card.focus .card__img { transform: scale(1.05) !important; }
+.card.focus .card__img { transform: scale(1.04) !important; }
 
 /* Hero / full card */
 .full-start, .full-start-new {
