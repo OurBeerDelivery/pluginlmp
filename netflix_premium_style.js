@@ -578,44 +578,32 @@ body {
 
 
 /* ================================================================
-   4) HERO — ZERO GRADIENT, 100% CLEAN BACKDROP
+   4) HERO — FULLSCREEN BACKDROP, ZERO OVERLAYS
    ================================================================ */
 
-/* Remove Lampa's default dark mask */
+/* ── Backdrop: 100% fullscreen, no mask, no margins ── */
+.full-start-new,
+.full-start {
+    position: relative !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 .full-start-new .full-start-new__background,
 .full-start-new .full-start__background,
 .full-start__background {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
 }
 
-/* Kill ALL overlays and gradients the app adds */
-.full-start-new::before,
-.full-start-new::after,
-.full-start::before,
-.full-start::after {
-    display: none !important;
-    content: none !important;
-}
-
-/* Kill the application overlay gradient */
-.applecation__overlay,
-.application__overlay {
-    background: transparent !important;
-    background-image: none !important;
-    display: none !important;
-}
-
-/* Kill any leftover gradient layers */
-.full-start-new__gradient,
-.full-start__gradient,
-.full-start-new__mask,
-.full-start__mask {
-    display: none !important;
-    background: none !important;
-}
-
-/* Backdrop: fill viewport cleanly */
 .full-start-new .full-start-new__background img,
 .full-start-new .full-start__background img,
 .full-start__background img {
@@ -625,14 +613,50 @@ body {
     filter: none !important;
 }
 
-/* Content: left-aligned with text-shadow for readability */
+/* ── Kill ALL overlays, gradients, masks ── */
+.full-start-new::before,
+.full-start-new::after,
+.full-start::before,
+.full-start::after {
+    display: none !important;
+    content: none !important;
+}
+
+.applecation__overlay,
+.application__overlay {
+    background: transparent !important;
+    background-image: none !important;
+    display: none !important;
+}
+
+.full-start-new__gradient,
+.full-start__gradient,
+.full-start-new__mask,
+.full-start__mask {
+    display: none !important;
+    background: none !important;
+}
+
+/* ── HIDE REACTIONS (Pink zone) ── */
+.full-start-new__reactions,
+.full-start__reactions {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ── Content: left-aligned, bottom-weighted ── */
 .full-start-new__body,
 .full-start__body {
     position: relative !important;
     z-index: 2 !important;
     padding-left: 5% !important;
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-end !important;
+    min-height: 80vh !important;
+    padding-bottom: 2em !important;
 }
 
 .full-start-new__right,
@@ -640,15 +664,18 @@ body {
     position: relative !important;
     z-index: 3 !important;
     max-width: 650px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
 }
 
-/* Hide default poster — we use full-bleed backdrop */
+/* Hide default poster — full-bleed backdrop instead */
 .full-start-new__left,
 .full-start__left {
     display: none !important;
 }
 
-/* ── Hero Title / Logo ── */
+/* ── Hero Title / Logo — stays large ── */
 .full-start-new__title,
 .full-start__title {
     font-family: var(--nfx-font) !important;
@@ -656,51 +683,75 @@ body {
     font-size: 2.6em !important;
     line-height: 1.08 !important;
     color: #fff !important;
-    text-shadow: var(--nfx-shadow-text),
-                 0 4px 20px rgba(0,0,0,0.9) !important;
-    margin-bottom: 12px !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5),
+                 0 6px 24px rgba(0,0,0,0.8) !important;
+    margin-bottom: 8px !important;
 }
 
-/* ── Hero Meta ── */
-.full-start-new__details,
-.full-start__details {
-    font-family: var(--nfx-font) !important;
-    font-size: 1em !important;
-    font-weight: 500 !important;
-    color: rgba(255,255,255,0.85) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
-}
+/* ── Compact Metadata Block (moved from blue → pink zone) ── */
 
+/* Head line (year, country) */
 .full-start-new__head,
 .full-start__head {
-    text-shadow: var(--nfx-shadow-text) !important;
+    font-family: var(--nfx-font) !important;
+    font-weight: 500 !important;
+    font-size: 0.85em !important;
+    line-height: 1.3 !important;
+    color: rgba(255,255,255,0.75) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    margin: 0 0 2px 0 !important;
 }
 
+/* Tagline (quote) */
 .full-start-new__tagline,
 .full-start__tagline {
     font-family: var(--nfx-font) !important;
+    font-weight: 500 !important;
     font-style: italic !important;
-    color: rgba(255,255,255,0.7) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
+    font-size: 0.88em !important;
+    line-height: 1.3 !important;
+    color: rgba(255,255,255,0.65) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    margin: 0 0 4px 0 !important;
+    padding: 0 !important;
 }
 
-/* ── Hero Description ── */
+/* Ratings (TMDB / KP) */
+.full-start-new__rate-line,
+.full-start__rate-line {
+    font-family: var(--nfx-font) !important;
+    font-weight: 500 !important;
+    font-size: 0.82em !important;
+    line-height: 1.3 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    margin: 0 0 2px 0 !important;
+}
+
+/* Details (genres, quality, etc.) */
+.full-start-new__details,
+.full-start__details {
+    font-family: var(--nfx-font) !important;
+    font-weight: 500 !important;
+    font-size: 0.82em !important;
+    line-height: 1.3 !important;
+    color: rgba(255,255,255,0.72) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    margin: 0 0 2px 0 !important;
+}
+
+/* Description text */
 .full-start-new__text,
 .full-start__text,
 .full-start-new__description,
 .full-start__description {
     font-family: var(--nfx-font) !important;
-    color: rgba(255,255,255,0.8) !important;
-    font-size: 0.95em !important;
-    line-height: 1.55 !important;
-    text-shadow: var(--nfx-shadow-text) !important;
-    max-width: 550px !important;
-}
-
-/* ── Hero Rating ── */
-.full-start-new__rate-line,
-.full-start__rate-line {
-    text-shadow: var(--nfx-shadow-text) !important;
+    font-weight: 500 !important;
+    color: rgba(255,255,255,0.72) !important;
+    font-size: 0.85em !important;
+    line-height: 1.4 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    max-width: 520px !important;
+    margin: 0 0 6px 0 !important;
 }
 
 /* ── Glassmorphism Buttons ── */
@@ -785,12 +836,24 @@ body {
     fill: currentColor !important;
 }
 
-/* Header bar */
+/* Header bar — fully transparent (Green zone) */
 .head {
-    background: rgba(10, 13, 18, 0.4) !important;
-    backdrop-filter: blur(25px) !important;
-    -webkit-backdrop-filter: blur(25px) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border: none !important;
+    box-shadow: none !important;
+}
+
+.head__actions {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+.head__button,
+.head .button {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
 }
 
 
