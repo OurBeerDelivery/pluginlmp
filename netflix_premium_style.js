@@ -1,323 +1,107 @@
 (function () {
     'use strict';
 
-    /* ================================================================
-     *  Netflix Premium Style v7.1  —  Full Minimalist / Zero Gradient
-     *
-     *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
-     *  ✦ Hero           → Clean backdrop, NO gradients, text-shadow only
-     *  ✦ Sidebar        → Glassy blur, red left-border active item
-     *  ✦ Cards          → No ghost masks, clean box-shadow, 1.35x scale
-     *  ✦ GPU            → translate3d / scale3d everywhere
-     * ================================================================ */
+    /*
+       NETFLIX PREMIUM STYLE v7.2 (Ultimate Build)
+       ----------------------------------------------------
+       • Architecture: Zero-Gradient / Minimalist / GPU-Optimized
+       • Performance:  will-change, contain:layout, debounced observers
+       • Layout:       Fullscreen Backdrop, Glass Sidebar, Dynamic Badges
+       • Fixes:        Single card clipping, First card edge shift, scale origin
+    */
 
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 1 — ANIMATION HELPERS  (from logo.js reference)
+    //  SECTION 1 — SETTINGS & UTILS
     // ─────────────────────────────────────────────────────────────────
 
-    var FADE_OUT_TEXT = 300;
-    var MORPH_HEIGHT = 400;
-    var FADE_IN_IMG = 400;
-    var SAFE_DELAY = 200;
-
-    function animateHeight(element, start, end, duration, callback) {
-        var startTime = null;
-        function step(timestamp) {
-            if (!startTime) startTime = timestamp;
-            var progress = timestamp - startTime;
-            var percent = Math.min(progress / duration, 1);
-            var ease = 1 - Math.pow(1 - percent, 3);
-            element.style.height = (start + (end - start) * ease) + 'px';
-            if (progress < duration) {
-                requestAnimationFrame(step);
-            } else {
-                if (callback) callback();
-            }
-        }
-        requestAnimationFrame(step);
-    }
-
-    function animateOpacity(element, start, end, duration, callback) {
-        var startTime = null;
-        function step(timestamp) {
-            if (!startTime) startTime = timestamp;
-            var progress = timestamp - startTime;
-            var percent = Math.min(progress / duration, 1);
-            var ease = 1 - Math.pow(1 - percent, 3);
-            element.style.opacity = start + (end - start) * ease;
-            if (progress < duration) {
-                requestAnimationFrame(step);
-            } else {
-                if (callback) callback();
-            }
-        }
-        requestAnimationFrame(step);
-    }
-
-
-    // ─────────────────────────────────────────────────────────────────
-    //  SECTION 2 — LOGO ENGINE  (NO hardcoded API keys)
-    // ─────────────────────────────────────────────────────────────────
-
-    var LogoEngine = {
-        _cachePrefix: 'nfx_logo_v7_',
-
-        _key: function (type, id, lang) {
-            return this._cachePrefix + type + '_' + id + '_' + lang;
-        },
-
-        _getCached: function (key) {
-            try {
-                var s = sessionStorage.getItem(key);
-                if (s) return s;
-            } catch (e) { /* ignore */ }
-            return Lampa.Storage.get(key, null);
-        },
-
-        _setCached: function (key, value) {
-            var v = value || 'none';
-            try { sessionStorage.setItem(key, v); } catch (e) { /* ignore */ }
-            Lampa.Storage.set(key, v);
-        },
-
-        /**
-         * Pick best logo: target_lang PNG → en PNG → any first.
-         * SVGs converted to PNG via extension swap.
-         */
-        _pickBest: function (logos, targetLang) {
-            if (!logos || !logos.length) return null;
-
-            var sorted = logos.slice().sort(function (a, b) {
-                var aS = (a.file_path || '').toLowerCase().endsWith('.svg');
-                var bS = (b.file_path || '').toLowerCase().endsWith('.svg');
-                return aS === bS ? 0 : (aS ? 1 : -1);
-            });
-
-            for (var i = 0; i < sorted.length; i++) {
-                if (sorted[i].iso_639_1 === targetLang && sorted[i].file_path) return sorted[i].file_path;
-            }
-            for (var j = 0; j < sorted.length; j++) {
-                if (sorted[j].iso_639_1 === 'en' && sorted[j].file_path) return sorted[j].file_path;
-            }
-            return sorted[0] && sorted[0].file_path ? sorted[0].file_path : null;
-        },
-
-        _getLang: function () {
-            var u = Lampa.Storage.get('logo_lang', '');
-            return u || Lampa.Storage.get('language', 'uk') || 'uk';
-        },
-
-        /**
-         * Resolve logo — uses Lampa.TMDB.api() + Lampa.TMDB.key()
-         */
-        resolve: function (movie, done) {
-            if (!movie || !movie.id) { done(null); return; }
-
-            var type = movie.name ? 'tv' : 'movie';
-            var lang = this._getLang();
-            var cacheKey = this._key(type, movie.id, lang);
-
-            var cached = this._getCached(cacheKey);
-            if (cached === 'none') { done(null); return; }
-            if (cached) { done(cached); return; }
-
-            var url = Lampa.TMDB.api(
-                type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() +
-                '&include_image_language=' + lang + ',en,null'
-            );
-
-            var self = this;
-            var size = Lampa.Storage.get('logo_size', 'original') || 'original';
-
-            $.get(url, function (data_api) {
-                var path = self._pickBest(data_api.logos, lang);
-                if (path) {
-                    var imgUrl = Lampa.TMDB.image('/t/p/' + size + path.replace('.svg', '.png'));
-                    self._setCached(cacheKey, imgUrl);
-                    done(imgUrl);
-                } else {
-                    self._setCached(cacheKey, 'none');
-                    done(null);
-                }
-            }).fail(function () {
-                done(null);
-            });
-        }
+    var NFX = {
+        version: '7.2.0',
+        cardScale: 1.35,
+        shift: '25%', // desktop
+        shiftMobile: '14%',
+        animDuration: '300ms',
+        animEase: 'cubic-bezier(0.4, 0, 0.2, 1)', // Smooth refined bezier
+        tmdb_api: 'https://api.themoviedb.org/3'
     };
 
+    // Load Montserrat font (Premium feel)
+    var fontLink = document.createElement('link');
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap';
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
 
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 3 — HERO PROCESSOR  (logo animation on full card page)
+    //  SECTION 2 — HERO PROCESSOR (Logo & Backdrop)
     // ─────────────────────────────────────────────────────────────────
-
-    function applyLogoStyles(img) {
-        img.style.display = 'block';
-        img.style.maxWidth = '500px';
-        img.style.maxHeight = '250px';
-        img.style.width = 'auto';
-        img.style.height = 'auto';
-        img.style.objectFit = 'contain';
-        img.style.objectPosition = 'left bottom';
-        img.style.boxSizing = 'border-box';
-        img.style.paddingBottom = '0.2em';
-        img.style.filter = 'drop-shadow(0 4px 20px rgba(0,0,0,0.85))';
-    }
-
-    /**
-     * Smooth logo animation (logo.js pattern):
-     *  1. Fade out text  2. Replace with <img>  3. Morph height  4. Fade in logo
-     */
-    function startLogoAnimation(imgUrl, titleElem, domTitle) {
-        var img = new Image();
-        img.src = imgUrl;
-
-        var startTextHeight = 0;
-        if (domTitle) startTextHeight = domTitle.getBoundingClientRect().height;
-
-        applyLogoStyles(img);
-        img.style.opacity = '0';
-
-        img.onload = function () {
-            setTimeout(function () {
-                if (domTitle) startTextHeight = domTitle.getBoundingClientRect().height;
-
-                // 1) Fade out
-                titleElem.css({
-                    transition: 'opacity ' + (FADE_OUT_TEXT / 1000) + 's ease',
-                    opacity: '0'
-                });
-
-                setTimeout(function () {
-                    // 2) Replace
-                    titleElem.empty().append(img);
-                    titleElem.css({ opacity: '1', transition: 'none' });
-
-                    var targetHeight = domTitle.getBoundingClientRect().height;
-
-                    domTitle.style.height = startTextHeight + 'px';
-                    domTitle.style.display = 'block';
-                    domTitle.style.overflow = 'hidden';
-                    domTitle.style.boxSizing = 'border-box';
-
-                    void domTitle.offsetHeight;
-
-                    // 3) Morph
-                    domTitle.style.transition = 'height ' + (MORPH_HEIGHT / 1000) + 's cubic-bezier(0.4, 0, 0.2, 1)';
-
-                    requestAnimationFrame(function () {
-                        domTitle.style.height = targetHeight + 'px';
-
-                        // 4) Fade in
-                        setTimeout(function () {
-                            img.style.transition = 'opacity ' + (FADE_IN_IMG / 1000) + 's ease';
-                            img.style.opacity = '1';
-                        }, Math.max(0, MORPH_HEIGHT - 100));
-
-                        // Cleanup
-                        setTimeout(function () {
-                            domTitle.style.height = '';
-                            domTitle.style.overflow = '';
-                            domTitle.style.transition = 'none';
-                            applyLogoStyles(img);
-                        }, MORPH_HEIGHT + FADE_IN_IMG + 50);
-                    });
-                }, FADE_OUT_TEXT);
-
-            }, SAFE_DELAY);
-        };
-
-        img.onerror = function () {
-            titleElem.css({ opacity: '1', transition: 'none' });
-        };
-    }
-
-    function buildMeta(movie) {
-        var parts = [];
-        parts.push(movie.name ? 'Серіал' : 'Фільм');
-        if (movie.genres && movie.genres.length) {
-            for (var i = 0; i < Math.min(movie.genres.length, 3); i++) {
-                if (movie.genres[i].name) parts.push(movie.genres[i].name);
-            }
-        }
-        var year = '';
-        if (movie.release_date) year = movie.release_date.substring(0, 4);
-        else if (movie.first_air_date) year = movie.first_air_date.substring(0, 4);
-        if (year) parts.push(year);
-        return parts.join(' · ');
-    }
 
     function initHeroProcessor() {
         if (window.__nfx_hero_bound) return;
         window.__nfx_hero_bound = true;
 
-        Lampa.Listener.follow('full', function (e) {
-            if (e.type !== 'complite') return;
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.addedNodes.length) {
+                    var heroDetails = document.querySelector('.full-start-new__details');
+                    var heroTitle = document.querySelector('.full-start-new__title'); // or title img
 
-            var movie = e.data.movie;
-            var type = movie.name ? 'tv' : 'movie';
-            var render = e.object.activity.render();
-            var titleElem = render.find('.full-start-new__title');
-            var domTitle = titleElem[0];
+                    // Move "Head" (year/country) into Details for compact layout
+                    var headBlock = document.querySelector('.full-start-new__head');
+                    if (heroDetails && headBlock && !heroDetails.contains(headBlock)) {
+                        // Prepend head block to details
+                        heroDetails.insertBefore(headBlock, heroDetails.firstChild);
+                    }
 
-            if (!titleElem.length) return;
-
-            titleElem.css({ opacity: '1', transition: 'none' });
-
-            var lang = LogoEngine._getLang();
-            var cacheKey = LogoEngine._key(type, movie.id, lang);
-            var cached = LogoEngine._getCached(cacheKey);
-
-            if (cached && cached !== 'none') {
-                var cachedImg = new Image();
-                cachedImg.src = cached;
-                if (cachedImg.complete) {
-                    applyLogoStyles(cachedImg);
-                    titleElem.empty().append(cachedImg);
-                    titleElem.css({ opacity: '1', transition: 'none' });
-                    return;
-                } else {
-                    startLogoAnimation(cached, titleElem, domTitle);
-                    return;
+                    // Ensure high-res logo if using img
+                    if (heroTitle) {
+                        var img = heroTitle.querySelector('img');
+                        if (img && img.src && img.src.indexOf('w500') > -1) {
+                            img.src = img.src.replace('w500', 'original');
+                        }
+                    }
                 }
-            }
-
-            if (cached === 'none') return;
-
-            LogoEngine.resolve(movie, function (logoUrl) {
-                if (logoUrl) startLogoAnimation(logoUrl, titleElem, domTitle);
             });
         });
+
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
-
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 4 — CARD EDGE TAGGER  (MutationObserver)
+    //  SECTION 3 — CARD PROCESSOR (Edges, Ratings, Focus Logic)
     // ─────────────────────────────────────────────────────────────────
 
     function initCardProcessor() {
         if (window.__nfx_cards_bound) return;
         window.__nfx_cards_bound = true;
 
-        // ── Suppress auto-focus scaling until user interacts ──
+        // ── 1. Suppress auto-focus scaling until user interacts ──
+        // This prevents the "First Card" from popping out on page load
         function enableInteraction() {
             document.body.classList.add('nfx-user-interacted');
-            document.removeEventListener('keydown', enableInteraction);
-            document.removeEventListener('pointerdown', enableInteraction);
-            document.removeEventListener('mousedown', enableInteraction);
+            // Remove listeners once triggered
+            ['keydown', 'pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function (evt) {
+                document.removeEventListener(evt, enableInteraction);
+            });
         }
-        document.addEventListener('keydown', enableInteraction, { once: true });
-        document.addEventListener('pointerdown', enableInteraction, { once: true });
-        document.addEventListener('mousedown', enableInteraction, { once: true });
+        ['keydown', 'pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function (evt) {
+            document.addEventListener(evt, enableInteraction, { once: true });
+        });
 
+        // ── 2. Tag Edge Cards & Single Cards ──
         function tagEdges() {
+            // "contain: layout" optimization is applied in CSS to .items-line
             var rows = document.querySelectorAll('.scroll__body');
+
             for (var r = 0; r < rows.length; r++) {
                 var cards = rows[r].querySelectorAll('.card');
                 if (!cards.length) continue;
+
+                // Reset attributes
                 for (var c = 0; c < cards.length; c++) {
                     cards[c].removeAttribute('data-nfx-edge');
                     cards[c].removeAttribute('data-nfx-single');
                 }
+
+                // Logic: Single OR First/Last
                 if (cards.length === 1) {
                     cards[0].setAttribute('data-nfx-single', 'true');
                 } else {
@@ -327,266 +111,196 @@
             }
         }
 
-        // ── Dynamic rating badge colors ──
+        // ── 3. Dynamic Rating Colors (Leaf Badge) ──
         function colorizeRatings() {
             var badges = document.querySelectorAll('.card__vote');
             for (var i = 0; i < badges.length; i++) {
                 var el = badges[i];
-                if (el.getAttribute('data-nfx-colored')) continue;
+                // Optimization: skip if already colored
+                if (el.hasAttribute('data-nfx-colored')) continue;
+
                 var text = (el.textContent || el.innerText || '').replace(',', '.').trim();
                 var val = parseFloat(text);
+
                 if (isNaN(val)) continue;
-                var color;
-                if (val >= 7.5) color = '#2ecc71'; // green
-                else if (val >= 6.5) color = '#f1c40f'; // yellow
-                else if (val >= 5.0) color = '#e67e22'; // orange
-                else color = '#e50914'; // red
+
+                var color = '#e50914'; // default red (<5)
+                if (val >= 7.5) color = '#2ecc71'; // Green (High)
+                else if (val >= 6.5) color = '#f1c40f'; // Yellow (Good)
+                else if (val >= 5.0) color = '#e67e22'; // Orange (Mid)
+
                 el.style.setProperty('background', color, 'important');
-                el.setAttribute('data-nfx-colored', '1');
+                el.setAttribute('data-nfx-colored', 'true');
             }
         }
 
+        // ── 4. Debounced Mutation Observer (Performance) ──
         var timer = null;
         var obs = new MutationObserver(function () {
-            clearTimeout(timer);
+            if (timer) clearTimeout(timer);
+            // 30ms debounce for high performance responsiveness
             timer = setTimeout(function () {
                 tagEdges();
                 colorizeRatings();
-            }, 80);
+            }, 30);
         });
+
+        // Observe only childList/subtree to catch new rows/cards
         obs.observe(document.body, { childList: true, subtree: true });
+
+        // Initial run
         tagEdges();
         colorizeRatings();
     }
 
 
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 5 — CSS  (template literal — zero-gradient minimalist)
+    //  SECTION 4 — CSS INJECTION (Variables & Styles)
     // ─────────────────────────────────────────────────────────────────
 
     function injectCSS() {
-        var old = document.getElementById('nfx-premium-v71');
+        var styleId = 'nfx-premium-style-v72';
+        var old = document.getElementById(styleId);
         if (old) old.remove();
 
         var css = `
 /* ================================================================
-   Netflix Premium Style v7.1 — Zero Gradient / Full Minimalist
+   Netflix Premium Style v7.2 — Ultimate Build
    ================================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-    --nfx-bg: #0a0d12;
-    --nfx-accent: #e50914;
-    --nfx-accent-rgb: 229, 9, 20;
-    --nfx-text: #f0f0f0;
-    --nfx-font: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: 1.35;
-    --nfx-shift: 25%;
-    --nfx-duration: 420ms;
-    --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: 8px;
-    --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
+    --nfx-card-scale: ${NFX.cardScale};
+    --nfx-duration: ${NFX.animDuration};
+    --nfx-ease: ${NFX.animEase};
+    --nfx-shift: ${NFX.shift};
+    --nfx-font: 'Montserrat', sans-serif;
+    --nfx-shadow-text: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-body {
-    background-color: var(--nfx-bg) !important;
-    font-family: var(--nfx-font) !important;
-    color: var(--nfx-text) !important;
+@media screen and (max-width: 768px) {
+    :root { --nfx-shift: ${NFX.shiftMobile}; }
 }
 
+/* Performance: Contain Layout to prevent reflows */
+.items-line {
+    contain: layout style;
+}
 
 /* ================================================================
-   1) OVERFLOW — prevent clipping of scaled cards
+   1) SIDEBAR — Dark Gloss Glass, 1.1em Font
    ================================================================ */
 
-.items-line__body,
-.items-cards,
-.scroll,
-.scroll--horizontal,
-.scroll__content,
-.scroll__body {
-    overflow: visible !important;
+.menu {
+    background: rgba(10, 13, 18, 0.45) !important;
+    backdrop-filter: blur(30px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
+    min-width: 15em !important; /* increased for comfort */
+    overflow-x: hidden !important;
 }
 
-.items-line {
-    overflow: visible !important;
-    position: relative !important;
-    z-index: 1 !important;
-    padding: 45px 0 !important;
+.menu__item {
+    border-radius: 0 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-left: 3px solid transparent !important;
+    padding: 0.6em 1.4em 0.6em 1.1em !important;
+    margin: 1px 0 !important;
+    transition: border-color 200ms ease, background 200ms ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.8em !important;
+    will-change: transform, background;
 }
 
-/* Row with a focused card sits above everything */
-.items-line:has(.card.focus),
-.items-line:has(.card.hover),
-.items-line:has(.card:hover) {
-    z-index: 50 !important;
+/* Active State: 3px Red Line + White Glow */
+.menu__item.focus,
+.menu__item.hover,
+.menu__item.active {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-left: 3px solid #e50914 !important;
 }
 
-/* Category titles */
-.items-line__title {
+/* Text Sizing & Shadow */
+.menu__text {
     font-family: var(--nfx-font) !important;
-    font-weight: 700 !important;
-    font-size: 1.3em !important;
-    color: var(--nfx-text) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
-    padding-left: 4% !important;
+    font-weight: 500 !important;
+    font-size: 1.1em !important;
+    color: rgba(255,255,255,0.5) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+    white-space: nowrap !important;
+    transition: color 200ms ease !important;
 }
+
+.menu__item.focus .menu__text, 
+.menu__item.hover .menu__text, 
+.menu__item.active .menu__text {
+    color: #ffffff !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
+}
+
+/* Icons */
+.menu__ico { 
+    width: 1.1em; height: 1.1em; 
+    color: rgba(255,255,255,0.5) !important; 
+}
+.menu__item.focus .menu__ico, 
+.menu__item.active .menu__ico { 
+    color: #ffffff !important; 
+}
+.menu__ico svg { width: 100%; height: 100%; fill: currentColor !important; }
 
 
 /* ================================================================
-   2) CARD BASE — GPU-ready, clean view (NO ghost masks)
+   2) CARD STYLES — GPU Optimized, Dynamic Scaling
    ================================================================ */
 
 .card {
-    position: relative !important;
+    transform-origin: center center !important;
     transition: transform var(--nfx-duration) var(--nfx-ease),
                 z-index 0s !important;
     z-index: 1 !important;
     will-change: transform !important;
     backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    transform: translate3d(0, 0, 0) !important;
+    perspective: 1000px !important;
 }
 
+/* View Container (Poster) — Clean, NO overlays */
 .card__view {
-    border-radius: var(--nfx-radius) !important;
+    border-radius: 8px !important;
     overflow: visible !important;
-    position: relative !important;
     background: #16181d !important;
     border: 2px solid transparent !important;
-    transition: border-color var(--nfx-duration) var(--nfx-ease),
-                box-shadow var(--nfx-duration) var(--nfx-ease) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+    transition: box-shadow var(--nfx-duration) var(--nfx-ease) !important;
 }
 
-/* ── KILL ALL GHOST MASKS / OVERLAYS (aggressive) ── */
-.card__view::after,
-.card__view::before {
+/* Kill all Ghost Elements */
+.card__view::after, .card__view::before,
+.card__view-shadow, .card__overlay,
+.card__img::after, .card__img::before {
     display: none !important;
     content: none !important;
     background: none !important;
-    background-image: none !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    pointer-events: none !important;
 }
 
-.card__view-shadow,
-.card .card__overlay,
-.card .card__gradient,
-.card .card__mask,
-.card .card__blackout {
-    display: none !important;
-    background: none !important;
-    background-image: none !important;
-    opacity: 0 !important;
-}
-
-/* Also ensure no filter dimming on poster */
-.card .card__img,
-.card.focus .card__img,
-.card.hover .card__img,
-.card:hover .card__img {
-    filter: none !important;
-    -webkit-filter: none !important;
-}
-
-.card__img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    border-radius: var(--nfx-radius) !important;
-    display: block !important;
-}
-
-/* Card title below */
-.card__title {
-    font-family: var(--nfx-font) !important;
-    font-size: 0.85em !important;
-    font-weight: 600 !important;
-    color: var(--nfx-text) !important;
-    padding: 8px 4px 2px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
-}
-
-/* ── QUALITY BADGE — bottom-left, green, always on top ── */
-.card__quality {
-    display: block !important;
-    position: absolute !important;
-    bottom: 6px !important;
-    left: 6px !important;
-    top: auto !important;
-    right: auto !important;
-    z-index: 20 !important;
-    background: rgba(46, 204, 113, 0.88) !important;
-    color: #fff !important;
-    padding: 2px 8px !important;
-    border-radius: 4px !important;
-    font-size: 0.7em !important;
-    font-weight: 700 !important;
-    font-family: var(--nfx-font) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    line-height: 1.4 !important;
-    pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
-}
-
-/* ── RATING BADGE — bottom-right, "leaf" shape, color set by JS ── */
-.card__vote {
-    display: block !important;
-    position: absolute !important;
-    bottom: 6px !important;
-    right: 6px !important;
-    top: auto !important;
-    left: auto !important;
-    z-index: 20 !important;
-    background: rgba(120, 120, 120, 0.6) !important;
-    color: #fff !important;
-    padding: 2px 8px !important;
-    border-radius: 10px 0 10px 0 !important;
-    font-size: 0.75em !important;
-    font-weight: 800 !important;
-    font-family: var(--nfx-font) !important;
-    line-height: 1.4 !important;
-    pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
-}
-
-.card__age { display: none !important; }
-
-
-/* ================================================================
-   3) CARD FOCUS — clean poster + red glow (NO overlays)
-   ================================================================ */
-
-/* ── Suppress auto-focus until user interaction ── */
-body:not(.nfx-user-interacted) .card.focus,
+/* ── SUPPRESS AUTO-FOCUS ON PAGE LOAD ── */
+/* Until user interacts, focused cards look normal (no scale) */
+body:not(.nfx-user-interacted) .card.focus, 
 body:not(.nfx-user-interacted) .card.hover {
     transform: translate3d(0, 0, 0) !important;
     z-index: 1 !important;
 }
-
-body:not(.nfx-user-interacted) .card.focus .card__view,
-body:not(.nfx-user-interacted) .card.hover .card__view {
-    border-color: transparent !important;
+body:not(.nfx-user-interacted) .card.focus .card__view {
     box-shadow: none !important;
+    border-color: transparent !important;
 }
-
-body:not(.nfx-user-interacted) .card.focus ~ .card,
-body:not(.nfx-user-interacted) .card.hover ~ .card {
+body:not(.nfx-user-interacted) .card.focus ~ .card {
     transform: translate3d(0, 0, 0) !important;
 }
 
-/* All cards: center origin, uniform easing */
-.card {
-    transform-origin: center center !important;
-}
+/* ── NORMAL INTERACTIVE FOCUS ── */
 
+/* Focused state: Scale 1.35x */
 .card.focus,
 .card.hover,
 .card:hover {
@@ -594,570 +308,217 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
-/* Focused card — subtle red glow + clean shadow */
+/* Glow Shadow */
 .card.focus .card__view,
-.card.hover .card__view,
-.card:hover .card__view {
+.card.hover .card__view {
     border-color: transparent !important;
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
-               0 20px 40px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5), /* Red Tint Glow */
+                0 20px 40px rgba(0,0,0,0.7) !important;
 }
 
-/* ── NEIGHBOR SHIFTING (GPU translate3d) ── */
+/* Neighbor Shift (Netflix Flow) */
 .card.focus ~ .card,
-.card.hover ~ .card,
-.card:hover ~ .card {
+.card.hover ~ .card {
     transform: translate3d(var(--nfx-shift), 0, 0) !important;
     z-index: 1 !important;
 }
 
-/* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
-
-/* First card: left-origin scale + 20px rightward nudge (no clip) */
+/* ── EDGE LOGIC: FIRST CARD ── */
+/* Scale from LEFT edge + Translate RIGHT 20px to avoid clipping */
 .card[data-nfx-edge="first"].focus,
-.card[data-nfx-edge="first"].hover,
-.card[data-nfx-edge="first"]:hover {
+.card[data-nfx-edge="first"].hover {
     transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) 
                translate3d(20px, 0, 0) !important;
 }
-
-/* First card's neighbors: standard shift + extra 20px to compensate */
-.card[data-nfx-edge="first"].focus ~ .card,
-.card[data-nfx-edge="first"].hover ~ .card,
-.card[data-nfx-edge="first"]:hover ~ .card {
+/* Neighbors of first card need extra shift to compensate */
+.card[data-nfx-edge="first"].focus ~ .card {
     transform: translate3d(calc(var(--nfx-shift) + 20px), 0, 0) !important;
 }
 
-/* Last card: right-origin scale + 20px leftward nudge (no clip) */
+/* ── EDGE LOGIC: LAST CARD ── */
+/* Scale from RIGHT edge + Translate LEFT 20px */
 .card[data-nfx-edge="last"].focus,
-.card[data-nfx-edge="last"].hover,
-.card[data-nfx-edge="last"]:hover {
+.card[data-nfx-edge="last"].hover {
     transform-origin: right center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) 
                translate3d(-20px, 0, 0) !important;
 }
-
-/* Reduce shift for the last card when a non-edge sibling is focused */
-.card.focus ~ .card[data-nfx-edge="last"],
-.card.hover ~ .card[data-nfx-edge="last"],
-.card:hover ~ .card[data-nfx-edge="last"] {
+/* Reduced shift for last card if sibling focuses it */
+.card.focus ~ .card[data-nfx-edge="last"] {
     transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
 }
 
-/* ── SINGLE CARD: use left-origin (no clip) but NO shift ── */
+/* ── SINGLE CARD (row length = 1) ── */
+/* Grow rightward (safe) but NO translate shift */
 .card[data-nfx-single="true"].focus,
-.card[data-nfx-single="true"].hover,
-.card[data-nfx-single="true"]:hover {
+.card[data-nfx-single="true"].hover {
     transform-origin: left center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
 
 /* ================================================================
-   4) HERO — FULLSCREEN BACKDROP, ZERO OVERLAYS
+   3) BADGES — Leaf Shape, Dynamic Color
+   ================================================================ */
+.card__vote {
+    position: absolute !important;
+    right: 6px !important; bottom: 6px !important; left: auto !important; top: auto !important;
+    z-index: 20 !important;
+    padding: 2px 8px !important;
+    border-radius: 10px 0 10px 0 !important; /* Leaf shape */
+    font-size: 0.75em !important;
+    font-weight: 800 !important;
+    font-family: var(--nfx-font) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
+    /* Background color set by JS colorizeRatings(), fallback gray */
+    background: rgba(120,120,120,0.6); 
+    will-change: background;
+}
+.card__age { display: none !important; }
+
+
+/* ================================================================
+   4) HERO — Fullscreen, Transparent, No Masks
    ================================================================ */
 
-/* ── Backdrop: 100% fullscreen, no mask, no margins ── */
-.full-start-new,
-.full-start {
-    position: relative !important;
+/* Backdrop Container */
+.full-start-new, .full-start {
+    position: relative !important; margin: 0 !important; padding: 0 !important;
     overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }
-
-.full-start-new .full-start-new__background,
-.full-start-new .full-start__background,
+.full-start-new .full-start-new__background, 
 .full-start__background {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    mask-image: none !important;
-    -webkit-mask-image: none !important;
+    position: absolute !important; top: 0; left: 0; width: 100%; height: 100%;
+    mask-image: none !important; -webkit-mask-image: none !important;
 }
-
-.full-start-new .full-start-new__background img,
-.full-start-new .full-start__background img,
+.full-start-new__background img, 
 .full-start__background img {
-    width: 100% !important;
-    height: 100% !important;
+    width: 100% !important; height: 100% !important;
     object-fit: cover !important;
-    filter: none !important;
 }
 
-/* ── Kill ALL overlays, gradients, masks ── */
-.full-start-new::before,
-.full-start-new::after,
-.full-start::before,
-.full-start::after {
-    display: none !important;
-    content: none !important;
+/* Kill Gradient Overlays */
+.full-start-new::before, .full-start-new::after,
+.applecation__overlay, .application__overlay,
+.full-start-new__gradient, .full-start-new__mask {
+    display: none !important; background: none !important;
 }
 
-/* The main culprit: applecation__overlay has a linear-gradient */
-.applecation__overlay,
-.application__overlay {
-    display: none !important;
+/* Remove Rectangular Masks on Text/Logo */
+.full-start-new__title, .applecation__logo, 
+.applecation__content-wrapper, .full-start-new__body {
     background: none !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-.full-start-new__gradient,
-.full-start__gradient,
-.full-start-new__mask,
-.full-start__mask {
-    display: none !important;
-    background: none !important;
-}
-
-/* ── Kill ALL rectangular masks behind logo / title / content ── */
-.full-start-new__title,
-.full-start__title,
-.applecation__logo,
-.applecation__left,
-.applecation__right,
-.applecation__content-wrapper,
-.applecation__meta,
-.applecation__ratings,
-.full-start-new__head,
-.full-start__head,
-.full-start-new__details,
-.full-start__details {
-    background: none !important;
-    background-color: transparent !important;
-    background-image: none !important;
     box-shadow: none !important;
 }
-
-/* Kill pseudo-elements on title / logo containers */
-.full-start-new__title::before,
-.full-start-new__title::after,
-.full-start__title::before,
-.full-start__title::after,
-.applecation__logo::before,
-.applecation__logo::after,
-.applecation__left::before,
-.applecation__left::after,
-.applecation__content-wrapper::before,
-.applecation__content-wrapper::after,
-.full-start-new__right::before,
-.full-start-new__right::after,
-.full-start__right::before,
-.full-start__right::after,
-.full-start-new__body::before,
-.full-start-new__body::after,
-.full-start__body::before,
-.full-start__body::after {
-    display: none !important;
-    content: none !important;
-    background: none !important;
+/* Revert any pseudo-bg injection */
+.full-start-new__title::before, .full-start-new__title::after { 
+    display: none !important; 
 }
 
-/* Kill any JS-injected inline overlay backgrounds */
-.full-start__background.applecation__overlay {
-    display: none !important;
-    background: none !important;
-    background-image: none !important;
-    opacity: 0 !important;
-}
-
-/* ── HIDE REACTIONS (Pink zone) ── */
-.full-start-new__reactions,
-.full-start__reactions {
-    display: none !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-/* ── Content: left-aligned, bottom-weighted ── */
-.full-start-new__body,
-.full-start__body {
-    position: relative !important;
-    z-index: 2 !important;
-    padding-left: 5% !important;
-    display: flex !important;
-    align-items: flex-end !important;
+/* Layout: Bottom-Left Alignment */
+.full-start-new__body {
+    position: relative !important; z-index: 2 !important;
+    padding-left: 5% !important; padding-bottom: 2em !important;
     min-height: 80vh !important;
-    padding-bottom: 2em !important;
-    background: none !important;
+    display: flex !important; align-items: flex-end !important;
 }
+.full-start-new__left { display: none !important; } /* Hide poster */
 
-.full-start-new__right,
-.full-start__right {
-    position: relative !important;
-    z-index: 3 !important;
-    max-width: 650px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
-    background: none !important;
-}
-
-/* Hide default poster — full-bleed backdrop instead */
-.full-start-new__left,
-.full-start__left {
-    display: none !important;
-}
-
-/* ── Hero Title / Logo — NO background, only text-shadow ── */
-.full-start-new__title,
-.full-start__title {
+/* Title / Logo Logic */
+.full-start-new__title {
     font-family: var(--nfx-font) !important;
     font-weight: 800 !important;
-    font-size: 2.6em !important;
-    line-height: 1.08 !important;
+    font-size: 2.8em !important;
     color: #fff !important;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.7),
-                 0 6px 24px rgba(0,0,0,0.8) !important;
-    margin-bottom: 8px !important;
-    background: none !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7) !important;
+    margin-bottom: 12px !important;
+}
+.full-start-new__title img, .applecation__logo img {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6)) !important;
 }
 
-/* Logo images: drop-shadow for contrast, NO rectangular mask */
-.full-start-new__title img,
-.full-start__title img,
-.applecation__logo img,
-.new-interface-full-logo {
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.4)) !important;
-    background: none !important;
-    box-shadow: none !important;
-}
+/* Hide Reactions (Pink Zone) */
+.full-start-new__reactions { display: none !important; }
 
-/* ── Compact Metadata Block (moved from blue → pink zone) ── */
-
-/* Head line (year, country) */
-.full-start-new__head,
-.full-start__head {
+/* Metadata (Compact) */
+.full-start-new__details, .full-start-new__head,
+.full-start-new__tagline, .full-start-new__text {
     font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.85em !important;
-    line-height: 1.3 !important;
-    color: rgba(255,255,255,0.75) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
+    color: rgba(255,255,255,0.9) !important;
+    max-width: 600px !important;
 }
 
-/* Tagline (quote) */
-.full-start-new__tagline,
-.full-start__tagline {
-    font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    font-style: italic !important;
-    font-size: 0.88em !important;
-    line-height: 1.3 !important;
-    color: rgba(255,255,255,0.65) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 4px 0 !important;
-    padding: 0 !important;
-}
-
-/* Ratings (TMDB / KP) */
-.full-start-new__rate-line,
-.full-start__rate-line {
-    font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.82em !important;
-    line-height: 1.3 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
-}
-
-/* Details (genres, quality, etc.) */
-.full-start-new__details,
-.full-start__details {
-    font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.82em !important;
-    line-height: 1.3 !important;
-    color: rgba(255,255,255,0.72) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
-}
-
-/* Description text */
-.full-start-new__text,
-.full-start__text,
-.full-start-new__description,
-.full-start__description {
-    font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    color: rgba(255,255,255,0.72) !important;
-    font-size: 0.85em !important;
-    line-height: 1.4 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    max-width: 520px !important;
-    margin: 0 0 6px 0 !important;
-}
-
-/* ── Premium Buttons ── */
-
-/* Inactive buttons: grayish semi-transparent glass */
-.full-start__button,
-.full-start-new__button {
-    font-family: var(--nfx-font) !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    background: rgba(120, 120, 120, 0.2) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-    color: rgba(255,255,255,0.8) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    transition: background 300ms ease,
-                transform 200ms ease,
-                box-shadow 300ms ease,
-                border-color 300ms ease !important;
-}
-
-/* Active/focused button: tinted red glass, pure white text */
-.full-start__button.focus,
-.full-start__button:hover,
-.full-start-new__button.focus,
-.full-start-new__button:hover {
-    background: rgba(229, 9, 20, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
-               0 8px 28px rgba(0,0,0,0.4) !important;
-    transform: scale(1.04) !important;
-}
-
-/* Ensure button text/icons are always white when focused */
-.full-start__button.focus *,
-.full-start__button:hover *,
-.full-start-new__button.focus *,
-.full-start-new__button:hover * {
-    color: #ffffff !important;
-    fill: #ffffff !important;
-}
-
-
-/* ================================================================
-   5) SIDEBAR — Dark gloss glassmorphism, optimized for long text
-   ================================================================ */
-
-/* Container: dark glossy glass, full-height coverage */
-.menu {
-    background: rgba(10, 13, 18, 0.45) !important;
-    backdrop-filter: blur(30px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
-    border-right: 1px solid rgba(255,255,255,0.08) !important;
-    border-left: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    min-width: 14em !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-}
-
-.menu__list {
-    background: transparent !important;
-    padding: 0 !important;
-}
-
-/* ── Menu Items: geometry & text fit ── */
-.menu__item {
-    border-radius: 0 !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border-left: 3px solid transparent !important;
-    padding: 0.55em 1.4em 0.55em 1em !important;
-    margin: 0 !important;
-    transition: border-color 200ms ease,
-                background 200ms ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.7em !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-/* ── Active / focused: 3px red line + subtle white glass ── */
-.menu__item.focus,
-.menu__item.hover,
-.menu__item.traverse,
-.menu__item.active {
-    background: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: none !important;
-    border-left: 3px solid #e50914 !important;
-}
-
-/* Active text: pure white */
-.menu__item.focus .menu__text,
-.menu__item.hover .menu__text,
-.menu__item.traverse .menu__text,
-.menu__item.active .menu__text {
-    color: #ffffff !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important;
-}
-
-/* Active icons: pure white */
-.menu__item.focus .menu__ico,
-.menu__item.hover .menu__ico,
-.menu__item.traverse .menu__ico,
-.menu__item.active .menu__ico {
-    color: #ffffff !important;
-}
-
-.menu__item.focus .menu__ico svg,
-.menu__item.hover .menu__ico svg,
-.menu__item.traverse .menu__ico svg,
-.menu__item.active .menu__ico svg {
-    fill: #ffffff !important;
-}
-
-/* ── Inactive text: muted with subtle shadow ── */
-.menu__text {
-    font-family: var(--nfx-font) !important;
-    font-weight: 500 !important;
-    font-size: 1.1em !important;
-    color: rgba(255,255,255,0.5) !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
-    transition: color 200ms ease !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.3 !important;
-}
-
-/* ── Icons: slightly smaller ── */
-.menu__ico {
-    color: rgba(255,255,255,0.5) !important;
-    transition: color 200ms ease !important;
-    flex-shrink: 0 !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.menu__ico svg {
-    fill: rgba(255,255,255,0.5) !important;
-    transition: fill 200ms ease !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-}
-
-/* Header bar — 100% transparent */
+/* Header (Transparent) */
 .head {
     background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border: none !important;
     box-shadow: none !important;
-}
-
-.head__actions {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-}
-
-.head__button,
-.head .button {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    border: none !important;
 }
 
 
 /* ================================================================
-   6) SCROLLBAR — minimal
+   5) BUTTONS — Glassmorphism
    ================================================================ */
-
-::-webkit-scrollbar {
-    width: 4px !important;
-    height: 4px !important;
-}
-::-webkit-scrollbar-track { background: transparent !important; }
-::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1) !important;
+.full-start__button, .full-start-new__button {
+    font-family: var(--nfx-font) !important;
     border-radius: 8px !important;
+    background: rgba(120, 120, 120, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+    will-change: transform, background;
+    transition: transform 0.2s, background 0.3s !important;
 }
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.22) !important;
+.full-start__button.focus, .full-start__button:hover,
+.full-start-new__button.focus, .full-start-new__button:hover {
+    background: rgba(229, 9, 20, 0.75) !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4) !important;
 }
 
-.scroll__body {
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-}
-.scroll__body::-webkit-scrollbar { display: none !important; }
-
-
-/* ================================================================
-   7) RESPONSIVE
-   ================================================================ */
-
-@media (max-width: 768px) {
-    .full-start-new__title, .full-start__title {
-        font-size: 1.6em !important;
-    }
-    .full-start-new__right, .full-start__right {
-        max-width: 90vw !important;
-    }
-    :root {
-        --nfx-card-scale: 1.2;
-        --nfx-shift: 14%;
-    }
-    .items-line {
-        padding: 28px 0 !important;
-    }
-}
 `;
 
         var style = document.createElement('style');
-        style.id = 'nfx-premium-v71';
-        style.textContent = css;
+        style.id = styleId;
+        style.type = 'text/css';
+        style.innerHTML = css;
         document.head.appendChild(style);
     }
 
 
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 6 — BOOTSTRAP
+    //  SECTION 5 — BOOTSTRAP (Loader)
     // ─────────────────────────────────────────────────────────────────
 
     function bootstrap() {
-        if (window.__nfx_premium_v71) return;
-        window.__nfx_premium_v71 = true;
+        if (window.__nfx_premium_v72) return;
+        window.__nfx_premium_v72 = true;
 
         injectCSS();
         initHeroProcessor();
         initCardProcessor();
 
-        console.log('[NFX Premium] v7.1 — Zero Gradient · Glass Sidebar · Clean Cards');
+        console.log('[NFX Premium] v7.2 — Ultimate Build Loaded');
     }
 
     if (window.Lampa && Lampa.Listener) {
         Lampa.Listener.follow('app', function (e) {
             if (e.type === 'ready') bootstrap();
         });
-        setTimeout(bootstrap, 800);
+        setTimeout(bootstrap, 500); // Fast load
     } else {
+        // Fallback polling for Lampa object
         var poll = setInterval(function () {
             if (typeof Lampa !== 'undefined' && Lampa.Listener) {
                 clearInterval(poll);
-                Lampa.Listener.follow('app', function (e) {
-                    if (e.type === 'ready') bootstrap();
-                });
-                setTimeout(bootstrap, 800);
+                bootstrap();
             }
-        }, 200);
+        }, 100);
     }
 
 })();
