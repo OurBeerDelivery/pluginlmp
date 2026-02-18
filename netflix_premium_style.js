@@ -623,11 +623,16 @@ body {
     content: none !important;
 }
 
+/* The main culprit: applecation__overlay has a linear-gradient */
 .applecation__overlay,
 .application__overlay {
-    background: transparent !important;
-    background-image: none !important;
     display: none !important;
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .full-start-new__gradient,
@@ -636,6 +641,57 @@ body {
 .full-start__mask {
     display: none !important;
     background: none !important;
+}
+
+/* ── Kill ALL rectangular masks behind logo / title / content ── */
+.full-start-new__title,
+.full-start__title,
+.applecation__logo,
+.applecation__left,
+.applecation__right,
+.applecation__content-wrapper,
+.applecation__meta,
+.applecation__ratings,
+.full-start-new__head,
+.full-start__head,
+.full-start-new__details,
+.full-start__details {
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+/* Kill pseudo-elements on title / logo containers */
+.full-start-new__title::before,
+.full-start-new__title::after,
+.full-start__title::before,
+.full-start__title::after,
+.applecation__logo::before,
+.applecation__logo::after,
+.applecation__left::before,
+.applecation__left::after,
+.applecation__content-wrapper::before,
+.applecation__content-wrapper::after,
+.full-start-new__right::before,
+.full-start-new__right::after,
+.full-start__right::before,
+.full-start__right::after,
+.full-start-new__body::before,
+.full-start-new__body::after,
+.full-start__body::before,
+.full-start__body::after {
+    display: none !important;
+    content: none !important;
+    background: none !important;
+}
+
+/* Kill any JS-injected inline overlay backgrounds */
+.full-start__background.applecation__overlay {
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    opacity: 0 !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -658,6 +714,7 @@ body {
     align-items: flex-end !important;
     min-height: 80vh !important;
     padding-bottom: 2em !important;
+    background: none !important;
 }
 
 .full-start-new__right,
@@ -668,6 +725,7 @@ body {
     display: flex !important;
     flex-direction: column !important;
     gap: 0 !important;
+    background: none !important;
 }
 
 /* Hide default poster — full-bleed backdrop instead */
@@ -676,7 +734,7 @@ body {
     display: none !important;
 }
 
-/* ── Hero Title / Logo — stays large ── */
+/* ── Hero Title / Logo — NO background, only text-shadow ── */
 .full-start-new__title,
 .full-start__title {
     font-family: var(--nfx-font) !important;
@@ -684,9 +742,22 @@ body {
     font-size: 2.6em !important;
     line-height: 1.08 !important;
     color: #fff !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5),
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7),
                  0 6px 24px rgba(0,0,0,0.8) !important;
     margin-bottom: 8px !important;
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Logo images: drop-shadow for contrast, NO rectangular mask */
+.full-start-new__title img,
+.full-start__title img,
+.applecation__logo img,
+.new-interface-full-logo {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.4)) !important;
+    background: none !important;
+    box-shadow: none !important;
 }
 
 /* ── Compact Metadata Block (moved from blue → pink zone) ── */
