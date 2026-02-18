@@ -530,12 +530,13 @@ body {
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
-/* Clean high-quality shadow — NO colored border, NO red glow */
+/* Focused card — subtle red glow + clean shadow */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
-    border-color: rgba(255,255,255,0.25) !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6) !important;
+    border-color: transparent !important;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
+               0 20px 40px rgba(0,0,0,0.6) !important;
 }
 
 /* ── NEIGHBOR SHIFTING (GPU translate3d) ── */
@@ -754,43 +755,64 @@ body {
     margin: 0 0 6px 0 !important;
 }
 
-/* ── Glassmorphism Buttons ── */
+/* ── Premium Buttons ── */
+
+/* Inactive buttons: grayish semi-transparent glass */
 .full-start__button,
 .full-start-new__button {
     font-family: var(--nfx-font) !important;
     font-weight: 600 !important;
     border-radius: 8px !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    background: rgba(255,255,255,0.1) !important;
-    backdrop-filter: blur(15px) saturate(1.2) !important;
-    -webkit-backdrop-filter: blur(15px) saturate(1.2) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    background: rgba(120, 120, 120, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+    color: rgba(255,255,255,0.8) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
     transition: background 300ms ease,
                 transform 200ms ease,
-                box-shadow 300ms ease !important;
+                box-shadow 300ms ease,
+                border-color 300ms ease !important;
 }
 
+/* Active/focused button: tinted red glass, pure white text */
 .full-start__button.focus,
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: rgba(var(--nfx-accent-rgb), 0.85) !important;
-    border-color: rgba(var(--nfx-accent-rgb), 0.9) !important;
-    box-shadow: 0 8px 28px rgba(var(--nfx-accent-rgb), 0.35) !important;
+    background: rgba(229, 9, 20, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
+               0 8px 28px rgba(0,0,0,0.4) !important;
     transform: scale(1.04) !important;
+}
+
+/* Ensure button text/icons are always white when focused */
+.full-start__button.focus *,
+.full-start__button:hover *,
+.full-start-new__button.focus *,
+.full-start-new__button:hover * {
+    color: #ffffff !important;
+    fill: #ffffff !important;
 }
 
 
 /* ================================================================
-   5) SIDEBAR — Glassy blur, red left-border active item
+   5) SIDEBAR — Elegant glass menu with thin red accent
    ================================================================ */
 
 .menu {
-    background: rgba(10, 13, 18, 0.4) !important;
-    backdrop-filter: blur(25px) saturate(1.3) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(1.3) !important;
-    border-right: 1px solid rgba(255,255,255,0.06) !important;
+    background: linear-gradient(to right,
+        rgba(10, 13, 18, 0.85) 0%,
+        rgba(10, 13, 18, 0.7) 70%,
+        rgba(10, 13, 18, 0.4) 100%) !important;
+    backdrop-filter: blur(30px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(1.3) !important;
+    border-right: 1px solid rgba(255,255,255,0.04) !important;
     border-left: none !important;
     border-top: none !important;
     border-bottom: none !important;
@@ -800,22 +822,24 @@ body {
     background: transparent !important;
 }
 
-/* All menu items: clean base */
+/* Inactive menu items: subtle glass tint */
 .menu__item {
     border-radius: 0 !important;
-    background: transparent !important;
-    border-left: 4px solid transparent !important;
-    transition: border-color 200ms ease, background 200ms ease !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-left: 3px solid transparent !important;
+    transition: border-color 200ms ease,
+                background 200ms ease !important;
+    margin: 1px 0 !important;
 }
 
-/* Active / focused menu item: red left-border + white text */
+/* Active / focused menu item: 3px thin red line + white text */
 .menu__item.focus,
 .menu__item.hover,
 .menu__item.traverse,
 .menu__item.active {
-    background: transparent !important;
+    background: rgba(255, 255, 255, 0.08) !important;
     box-shadow: none !important;
-    border-left: 4px solid var(--nfx-accent) !important;
+    border-left: 3px solid #e50914 !important;
 }
 
 .menu__item.focus .menu__text,
@@ -825,18 +849,39 @@ body {
     color: #ffffff !important;
 }
 
+.menu__item.focus .menu__ico,
+.menu__item.hover .menu__ico,
+.menu__item.traverse .menu__ico,
+.menu__item.active .menu__ico {
+    color: #ffffff !important;
+}
+
+.menu__item.focus .menu__ico svg,
+.menu__item.hover .menu__ico svg,
+.menu__item.traverse .menu__ico svg,
+.menu__item.active .menu__ico svg {
+    fill: #ffffff !important;
+}
+
+/* Inactive text: muted */
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    color: rgba(255,255,255,0.55) !important;
+    color: rgba(255,255,255,0.5) !important;
+    transition: color 200ms ease !important;
+}
+
+.menu__ico {
+    color: rgba(255,255,255,0.5) !important;
     transition: color 200ms ease !important;
 }
 
 .menu__ico svg {
-    fill: currentColor !important;
+    fill: rgba(255,255,255,0.5) !important;
+    transition: fill 200ms ease !important;
 }
 
-/* Header bar — fully transparent (Green zone) */
+/* Header bar — 100% transparent */
 .head {
     background: transparent !important;
     background-color: transparent !important;
