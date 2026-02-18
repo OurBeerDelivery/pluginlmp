@@ -34,35 +34,84 @@
     //  SECTION 2 — HERO PROCESSOR (Logo & Backdrop)
     // ─────────────────────────────────────────────────────────────────
 
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 2 — HERO PROCESSOR (Logo & Backdrop)
+    // ─────────────────────────────────────────────────────────────────
+
+    var LogoEngine = {
+        resolve: function (movie, done) {
+            if (!movie || !movie.id) return done(null);
+            var type = movie.name ? 'tv' : 'movie';
+            // Use Lampa's API key and language settings
+            var lang = (typeof Lampa !== 'undefined' && Lampa.Storage.get('language', 'uk')) || 'en';
+            var apiKey = (typeof Lampa !== 'undefined' && Lampa.TMDB.key()) || 'b86e03fe3535e93e01b4b0e9fc345794';
+
+            // TMDB Image Query
+            var url = 'https://api.themoviedb.org/3/' + type + '/' + movie.id + '/images?api_key=' + apiKey + '&include_image_language=' + lang + ',en,null';
+
+            // Use jQuery if available, otherwise fetch
+            if (typeof $ !== 'undefined' && $.get) {
+                $.get(url, function (data) {
+                    process(data);
+                }).fail(function () { done(null); });
+            } else {
+                fetch(url).then(r => r.json()).then(process).catch(() => done(null));
+            }
+
+            function process(data) {
+                var path = null;
+                if (data && data.logos && data.logos.length) {
+                    // Try to find logo in current language, then English, then first available
+                    var best = data.logos.find(l => l.iso_639_1 === lang) ||
+                        data.logos.find(l => l.iso_639_1 === 'en') ||
+                        data.logos[0];
+                    if (best) path = 'https://image.tmdb.org/t/p/original' + best.file_path; // SVG or PNG
+                }
+                done(path);
+            }
+        }
+    };
+
     function initHeroProcessor() {
         if (window.__nfx_hero_bound) return;
         window.__nfx_hero_bound = true;
 
+        // 1. Layout Adjustments (Head -> Details) via Observer
         var observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
                 if (mutation.addedNodes.length) {
                     var heroDetails = document.querySelector('.full-start-new__details');
-                    var heroTitle = document.querySelector('.full-start-new__title'); // or title img
-
-                    // Move "Head" (year/country) into Details for compact layout
                     var headBlock = document.querySelector('.full-start-new__head');
                     if (heroDetails && headBlock && !heroDetails.contains(headBlock)) {
-                        // Prepend head block to details
                         heroDetails.insertBefore(headBlock, heroDetails.firstChild);
-                    }
-
-                    // Ensure high-res logo if using img
-                    if (heroTitle) {
-                        var img = heroTitle.querySelector('img');
-                        if (img && img.src && img.src.indexOf('w500') > -1) {
-                            img.src = img.src.replace('w500', 'original');
-                        }
                     }
                 }
             });
         });
-
         observer.observe(document.body, { childList: true, subtree: true });
+
+        // 2. Logo Replacement via Lampa Listener
+        if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+            Lampa.Listener.follow('full', function (e) {
+                if (e.type === 'complite') {
+                    // Fetch and inject logo
+                    LogoEngine.resolve(e.data.movie, function (url) {
+                        if (url) {
+                            var render = e.object.activity.render();
+                            var titleElem = render.find('.full-start-new__title');
+                            // Replace text with Image
+                            var img = '<img src="' + url + '" class="nfx-hero-logo" style="opacity:0; transition: opacity 0.5s ease;">';
+                            titleElem.empty().append(img);
+
+                            // Smooth fade-in
+                            setTimeout(function () {
+                                titleElem.find('img').css('opacity', 1);
+                            }, 100);
+                        }
+                    });
+                }
+            });
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -428,6 +477,7 @@ body:not(.nfx-user-interacted) .card.focus ~ .card {
 
 /* Title / Logo Logic */
 .full-start-new__title {
+    display: block !important;
     font-family: var(--nfx-font) !important;
     font-weight: 800 !important;
     font-size: 2.8em !important;
@@ -435,8 +485,11 @@ body:not(.nfx-user-interacted) .card.focus ~ .card {
     text-shadow: 0 2px 10px rgba(0,0,0,0.7) !important;
     margin-bottom: 12px !important;
 }
-.full-start-new__title img, .applecation__logo img {
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6)) !important;
+.full-start-new__title img, .applecation__logo img, .nfx-hero-logo {
+    max-width: 500px !important;
+    max-height: 220px !important;
+    object-fit: contain !important;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)) !important;
 }
 
 /* Hide Reactions (Pink Zone) */
