@@ -1,1501 +1,740 @@
 (function () {
     'use strict';
 
-    /* ============================================================
-     * NETFLIX PREMIUM STYLE v5.3
-     * Cinematic Red Accent, Smooth Rows, Movie Logo Headers
-     * ============================================================ */
+    /* =============================================================
+     * Netflix Premium Style v6.0.0
+     * Minimalist halo look, glass + red accents, logo-first hero.
+     * ============================================================= */
 
-    /* ------------------------------------------------------------------
-     * QUICK NAVIGATION (швидкий пошук по файлу)
-     * 1) UTILS + SETTINGS                  -> getBool / settings
-     * 2) MENU HELPERS                      -> ensureMenuSubsectionsVisible
-     * 3) LOGO PIPELINE (TMDB + fallback)   -> resolveLogoViaTmdb / applyFullCardLogo
-     * 4) CARDS + SCROLL                    -> processCard / enableSmoothRowScroll
-     * 5) DOM OBSERVER                      -> scanNode / startObserver
-     * 6) CSS THEME (CUSTOMIZE)             -> injectStyles
-     * 7) SETTINGS UI + INIT                -> initSettingsUI / init
-     *
-     * Шукати по тегам:
-     * - "CUSTOMIZE"      : точки для швидкого кастому
-     * - "BLOCK:"         : великі логічні блоки
-     * - "SAFEGUARD:"     : місця із захистом від дублю/гонок
-     * ------------------------------------------------------------------ */
-
-    /* BLOCK: Utils */
+    /* ========================= 1. SETTINGS ======================== */
     function getBool(key, def) {
         var v = Lampa.Storage.get(key, def);
         if (typeof v === 'string') v = v.trim().toLowerCase();
         return v === true || v === 'true' || v === 1 || v === '1';
     }
 
-    function clamp(num, min, max) {
-        return Math.max(min, Math.min(max, num));
-    }
-
-    function escapeSvgText(text) {
-        return String(text || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
-    }
-
-    function cleanTitle(text) {
-        return String(text || '')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    /* 1. LOCALIZATION */
-    Lampa.Lang.add({
-        netflix_premium_title: { en: 'Netflix Premium Style', uk: 'Netflix Преміум Стиль' },
-        netflix_enable: { en: 'Enable Netflix Premium style', uk: 'Увімкнути Netflix Преміум стиль' },
-        netflix_use_backdrops: { en: 'Use backdrops (landscape)', uk: 'Використовувати backdrops (горизонтальні)' },
-        netflix_show_logos: { en: 'Replace full-card title with logo', uk: 'Заміняти заголовок картки на лого' },
-        netflix_smooth_scroll: { en: 'Extra smooth row scrolling', uk: 'Дуже плавний скрол рядів' },
-        netflix_round_corners: { en: 'Rounded corners', uk: 'Заокруглені кути' },
-        netflix_card_height: { en: 'Card height', uk: 'Висота карток' }
-    });
-
-    /* 2. SETTINGS */
-    /* CUSTOMIZE: дефолтні опції плагіна */
     var settings = {
         enabled: getBool('netflix_premium_enabled', true),
         useBackdrops: getBool('netflix_use_backdrops', true),
         showLogos: getBool('netflix_show_logos', true),
         smoothScroll: getBool('netflix_smooth_scroll', true),
         roundCorners: getBool('netflix_round_corners', true),
-        cardHeight: Lampa.Storage.get('netflix_card_height', 'medium')
+        cardHeight: Lampa.Storage.get('netflix_card_height', 'medium') || 'medium'
     };
 
-    /* BLOCK: Runtime state (службові змінні сесії) */
-    var rowScrollState = new WeakMap(); // Пер-ряд стан плавного скролу
-    var domObserver = null;             // Один глобальний MutationObserver
-    var lastFullMovie = null;           // Останній movie з full-екрана
-    var lastFullMovieKey = '';          // SAFEGUARD: для асинхронного logo-апдейту
-    var DISABLE_LOGO_CACHE = false;     // CUSTOMIZE: true = відключити cache логотипів
-    var logoRequests = {};              // SAFEGUARD: дедуп паралельних TMDB запитів
+    var CARD_HEIGHTS = {
+        small: '170px',
+        medium: '220px',
+        large: '272px',
+        xlarge: '340px'
+    };
 
-    /* BLOCK: Selectors / Fallback dictionaries */
-    /* CUSTOMIZE: якщо в іншій темі назви меню мають інші класи, додайте їх сюди */
-    var MENU_TEXT_SELECTORS = '.menu__item-name, .menu__item-text, .menu__item-title, .menu__item-label, .menu__item-value';
-    var SECTION_TITLE_SELECTORS = '.scroll__title, .category-title';
-    /* CUSTOMIZE: словник fallback-лейблів для пунктів меню без нормального тексту */
-    /* CUSTOMIZE: словник fallback-лейблів (вимкнено для збереження оригінальної локалізації) */
-    var MENU_FALLBACK_LABELS = [];
+    /* ===================== 2. LOGO MANAGER ======================== */
+    var LogoManager = (function () {
+        var waiters = {};
+        var queue = [];
+        var busy = false;
+        var DISABLE_CACHE = false;
 
-    /* BLOCK: Card/movie data normalization */
-    function getCardData(card) {
-        return card.card_data ||
-            card.data ||
-            card.movie ||
-            card._data ||
-            (card.onnoderemove && card.onnoderemove.data) ||
-            null;
-    }
-
-    function getMovieTitle(movie, fallback) {
-        return cleanTitle(
-            (movie && (movie.title || movie.name || movie.original_title || movie.original_name)) ||
-            fallback ||
-            ''
-        );
-    }
-
-    function getMovieType(movie) {
-        return movie && movie.name ? 'tv' : 'movie';
-    }
-
-    /* SAFEGUARD: унікальний ключ для синхронізації async-лого */
-    function getMovieKey(movie) {
-        if (!movie || !movie.id) return '';
-        return getMovieType(movie) + ':' + movie.id;
-    }
-
-    /* BLOCK: TMDB logo request helpers */
-    function getLogoCacheKey(type, id, lang) {
-        return 'logo_cache_width_based_v1_' + type + '_' + id + '_' + lang;
-    }
-
-    function getTargetLogoLanguage() {
-        var userLang = Lampa.Storage.get('logo_lang', '');
-        return userLang || Lampa.Storage.get('language', 'en') || 'en';
-    }
-
-    function getTargetLogoSize() {
-        return Lampa.Storage.get('logo_size', 'original') || 'original';
-    }
-
-    function pickLogoPath(dataApi, targetLang) {
-        if (!dataApi || !Array.isArray(dataApi.logos) || !dataApi.logos.length) return '';
-
-        var logos = dataApi.logos;
-        for (var i = 0; i < logos.length; i++) {
-            if (logos[i] && logos[i].iso_639_1 === targetLang && logos[i].file_path) return logos[i].file_path;
+        function movieKey(movie) {
+            if (!movie || !movie.id) return '';
+            return (movie.name ? 'tv:' : 'movie:') + movie.id;
         }
 
-        for (var j = 0; j < logos.length; j++) {
-            if (logos[j] && logos[j].iso_639_1 === 'en' && logos[j].file_path) return logos[j].file_path;
+        function targetLang() {
+            return Lampa.Storage.get('logo_lang', Lampa.Storage.get('language', 'en')) || 'en';
         }
 
-        return logos[0] && logos[0].file_path ? logos[0].file_path : '';
-    }
-
-    function flushLogoQueue(queueKey, url) {
-        var queue = logoRequests[queueKey] || [];
-        delete logoRequests[queueKey];
-        for (var i = 0; i < queue.length; i++) queue[i](url || '');
-    }
-
-    /* BLOCK: TMDB logo resolver
-     * 1) читає кеш
-     * 2) дедупає одночасні запити
-     * 3) тягне /images і повертає готовий URL logo
-     */
-    function resolveLogoViaTmdb(movie, done) {
-        if (!movie || !movie.id || !Lampa.TMDB || typeof $ === 'undefined' || typeof $.get !== 'function') {
-            done('');
-            return;
-        }
-
-        var type = getMovieType(movie);
-        var lang = getTargetLogoLanguage();
-        var size = getTargetLogoSize();
-        var cacheKey = getLogoCacheKey(type, movie.id, lang);
-        var requestKey = cacheKey + '::' + size;
-
-        if (!DISABLE_LOGO_CACHE) {
-            var cachedUrl = Lampa.Storage.get(cacheKey);
-            if (cachedUrl && cachedUrl !== 'none') {
-                done(cachedUrl);
-                return;
+        function getCached(key) {
+            try {
+                var raw = sessionStorage.getItem(key);
+                if (raw === 'none') return '';
+                if (raw) return raw;
+            } catch (e) { /* ignore */ }
+            if (!DISABLE_CACHE) {
+                var alt = Lampa.Storage.get(key, null);
+                if (alt === 'none') return '';
+                if (alt) return alt;
             }
-            if (cachedUrl === 'none') {
+            return '';
+        }
+
+        function setCached(key, value) {
+            try { sessionStorage.setItem(key, value || 'none'); } catch (e) { /* ignore */ }
+            if (!DISABLE_CACHE) Lampa.Storage.set(key, value || 'none');
+        }
+
+        function normalizeLogoCandidate(value) {
+            if (!value) return '';
+            if (typeof value === 'object') value = value.url || value.file_path || value.logo || value.path || '';
+            if (typeof value !== 'string') return '';
+            if (value.indexOf('data:image') === 0) return value;
+            if (/^https?:\/\//i.test(value)) return value;
+            if (value.charAt(0) === '/') return 'https://image.tmdb.org/t/p/w500' + value;
+            return '';
+        }
+
+        function directLogo(movie) {
+            if (!movie || typeof movie !== 'object') return '';
+            var direct = [
+                movie.direct_logo_url,
+                movie.logo,
+                movie.logo_path,
+                movie.clearlogo,
+                movie.clear_logo,
+                movie.img_logo,
+                movie.image_logo
+            ];
+            for (var i = 0; i < direct.length; i++) {
+                var found = normalizeLogoCandidate(direct[i]);
+                if (found) return found;
+            }
+
+            var nested = [];
+            if (movie.images) {
+                nested.push(movie.images.logo, movie.images.clearlogo, movie.images.clear_logo);
+                if (Array.isArray(movie.images.logos) && movie.images.logos.length) nested.push(movie.images.logos[0]);
+            }
+            if (Array.isArray(movie.logos) && movie.logos.length) nested.push(movie.logos[0]);
+
+            for (var j = 0; j < nested.length; j++) {
+                var nestedFound = normalizeLogoCandidate(nested[j]);
+                if (nestedFound) return nestedFound;
+            }
+
+            return '';
+        }
+
+        function pickLogoPath(dataApi, lang) {
+            if (!dataApi || !Array.isArray(dataApi.logos) || !dataApi.logos.length) return '';
+            for (var i = 0; i < dataApi.logos.length; i++) {
+                var l = dataApi.logos[i];
+                if (l && l.iso_639_1 === lang && l.file_path) return l.file_path;
+            }
+            for (var j = 0; j < dataApi.logos.length; j++) {
+                var en = dataApi.logos[j];
+                if (en && en.iso_639_1 === 'en' && en.file_path) return en.file_path;
+            }
+            return dataApi.logos[0].file_path || '';
+        }
+
+        function flush(key, url) {
+            var list = waiters[key] || [];
+            delete waiters[key];
+            for (var i = 0; i < list.length; i++) list[i](url || '');
+        }
+
+        function processQueue() {
+            if (busy) return;
+            if (!queue.length) return;
+            busy = true;
+
+            var job = queue.shift();
+            var apiUrl = Lampa.TMDB.api(job.type + '/' + job.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + job.lang + ',en,null');
+
+            $.get(apiUrl, function (dataApi) {
+                var logoPath = pickLogoPath(dataApi, job.lang);
+                var finalUrl = logoPath ? Lampa.TMDB.image('/t/p/original' + logoPath.replace('.svg', '.png')) : '';
+                setCached(job.cacheKey, finalUrl || 'none');
+                flush(job.requestKey, finalUrl);
+                setTimeout(function () { busy = false; processQueue(); }, 120);
+            }).fail(function () {
+                setCached(job.cacheKey, 'none');
+                flush(job.requestKey, '');
+                setTimeout(function () { busy = false; processQueue(); }, 120);
+            });
+        }
+
+        function resolve(movie, done) {
+            if (!movie || !movie.id || !Lampa.TMDB || typeof $ === 'undefined' || typeof $.get !== 'function') {
                 done('');
                 return;
             }
-        }
 
-        if (logoRequests[requestKey]) {
-            logoRequests[requestKey].push(done);
-            return;
-        }
-
-        logoRequests[requestKey] = [done];
-
-        var url = Lampa.TMDB.api(
-            type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + lang + ',en,null'
-        );
-
-        $.get(url, function (dataApi) {
-            var finalLogo = pickLogoPath(dataApi, lang);
-            if (!finalLogo) {
-                if (!DISABLE_LOGO_CACHE) Lampa.Storage.set(cacheKey, 'none');
-                flushLogoQueue(requestKey, '');
+            var direct = directLogo(movie);
+            if (direct) {
+                done(direct);
                 return;
             }
 
-            var imgUrl = Lampa.TMDB.image('/t/p/' + size + finalLogo.replace('.svg', '.png'));
-            if (!DISABLE_LOGO_CACHE) Lampa.Storage.set(cacheKey, imgUrl);
-            flushLogoQueue(requestKey, imgUrl);
-        }).fail(function () {
-            flushLogoQueue(requestKey, '');
-        });
-    }
+            var type = movie.name ? 'tv' : 'movie';
+            var lang = targetLang();
+            var cacheKey = 'nfx_logo_' + type + '_' + movie.id + '_' + lang;
+            var requestKey = cacheKey;
 
-    /* BLOCK: Menu label cleanup */
-    function resolveMenuFallbackLabel(rawValue) {
-        var raw = cleanTitle(rawValue || '');
-        if (!raw) return '';
-
-        var lower = raw.toLowerCase();
-        for (var i = 0; i < MENU_FALLBACK_LABELS.length; i++) {
-            if (lower.indexOf(MENU_FALLBACK_LABELS[i].match) !== -1) return MENU_FALLBACK_LABELS[i].label;
-        }
-
-        return raw;
-    }
-
-    function getMenuLabelScore(text) {
-        /* Кращий score -> більша ймовірність, що це основний людський лейбл */
-        var score = (text || '').length;
-        if (/[А-Яа-яЁёЇїІіЄєҐґ]/.test(text)) score += 100;
-        if (/^[a-z0-9_-]+$/i.test(text)) score -= 20;
-        return score;
-    }
-
-    /* SAFEGUARD: прибирає "Головна main" / "Серіали serial" і дубльовані хвости */
-    function cleanMenuPrimaryLabel(text) {
-        var out = cleanTitle(text || '');
-        if (!out) return '';
-
-        var dup = out.match(/^(.+?)\s+\1$/i);
-        if (dup && dup[1]) out = cleanTitle(dup[1]);
-
-        var tail = out.match(/^(.*)\s+([a-z][a-z0-9_-]{1,20})$/i);
-        if (tail && tail[1] && /[А-Яа-яЁёЇїІіЄєҐґ]/.test(tail[1])) out = cleanTitle(tail[1]);
-
-        return out;
-    }
-
-    function ensureMenuPrimaryLabelNode(item) {
-        var label = item.querySelector('.nfx-menu-primary-label');
-        if (!label) {
-            label = document.createElement('span');
-            label.className = 'nfx-menu-primary-label';
-        }
-
-        var icon = item.querySelector('.menu__item-icon');
-        if (icon) {
-            if (label.parentElement !== item || icon.nextSibling !== label) {
-                item.insertBefore(label, icon.nextSibling);
-            }
-        } else if (label.parentElement !== item) {
-            item.insertBefore(label, item.firstChild);
-        }
-
-        return label;
-    }
-
-    /* BLOCK: Section title placement (завжди над рядом карток) */
-    function isSectionTitleElement(node) {
-        if (!node || !node.classList) return false;
-        return node.classList.contains('scroll__title') || node.classList.contains('category-title');
-    }
-
-    function getFirstDirectSectionTitle(parent) {
-        if (!parent || !parent.children) return null;
-        for (var i = 0; i < parent.children.length; i++) {
-            if (isSectionTitleElement(parent.children[i])) return parent.children[i];
-        }
-        return null;
-    }
-
-    function ensureSectionTitlesAboveCards(root) {
-        var scope = root && root.querySelectorAll ? root : document;
-        var lines = [];
-
-        if (scope.classList && scope.classList.contains('items-line')) lines = [scope];
-        else lines = scope.querySelectorAll('.items-line');
-
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            var parent = line.parentElement;
-            if (!parent) continue;
-
-            var prev = line.previousElementSibling;
-            var next = line.nextElementSibling;
-            var title = null;
-
-            if (isSectionTitleElement(prev)) title = prev;
-            else if (isSectionTitleElement(next)) title = next;
-            else title = getFirstDirectSectionTitle(parent);
-
-            if (!title) continue;
-
-            if (title.parentElement !== parent) continue;
-
-            var group = line.closest('.nfx-row-group');
-            if (!group || group.parentElement !== parent || !group.contains(title)) {
-                group = document.createElement('div');
-                group.className = 'nfx-row-group';
-                parent.insertBefore(group, line);
-                group.appendChild(title);
-                group.appendChild(line);
-            } else {
-                if (group.firstElementChild !== title) group.insertBefore(title, group.firstChild);
-                if (line.parentElement !== group) group.appendChild(line);
+            var cached = getCached(cacheKey);
+            if (cached) {
+                done(cached);
+                return;
             }
 
-            title.classList.add('nfx-section-title');
+            if (waiters[requestKey]) {
+                waiters[requestKey].push(done);
+                return;
+            }
+
+            waiters[requestKey] = [done];
+            queue.push({ type: type, id: movie.id, lang: lang, cacheKey: cacheKey, requestKey: requestKey });
+            processQueue();
         }
-    }
 
-    /* BLOCK: Menu normalization
-     * Залишає один primary label на пункт меню, інше ховає.
-     */
-    function ensureMenuSubsectionsVisible(root) {
-        var scope = root && root.querySelectorAll ? root : document;
-        var items = [];
+        return {
+            resolve: resolve,
+            direct: directLogo,
+            movieKey: movieKey
+        };
+    })();
 
-        if (scope.classList && scope.classList.contains('menu__item')) items = [scope];
-        else items = scope.querySelectorAll('.menu__item');
+    /* ===================== 3. DOM PROCESSOR ======================= */
+    var DomProcessor = (function () {
+        var observer = null;
+        var rowScrollState = new WeakMap();
+        var lastMovie = null;
+        var lastMovieKey = '';
 
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            if (!item || !item.classList) continue;
+        function cleanTitle(text) {
+            return String(text || '').replace(/\s+/g, ' ').trim();
+        }
 
-            // Якщо вже оброблено, пропускаємо (перевірка за наявністю класу nfx-menu-primary)
-            if (item.querySelector('.nfx-menu-primary')) continue;
+        function getMovieTitle(movie, fallback) {
+            return cleanTitle((movie && (movie.title || movie.name || movie.original_title || movie.original_name)) || fallback || '');
+        }
 
-            item.classList.add('nfx-menu-item');
-            var legacySub = item.querySelector('.nfx-menu-subsection');
-            if (legacySub) legacySub.remove();
+        function getCardData(card) {
+            return card.card_data || card.data || card.movie || card._data || (card.onnoderemove && card.onnoderemove.data) || null;
+        }
 
-            var textNodes = item.querySelectorAll(MENU_TEXT_SELECTORS);
-            var entries = [];
+        function applyBackdrop(card, data) {
+            if (!settings.useBackdrops || !data || !data.backdrop_path) return;
+            var img = card.querySelector('.card__img');
+            if (!img) return;
 
-            for (var j = 0; j < textNodes.length; j++) {
-                var rawText = textNodes[j].textContent || '';
-                var text = cleanTitle(rawText);
+            var url = 'https://image.tmdb.org/t/p/w780' + data.backdrop_path;
+            if (img.dataset.nfxBackdrop === url) return;
 
-                // Скидаємо попередні класи
-                textNodes[j].classList.remove('nfx-menu-primary', 'nfx-menu-secondary');
+            var preload = new Image();
+            preload.onload = function () {
+                img.src = url;
+                img.dataset.nfxBackdrop = url;
+                card.classList.add('nfx-has-backdrop');
+            };
+            preload.src = url;
+        }
 
-                if (!text) {
-                    textNodes[j].classList.add('nfx-menu-secondary');
+        function processCard(card) {
+            if (!settings.enabled || !card || !card.classList) return;
+            if (card.dataset.nfxProcessed === 'true') return;
+
+            card.dataset.nfxProcessed = 'true';
+            var data = getCardData(card);
+            applyBackdrop(card, data);
+        }
+
+        function clamp(num, min, max) {
+            return Math.max(min, Math.min(max, num));
+        }
+
+        function animateLineScroll(line, state) {
+            state.current += (state.target - state.current) * 0.18;
+            line.scrollLeft = state.current;
+
+            if (Math.abs(state.target - state.current) < 0.5) {
+                line.scrollLeft = state.target;
+                state.current = state.target;
+                state.raf = 0;
+                return;
+            }
+
+            state.raf = requestAnimationFrame(function () {
+                animateLineScroll(line, state);
+            });
+        }
+
+        function enableSmoothRowScroll(line) {
+            if (!line || !line.classList || !line.classList.contains('items-line')) return;
+            if (line.dataset.nfxSmoothBound === 'true') return;
+
+            line.dataset.nfxSmoothBound = 'true';
+            var state = { target: line.scrollLeft || 0, current: line.scrollLeft || 0, raf: 0 };
+            rowScrollState.set(line, state);
+
+            line.addEventListener('wheel', function (event) {
+                if (!settings.enabled || !settings.smoothScroll) return;
+
+                var mostlyVertical = Math.abs(event.deltaY) >= Math.abs(event.deltaX);
+                if (!mostlyVertical) return;
+
+                var maxScroll = Math.max(0, line.scrollWidth - line.clientWidth);
+                if (!maxScroll) return;
+
+                event.preventDefault();
+                var delta = (event.deltaY + event.deltaX) * 0.95;
+
+                state.target = clamp(state.target + delta, 0, maxScroll);
+                if (!state.raf) state.raf = requestAnimationFrame(function () { animateLineScroll(line, state); });
+            }, { passive: false });
+        }
+
+        function restoreOriginalTitle(node) {
+            if (!node || !node.dataset) return;
+            if (!node.dataset.nfxOriginalHtml) return;
+            node.innerHTML = node.dataset.nfxOriginalHtml;
+            node.classList.remove('nfx-hero-logo-wrap', 'nfx-hero-text');
+        }
+
+        function applyHeroLogo(movie) {
+            if (!settings.enabled) return;
+            var titleNodes = document.querySelectorAll('.full-start-new__title, .full-start__title');
+            if (!titleNodes.length) return;
+
+            var key = LogoManager.movieKey(movie);
+            lastMovieKey = key;
+
+            for (var i = 0; i < titleNodes.length; i++) {
+                var node = titleNodes[i];
+                if (!node.dataset.nfxOriginalHtml) node.dataset.nfxOriginalHtml = node.innerHTML;
+                var fallbackText = node.dataset.nfxOriginalTitle || cleanTitle(node.textContent || '');
+                if (!node.dataset.nfxOriginalTitle) node.dataset.nfxOriginalTitle = fallbackText;
+
+                if (!settings.showLogos) {
+                    restoreOriginalTitle(node);
                     continue;
                 }
 
-                var nodeScore = getMenuLabelScore(text);
-                if (textNodes[j].classList.contains('menu__item-value')) nodeScore -= 260;
-                if (textNodes[j].classList.contains('menu__item-name')) nodeScore += 70;
-                if (textNodes[j].classList.contains('menu__item-text')) nodeScore += 45;
-                if (textNodes[j].classList.contains('menu__item-title')) nodeScore += 35;
+                var textTitle = getMovieTitle(movie, fallbackText);
+                node.innerHTML = '';
+                node.classList.add('nfx-hero-text');
+                node.setAttribute('aria-label', textTitle);
 
-                entries.push({
-                    node: textNodes[j],
-                    text: text,
-                    score: nodeScore
-                });
-            }
-
-            if (entries.length) {
-                // Знаходимо найкращий лейбл
-                var primary = entries[0];
-                for (var k = 1; k < entries.length; k++) {
-                    if (entries[k].score > primary.score) primary = entries[k];
+                var direct = LogoManager.direct(movie);
+                if (direct) {
+                    renderLogo(node, direct, textTitle, key);
+                    continue;
                 }
 
-                // Маркуємо ноди
-                for (var z = 0; z < entries.length; z++) {
-                    var node = entries[z].node;
-                    var isPrimary = node === primary.node;
+                node.textContent = textTitle;
+                (function (titleNode, titleText, movieKey) {
+                    LogoManager.resolve(movie, function (url) {
+                        if (!url) return;
+                        if (movieKey && lastMovieKey && movieKey !== lastMovieKey) return;
+                        renderLogo(titleNode, url, titleText, movieKey);
+                    });
+                })(node, textTitle, key);
+            }
+        }
 
-                    if (isPrimary) {
-                        node.classList.add('nfx-menu-primary');
-                        node.classList.add('nfx-menu-primary-label'); // Додаємо клас для стилізації
-                    } else {
-                        node.classList.add('nfx-menu-secondary');
-                    }
+        function renderLogo(node, url, titleText, movieKey) {
+            if (!node) return;
+            node.innerHTML = '';
+            node.classList.remove('nfx-hero-text');
+            node.classList.add('nfx-hero-logo-wrap');
+            node.dataset.nfxMovieKey = movieKey || '';
+
+            var holder = document.createElement('div');
+            holder.className = 'nfx-hero-logo-holder';
+
+            var img = document.createElement('img');
+            img.className = 'nfx-hero-logo';
+            img.alt = titleText;
+            img.loading = 'eager';
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+            img.src = url;
+
+            holder.appendChild(img);
+            node.appendChild(holder);
+        }
+
+        function scanNode(node) {
+            if (!node || node.nodeType !== 1) return;
+
+            if (node.classList.contains('card')) processCard(node);
+            if (node.classList.contains('items-line')) enableSmoothRowScroll(node);
+            if (node.classList.contains('full-start__title') || node.classList.contains('full-start-new__title')) applyHeroLogo(lastMovie);
+
+            var cards = node.querySelectorAll('.card');
+            for (var i = 0; i < cards.length; i++) processCard(cards[i]);
+
+            var rows = node.querySelectorAll('.items-line');
+            for (var j = 0; j < rows.length; j++) enableSmoothRowScroll(rows[j]);
+
+            if (node.querySelector('.full-start__title, .full-start-new__title')) applyHeroLogo(lastMovie);
+        }
+
+        function startObserver() {
+            if (observer || !document.body) return;
+
+            observer = new MutationObserver(function (mutations) {
+                for (var i = 0; i < mutations.length; i++) {
+                    var added = mutations[i].addedNodes;
+                    for (var j = 0; j < added.length; j++) scanNode(added[j]);
                 }
-            }
-        }
-    }
+            });
 
-    /* BLOCK: Logo source resolver (supports direct URL, relative path, nested objects) */
-    function normalizeLogoCandidate(value) {
-        if (!value) return '';
-
-        if (typeof value === 'object') {
-            value = value.url || value.file_path || value.logo || value.path || '';
+            observer.observe(document.body, { childList: true, subtree: true });
+            scanNode(document.body);
         }
 
-        if (!value || typeof value !== 'string') return '';
+        function bindFullListener() {
+            if (window.__netflix_full_bound) return;
+            window.__netflix_full_bound = true;
 
-        if (value.indexOf('data:image') === 0) return value;
-        if (value.indexOf('http://') === 0 || value.indexOf('https://') === 0) return value;
-        if (value.charAt(0) === '/') return 'https://image.tmdb.org/t/p/w500' + value;
-        return '';
-    }
+            if (!Lampa.Listener || !Lampa.Listener.follow) return;
 
-    /* BLOCK: Read logo from movie payload before requesting TMDB */
-    function getMovieLogoUrl(movie) {
-        if (!movie || typeof movie !== 'object') return '';
+            Lampa.Listener.follow('full', function (event) {
+                if (!settings.enabled) return;
+                if (event && event.type && event.type !== 'complite') return;
 
-        var direct = [
-            movie.logo,
-            movie.logo_path,
-            movie.clearlogo,
-            movie.clear_logo,
-            movie.img_logo,
-            movie.image_logo
-        ];
+                if (event && event.data && event.data.movie) {
+                    lastMovie = event.data.movie;
+                    lastMovieKey = LogoManager.movieKey(lastMovie);
+                }
 
-        for (var i = 0; i < direct.length; i++) {
-            var found = normalizeLogoCandidate(direct[i]);
-            if (found) return found;
-        }
-
-        var nested = [];
-        if (movie.images) {
-            nested.push(movie.images.logo, movie.images.clearlogo, movie.images.clear_logo);
-            if (Array.isArray(movie.images.logos) && movie.images.logos.length) nested.push(movie.images.logos[0]);
-        }
-        if (Array.isArray(movie.logos) && movie.logos.length) nested.push(movie.logos[0]);
-
-        for (var j = 0; j < nested.length; j++) {
-            var nestedFound = normalizeLogoCandidate(nested[j]);
-            if (nestedFound) return nestedFound;
-        }
-
-        return '';
-    }
-
-    /* BLOCK: Fallback logo generator (SVG based on title text) */
-    function buildTextLogoDataUrl(title) {
-        var source = cleanTitle(title || 'Movie');
-        var text = escapeSvgText(source.length > 40 ? source.slice(0, 40).trim() + '...' : source);
-        var fontSize = source.length > 24 ? 76 : 92;
-
-        var svg =
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 320">' +
-            '<defs>' +
-            '<linearGradient id="nfxg" x1="0" y1="0" x2="1" y2="0">' +
-            '<stop offset="0%" stop-color="#ffffff"/>' +
-            '<stop offset="100%" stop-color="#f3f3f3"/>' +
-            '</linearGradient>' +
-            '</defs>' +
-            '<rect width="100%" height="100%" fill="transparent"/>' +
-            '<g transform="skewX(-7) translate(40 0)">' +
-            '<text x="700" y="214" text-anchor="middle" ' +
-            'font-family="Arial Black,Helvetica,sans-serif" font-size="' + fontSize + '" ' +
-            'font-weight="900" letter-spacing="2" fill="#91070f" opacity="0.72">' + text + '</text>' +
-            '<text x="700" y="200" text-anchor="middle" ' +
-            'font-family="Arial Black,Helvetica,sans-serif" font-size="' + fontSize + '" ' +
-            'font-weight="900" letter-spacing="2" fill="url(#nfxg)">' + text + '</text>' +
-            '</g>' +
-            '</svg>';
-
-        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-    }
-
-    /* BLOCK: Replace poster with backdrop in card rows */
-    function applyBackdrop(card, data) {
-        if (!settings.useBackdrops || !data || !data.backdrop_path) return;
-
-        var img = card.querySelector('.card__img');
-        if (!img) return;
-
-        var backdropUrl = 'https://image.tmdb.org/t/p/w780' + data.backdrop_path;
-        if (img.dataset.nfxBackdropUrl === backdropUrl) return;
-
-        var preload = new Image();
-        preload.onload = function () {
-            img.src = backdropUrl;
-            img.dataset.nfxBackdropUrl = backdropUrl;
-            card.classList.add('card--has-backdrop');
-        };
-        preload.onerror = function () {
-            card.classList.remove('card--has-backdrop');
-        };
-        preload.src = backdropUrl;
-    }
-
-    /* BLOCK: Idempotent card processing (safe for repeated observer runs) */
-    function processCard(card) {
-        if (!settings.enabled) return;
-        if (!card || !card.classList || !card.classList.contains('card')) return;
-        if (card.dataset.nfxProcessed === 'true') return;
-
-        var data = getCardData(card);
-        applyBackdrop(card, data);
-        card.dataset.nfxProcessed = 'true';
-    }
-
-    /* BLOCK: Smooth row animation frame loop */
-    function animateLineScroll(line, state) {
-        state.current += (state.target - state.current) * 0.18;
-        line.scrollLeft = state.current;
-
-        if (Math.abs(state.target - state.current) < 0.5) {
-            line.scrollLeft = state.target;
-            state.current = state.target;
-            state.raf = 0;
-            return;
-        }
-
-        state.raf = requestAnimationFrame(function () {
-            animateLineScroll(line, state);
-        });
-    }
-
-    /* BLOCK: Wheel -> horizontal smooth scroll for .items-line */
-    function enableSmoothRowScroll(line) {
-        if (!line || !line.classList || !line.classList.contains('items-line')) return;
-        if (line.dataset.nfxSmoothBound === 'true') return;
-
-        line.dataset.nfxSmoothBound = 'true';
-        var state = {
-            target: line.scrollLeft || 0,
-            current: line.scrollLeft || 0,
-            raf: 0
-        };
-
-        rowScrollState.set(line, state);
-
-        line.addEventListener('wheel', function (event) {
-            if (!settings.enabled || !settings.smoothScroll) return;
-
-            var maxScroll = Math.max(0, line.scrollWidth - line.clientWidth);
-            if (!maxScroll) return;
-
-            var mostlyVertical = Math.abs(event.deltaY) >= Math.abs(event.deltaX);
-            if (!mostlyVertical) return;
-
-            event.preventDefault();
-            var delta = (event.deltaY + event.deltaX) * 0.95;
-
-            state.target = clamp(state.target + delta, 0, maxScroll);
-            if (!state.raf) {
-                state.raf = requestAnimationFrame(function () {
-                    animateLineScroll(line, state);
-                });
-            }
-        }, { passive: false });
-    }
-
-    /* BLOCK: Full page title -> logo transform */
-    function applyFullCardLogo(movie) {
-        if (!settings.enabled) return;
-
-        var titleNodes = document.querySelectorAll('.full-start-new__title, .full-start__title');
-        if (!titleNodes.length) return;
-
-        var movieKey = getMovieKey(movie);
-        if (movieKey) lastFullMovieKey = movieKey;
-        var directLogoUrl = getMovieLogoUrl(movie);
-        var shouldFetchTmdbLogo = settings.showLogos && !directLogoUrl;
-        var pendingTitles = [];
-
-        for (var i = 0; i < titleNodes.length; i++) {
-            var titleEl = titleNodes[i];
-            if (!titleEl || !titleEl.classList) continue;
-
-            if (!settings.showLogos) {
-                restoreOriginalTitle(titleEl);
-                continue;
-            }
-
-            var fallbackText = titleEl.dataset.nfxOriginalTitle || titleEl.textContent || '';
-            var titleText = getMovieTitle(movie, fallbackText);
-            if (!titleText) continue;
-
-            if (!titleEl.dataset.nfxOriginalHtml) titleEl.dataset.nfxOriginalHtml = titleEl.innerHTML;
-            if (!titleEl.dataset.nfxOriginalTitle) titleEl.dataset.nfxOriginalTitle = cleanTitle(titleEl.textContent || titleText);
-
-            var fallbackLogo = '';
-            var initialLogoUrl = directLogoUrl;
-
-            pendingTitles.push(titleEl);
-
-            if (directLogoUrl) {
-                /* ВИПАДОК 1: Є пряме посилання на лого - показуємо картинку */
-                titleEl.classList.add('nfx-title--with-logo');
-                titleEl.setAttribute('aria-label', titleText);
-                titleEl.dataset.nfxMovieKey = movieKey || '';
-                titleEl.innerHTML = '';
-
-                var holder = document.createElement('div');
-                holder.className = 'nfx-full-logo-holder';
-
-                var logoImg = document.createElement('img');
-                logoImg.className = 'nfx-full-logo';
-                logoImg.alt = titleText;
-                logoImg.loading = 'eager';
-                logoImg.decoding = 'async';
-                logoImg.referrerPolicy = 'no-referrer';
-                logoImg.dataset.nfxMovieKey = movieKey || '';
-                logoImg.src = directLogoUrl;
-
-                holder.appendChild(logoImg);
-                titleEl.appendChild(holder);
-            } else {
-                /* ВИПАДОК 2: Немає лого - показуємо гарний текст Montserrat Medium */
-                titleEl.classList.add('nfx-title-text-fallback');
-                titleEl.setAttribute('aria-label', titleText);
-                titleEl.dataset.nfxMovieKey = movieKey || '';
-                titleEl.textContent = titleText;
-            }
-        }
-
-        if (shouldFetchTmdbLogo && movie && movie.id) {
-            resolveLogoViaTmdb(movie, function (tmdbLogoUrl) {
-                if (!tmdbLogoUrl) return;
-                if (movieKey && lastFullMovieKey && movieKey !== lastFullMovieKey) return;
-
-                for (var k = 0; k < pendingTitles.length; k++) {
-                    var tNode = pendingTitles[k];
-                    // Якщо вже є картинка - оновлюємо src
-                    var existingImg = tNode.querySelector('.nfx-full-logo');
-                    if (existingImg) {
-                        if (movieKey && existingImg.dataset.nfxMovieKey !== movieKey) continue;
-                        existingImg.src = tmdbLogoUrl;
-                        continue;
-                    }
-
-                    // Якщо був текст - замінюємо на лого
-                    if (tNode.classList.contains('nfx-title-text-fallback')) {
-                        tNode.innerHTML = '';
-                        tNode.classList.remove('nfx-title-text-fallback');
-                        tNode.classList.add('nfx-title--with-logo');
-
-                        var holder = document.createElement('div');
-                        holder.className = 'nfx-full-logo-holder';
-
-                        var logoImg = document.createElement('img');
-                        logoImg.className = 'nfx-full-logo';
-                        logoImg.alt = tNode.getAttribute('aria-label') || 'Logo';
-                        logoImg.loading = 'eager';
-                        logoImg.decoding = 'async';
-                        logoImg.src = tmdbLogoUrl;
-
-                        holder.appendChild(logoImg);
-                        tNode.appendChild(holder);
-                    }
+                var delays = [0, 140, 320, 640];
+                for (var i = 0; i < delays.length; i++) {
+                    (function (d) { setTimeout(function () { applyHeroLogo(lastMovie); }, d); })(delays[i]);
                 }
             });
         }
-    }
 
-    /* BLOCK: Restore one title node back to default html/text */
-    function restoreOriginalTitle(titleEl) {
-        if (!titleEl || !titleEl.classList) return;
-        if (!titleEl.classList.contains('nfx-title--with-logo')) return;
-
-        var originalHtml = titleEl.dataset.nfxOriginalHtml;
-        titleEl.classList.remove('nfx-title--with-logo');
-        titleEl.removeAttribute('aria-label');
-
-        if (typeof originalHtml === 'string') {
-            titleEl.innerHTML = originalHtml;
-        } else if (titleEl.dataset.nfxOriginalTitle) {
-            titleEl.textContent = titleEl.dataset.nfxOriginalTitle;
-        }
-    }
-
-    /* BLOCK: Restore all transformed title nodes */
-    function restoreAllTitles() {
-        var nodes = document.querySelectorAll('.nfx-title--with-logo');
-        for (var i = 0; i < nodes.length; i++) restoreOriginalTitle(nodes[i]);
-    }
-
-    /* BLOCK: Central router for newly added DOM nodes */
-    function scanNode(node) {
-        if (!node || node.nodeType !== 1) return;
-
-        if (node.classList.contains('card')) processCard(node);
-        if (node.classList.contains('items-line')) enableSmoothRowScroll(node);
-        if (node.classList.contains('items-line') || isSectionTitleElement(node)) ensureSectionTitlesAboveCards(node);
-        if (node.classList.contains('menu') || node.classList.contains('menu__list') || node.classList.contains('menu__item')) {
-            ensureMenuSubsectionsVisible(node);
-        }
-
-        if (node.classList.contains('full-start-new__title') || node.classList.contains('full-start__title')) {
-            applyFullCardLogo(lastFullMovie);
-        }
-
-        var cards = node.querySelectorAll('.card');
-        for (var i = 0; i < cards.length; i++) processCard(cards[i]);
-
-        var rows = node.querySelectorAll('.items-line');
-        for (var j = 0; j < rows.length; j++) {
-            enableSmoothRowScroll(rows[j]);
-            ensureSectionTitlesAboveCards(rows[j]);
-        }
-
-        if (node.querySelector('.menu__item')) ensureMenuSubsectionsVisible(node);
-        if (node.querySelector(SECTION_TITLE_SELECTORS) || node.querySelector('.items-line')) ensureSectionTitlesAboveCards(node);
-        if (node.querySelector('.full-start-new__title, .full-start__title')) applyFullCardLogo(lastFullMovie);
-    }
-
-    /* BLOCK: Global MutationObserver bootstrap */
-    function startObserver() {
-        if (domObserver || !document.body) return;
-
-        domObserver = new MutationObserver(function (mutations) {
-            for (var i = 0; i < mutations.length; i++) {
-                var added = mutations[i].addedNodes;
-                for (var j = 0; j < added.length; j++) scanNode(added[j]);
+        function refreshCards() {
+            var cards = document.querySelectorAll('.card');
+            for (var i = 0; i < cards.length; i++) {
+                delete cards[i].dataset.nfxProcessed;
+                processCard(cards[i]);
             }
-        });
-
-        domObserver.observe(document.body, { childList: true, subtree: true });
-        scanNode(document.body);
-    }
-
-    /* BLOCK: Listen full-card events and re-apply logo at safe delays */
-    function bindFullListener() {
-        if (window.__netflix_full_listener_bound) return;
-        window.__netflix_full_listener_bound = true;
-
-        if (!Lampa.Listener || !Lampa.Listener.follow) return;
-
-        Lampa.Listener.follow('full', function (event) {
-            if (!settings.enabled) return;
-            if (event && event.type && event.type !== 'complite') return;
-
-            if (event && event.data && event.data.movie) {
-                lastFullMovie = event.data.movie;
-                lastFullMovieKey = getMovieKey(lastFullMovie);
-            }
-            var delays = [0, 120, 350, 700];
-
-            for (var i = 0; i < delays.length; i++) {
-                (function (delay) {
-                    setTimeout(function () {
-                        applyFullCardLogo(lastFullMovie);
-                    }, delay);
-                })(delays[i]);
-            }
-        });
-    }
-
-    /* BLOCK: Force re-run card processing for current DOM */
-    function refreshCards() {
-        var cards = document.querySelectorAll('.card');
-        for (var i = 0; i < cards.length; i++) {
-            delete cards[i].dataset.nfxProcessed;
-            processCard(cards[i]);
-        }
-    }
-
-    /* 3. CSS INJECTION
-     * CUSTOMIZE: основний блок візуального кастому.
-     * Першим ділом дивіться :root змінні і секції нижче.
-     */
-    function injectStyles() {
-        var old = document.getElementById('netflix_premium_styles');
-        if (old) old.remove();
-
-        if (!settings.enabled) {
-            restoreAllTitles();
-            return;
         }
 
-        /* CUSTOMIZE: presets висоти карток */
-        var heights = {
-            small: '170px',
-            medium: '220px',
-            large: '272px',
-            xlarge: '340px'
+        function restoreTitles() {
+            var nodes = document.querySelectorAll('.nfx-hero-logo-wrap, .nfx-hero-text');
+            for (var i = 0; i < nodes.length; i++) restoreOriginalTitle(nodes[i]);
+        }
+
+        return {
+            start: startObserver,
+            bindFull: bindFullListener,
+            refreshCards: refreshCards,
+            applyHeroLogo: applyHeroLogo,
+            restoreTitles: restoreTitles
         };
+    })();
 
-        var h = heights[settings.cardHeight] || heights.medium;
-        var radius = settings.roundCorners ? '14px' : '4px';
+    /* ===================== 4. CSS INJECTOR ======================== */
+    var CssInjector = (function () {
+        function inject() {
+            var old = document.getElementById('netflix_premium_styles');
+            if (old) old.remove();
 
-        var css = `
-    /* IMPORT MONTSERRAT FONT */
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap');
-
-            /* ===== BLOCK: THEME TOKENS (GLOBAL) ===== */
-            :root {
-        --nfx - height: ${h};
-        --nfx - width: calc(var(--nfx - height) * 1.7778);
-        --nfx - bg: #0a0d12;
-        --nfx - bg - soft: #131923;
-        --nfx - card - bg: rgba(14, 18, 24, 0.52);
-        --nfx - red: #e50914;
-        --nfx - red - rgb: 229, 9, 20;
-        --nfx - red - deep: #b20710;
-        --nfx - text: #f5f5f1;
-        --nfx - muted: #b9b9b9;
-        --nfx - radius: ${radius};
-        --nfx - glass: rgba(15, 19, 26, 0.42);
-        --nfx - glass - strong: rgba(10, 13, 20, 0.64);
-        --nfx - glass - stroke: rgba(255, 255, 255, 0.16);
-        --nfx - glass - soft - stroke: rgba(255, 255, 255, 0.08);
-        --nfx - glass - blur: 15px;
-        --focus: var(--nfx - red);
-        --focus - rgb: 229, 9, 20;
-        --accent: var(--nfx - red);
-    }
-
-    /* ===== BLOCK: BASE SCROLL ===== */
-    html,
-        body,
-            .scroll,
-            .items,
-            .items - line {
-        scroll - behavior: smooth!important;
-    }
-
-            /* ===== BLOCK: GLOBAL BACKGROUND ===== */
-            body {
-        background:
-        radial - gradient(1220px 560px at 5 % -12 %, rgba(var(--nfx - red - rgb), 0.2), transparent 62 %),
-        radial - gradient(760px 320px at 82 % 0 %, rgba(255, 255, 255, 0.08), transparent 64 %),
-            radial - gradient(880px 440px at 52 % 100 %, rgba(14, 30, 56, 0.36), transparent 72 %),
-            linear - gradient(180deg, #06080c 0 %, #0a0f16 38 %, #111923 100 %)!important;
-        color: var(--nfx - text)!important;
-        font - family: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans - serif!important;
-    }
-
-            .background__gradient {
-        background: linear - gradient(
-            to right,
-            rgba(7, 7, 7, 0.98) 0 %,
-            rgba(7, 7, 7, 0.85) 35 %,
-            rgba(7, 7, 7, 0.45) 62 %,
-            transparent 100 %
-                )!important;
-    }
-
-            /* ===== BLOCK: SECTION HEADERS ===== */
-            .scroll__title,
-            .category - title {
-        padding - left: 4 % !important;
-        color: var(--nfx - text)!important;
-        font - size: 1.46em!important;
-        font - weight: 700!important;
-        letter - spacing: 0.02em!important;
-        margin: 12px 0 8px!important;
-        text - shadow: 0 2px 10px rgba(0, 0, 0, 0.6)!important;
-    }
-
-            .nfx - row - group {
-        display: block!important;
-        width: 100 % !important;
-        margin - top: 12px!important;
-    }
-
-            .nfx - row - group > .nfx - section - title {
-        display: flex!important;
-        align - items: center!important;
-        justify - content: space - between!important;
-        width: 100 % !important;
-        box - sizing: border - box!important;
-        padding - left: 4 % !important;
-        padding - right: 4 % !important;
-        margin: 0 0 8px!important;
-    }
-
-            .nfx - row - group > .items - line {
-        padding - top: 10px!important;
-        margin - top: 0!important;
-    }
-
-            /* ===== BLOCK: HORIZONTAL ROW LAYOUT ===== */
-            .items - line {
-        display: flex!important;
-        flex - direction: row!important;
-        flex - wrap: nowrap!important;
-        gap: 18px!important;
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        padding: 60px 4% 80px !important;
-        margin-bottom: 0 !important;
-        -webkit-overflow-scrolling: touch !important;
-        scroll - snap - type: x proximity!important;
-        scroll - padding - left: 4 % !important;
-        scroll - padding - right: 4 % !important;
-        overscroll - behavior - x: contain!important;
-        will - change: scroll - position!important;
-    }
-
-            .items - line:: -webkit - scrollbar {
-        height: 0!important;
-        width: 0!important;
-        display: none!important;
-    }
-
-            /* ===== BLOCK: CARD VISUAL ===== */
-            .card {
-                flex: 0 0 var(--nfx-width) !important;
-                width: var(--nfx-width) !important;
-                height: var(--nfx-height) !important;
-                margin: 0 !important;
-                overflow: visible !important;
-                background: transparent !important;
-                border-radius: var(--nfx-radius) !important;
-                z-index: 1 !important;
-                scroll-snap-align: start !important;
-                transition: transform 500ms ease, z-index 0s 0s !important;
-                transform: translateZ(0) !important;
-                will-change: transform;
+            if (!settings.enabled) {
+                DomProcessor.restoreTitles();
+                return;
             }
 
-            .card__view {
-                width: 100% !important;
-                height: 100% !important;
-                padding-bottom: 0 !important;
-                border-radius: var(--nfx-radius) !important;
-                overflow: hidden !important;
-                position: relative !important;
-                background: var(--nfx-card-bg) !important;
-                border: 1px solid rgba(255, 255, 255, 0.12) !important;
-                transition: transform 500ms cubic-bezier(0.2, 0.85, 0.22, 1),
-                    box-shadow 400ms ease,
-                    border-color 400ms ease !important;
-                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.44) !important;
-                will-change: transform !important;
-                transform: translateZ(0) !important;
-            }
+            var h = CARD_HEIGHTS[settings.cardHeight] || CARD_HEIGHTS.medium;
+            var radius = settings.roundCorners ? '14px' : '6px';
 
-            .card__view::before {
-        content: ''!important;
-        position: absolute!important;
-        left: 0!important;
-        right: 0!important;
-        top: 0!important;
-        height: 42 % !important;
-        background: linear - gradient(to bottom, rgba(var(--nfx - red - rgb), 0.16), transparent) !important;
-        opacity: 0!important;
-        pointer - events: none!important;
-        transition: opacity 0.32s ease!important;
-        z - index: 1!important;
-    }
+            var css = `
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap');
 
-            .card__view::after {
-        content: ''!important;
-        position: absolute!important;
-        inset: 0!important;
-        background: linear - gradient(to top, rgba(0, 0, 0, 0.92) 0 %, rgba(0, 0, 0, 0.28) 48 %, transparent 100 %)!important;
-        border - radius: var(--nfx - radius)!important;
-        pointer - events: none!important;
-        z - index: 1!important;
-    }
-
-            .card__img {
-        width: 100 % !important;
-        height: 100 % !important;
-        object - fit: cover!important;
-        transform: scale(1.01)!important;
-        transition: transform 0.5s ease!important;
-        will - change: transform!important;
-    }
-
-            .card__title {
-        position: absolute!important;
-        left: 12px!important;
-        right: 12px!important;
-        bottom: 10px!important;
-        z - index: 2!important;
-        color: #fff!important;
-        font - size: 14px!important;
-        font - weight: 800!important;
-        text - transform: uppercase!important;
-        letter - spacing: 0.06em!important;
-        line - height: 1.16!important;
-        text - shadow: 0 2px 12px rgba(0, 0, 0, 0.88)!important;
-        display: -webkit - box!important;
-        -webkit - box - orient: vertical!important;
-        -webkit - line - clamp: 2!important;
-        overflow: hidden!important;
-    }
-
-            /* ===== BLOCK: NETFLIX HOVER LOGIC ===== */
-            .items-line:hover .card,
-            .items-line:focus-within .card {
-                transform: translateX(-25%) !important;
-            }
-
-            .card:hover ~ .card,
-            .card.hover ~ .card,
-            .card.focus ~ .card {
-                transform: translateX(25%) !important;
-            }
-
-            .card.focus,
-            .card.hover,
-            .card:hover {
-                transform: translateX(0) scale(1) !important;
-                z-index: 120 !important;
-            }
-
-            .card.focus .card__view,
-            .card.hover .card__view,
-            .card:hover .card__view {
-                transform: scale(1.5) !important;
-                border-color: rgba(var(--nfx-red-rgb), 0.85) !important;
-                box-shadow: 0 24px 48px rgba(0, 0, 0, 0.72) !important;
-            }
-
-            .card.focus .card__view::after,
-            .card.hover .card__view::after,
-            .card:hover .card__view::after {
-                box-shadow: 0 0 0 2px rgba(var(--nfx-red-rgb), 0.7), 0 0 24px rgba(var(--nfx-red-rgb), 0.4) !important;
-                opacity: 1 !important;
-            }
-
-            .card.focus .card__view::before,
-            .card.hover .card__view::before,
-            .card:hover .card__view::before {
-                opacity: 1 !important;
-            }
-
-            .card.focus .card__img,
-            .card.hover .card__img,
-            .card:hover .card__img {
-                transform: scale(1.05) !important;
-            }
-
-            .card__age,
-            .card__vote,
-            .card__quality {
-        display: none!important;
-    }
-
-            /* ===== BLOCK: PANELS / SURFACES ===== */
-            .menu,
-            .menu__list,
-            .head,
-            .head__split,
-            .settings__content,
-            .settings - input__content,
-            .selectbox__content,
-            .modal__content,
-            .full - start,
-            .full - start - new {
-            background: linear - gradient(
-                135deg,
-                rgba(14, 18, 24, 0.74),
-                rgba(10, 13, 20, 0.52)
-            )!important;
-            border: 1px solid var(--nfx - glass - soft - stroke) !important;
-    backdrop - filter: blur(var(--nfx - glass - blur)) saturate(130 %)!important;
-    -webkit - backdrop - filter: blur(var(--nfx - glass - blur)) saturate(130 %)!important;
+:root {
+  --nfx-bg: #0a0d12;
+  --nfx-bg-soft: #111723;
+  --nfx-red: #e50914;
+  --nfx-red-deep: #b20710;
+  --nfx-text: #f6f6f6;
+  --nfx-muted: #b8beca;
+  --nfx-glass: rgba(14, 18, 24, 0.6);
+  --nfx-glass-strong: rgba(9, 12, 17, 0.72);
+  --nfx-blur: 16px;
+  --nfx-card-radius: ${radius};
+  --nfx-card-height: ${h};
+  --nfx-card-width: calc(var(--nfx-card-height) * 16 / 9);
 }
 
-            /* ===== BLOCK: FOCUSABLE ELEMENTS ===== */
-            .settings - folder,
-            .settings - param,
-            .selectbox - item,
-            .full - start__button,
-            .full - descr__tag,
-            .player - panel.button,
-            .simple - button,
-            .custom - online - btn,
-            .custom - torrent - btn,
-            .main2 - more - btn,
-            .torrent - item,
-            .files__item,
-            .menu__version {
-    border - radius: 10px!important;
-    border: 1px solid var(--nfx - glass - soft - stroke)!important;
-    background: linear - gradient(
-        130deg,
-        rgba(22, 27, 36, 0.38),
-        rgba(12, 16, 23, 0.2)
-    )!important;
-    backdrop - filter: blur(8px) saturate(122 %)!important;
-    -webkit - backdrop - filter: blur(8px) saturate(122 %)!important;
-    transition: transform 0.2s ease, box - shadow 0.2s ease, background - color 0.2s ease, border - color 0.2s ease!important;
+body {
+  background:
+    radial-gradient(860px 420px at 12% 0%, rgba(229, 9, 20, 0.22), transparent 52%),
+    radial-gradient(960px 520px at 82% 10%, rgba(255, 255, 255, 0.08), transparent 70%),
+    linear-gradient(180deg, #06080c 0%, #0b1018 42%, #0f1723 100%) !important;
+  color: var(--nfx-text) !important;
+  font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif !important;
 }
 
-            /* ===== BLOCK: LEFT MENU NORMALIZATION ===== */
-            .menu {
-    min - width: 17.8em!important;
+/* ----- Rows ----- */
+.items-line {
+  display: flex !important;
+  gap: 18px !important;
+  padding: 56px 4% 72px !important;
+  overflow-y: visible !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x proximity !important;
+  scroll-padding-left: 4% !important;
+  scroll-padding-right: 4% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.items-line::-webkit-scrollbar { height: 0 !important; width: 0 !important; }
+
+/* ----- Cards ----- */
+.card {
+  position: relative !important;
+  flex: 0 0 var(--nfx-card-width) !important;
+  width: var(--nfx-card-width) !important;
+  height: var(--nfx-card-height) !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform-origin: center center !important;
+  transition: transform 500ms ease, z-index 0s !important;
+}
+.card__view {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: var(--nfx-card-radius) !important;
+  background: linear-gradient(150deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.48) !important;
+  transition: transform 500ms ease, box-shadow 350ms ease, border-color 350ms ease !important;
+}
+.card__view::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.6) 100%) !important;
+  z-index: 1 !important;
+}
+.card__view::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(140% 120% at 12% 8%, rgba(229,9,20,0.16), transparent 42%) !important;
+  opacity: 0 !important;
+  transition: opacity 260ms ease !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+.card__img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transform: scale(1.02) !important;
+  transition: transform 500ms ease !important;
+}
+.card__title {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 2 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  text-shadow: 0 10px 26px rgba(0,0,0,0.65) !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  overflow: hidden !important;
+}
+.card__age, .card__vote, .card__quality { display: none !important; }
+
+/* Netflix Flow neighbour shifting */
+.items-line:hover .card,
+.items-line:focus-within .card { transform: translateX(-22%) !important; }
+.card:hover ~ .card,
+.card.focus ~ .card,
+.card.hover ~ .card { transform: translateX(22%) !important; }
+.card:hover,
+.card.focus,
+.card.hover {
+  transform: translateX(0) scale(1.5) !important;
+  z-index: 8 !important;
+}
+.card:hover .card__view,
+.card.focus .card__view,
+.card.hover .card__view {
+  box-shadow: 0 22px 50px rgba(0,0,0,0.72), 0 0 0 1px rgba(229,9,20,0.42) !important;
+  border-color: rgba(229,9,20,0.6) !important;
+  transform: scale(1.01) !important;
+}
+.card:hover .card__view::before,
+.card.focus .card__view::before,
+.card.hover .card__view::before { opacity: 1 !important; }
+.card:hover .card__img,
+.card.focus .card__img,
+.card.hover .card__img { transform: scale(1.05) !important; }
+
+/* ----- Panels & chrome ----- */
+.menu, .menu__list, .head, .head__split, .settings__content, .settings-input__content,
+.selectbox__content, .modal__content, .full-start, .full-start-new {
+  background: linear-gradient(135deg, rgba(14,18,24,0.7), rgba(10,13,20,0.5)) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  backdrop-filter: blur(var(--nfx-blur)) saturate(128%) !important;
+  -webkit-backdrop-filter: blur(var(--nfx-blur)) saturate(128%) !important;
 }
 
-            .menu__list {
-    overflow - y: auto!important;
-    padding - right: 4px!important;
+/* ----- Inputs / focusables ----- */
+.settings-folder, .settings-param, .selectbox-item, .full-start__button, .full-descr__tag,
+.player-panel.button, .simple-button, .custom-online-btn, .custom-torrent-btn,
+.main2-more-btn, .button, .torrent-item, .files__item {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  background: rgba(255,255,255,0.04) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease !important;
+}
+.settings-folder.focus, .settings-param.focus, .selectbox-item.focus, .full-start__button.focus,
+.full-descr__tag.focus, .player-panel.button.focus, .simple-button.focus, .custom-online-btn.focus,
+.custom-torrent-btn.focus, .main2-more-btn.focus, .button.focus, .torrent-item.focus, .files__item.focus {
+  background: linear-gradient(96deg, rgba(229,9,20,0.96), var(--nfx-red-deep)) !important;
+  border-color: rgba(229,9,20,0.92) !important;
+  box-shadow: 0 0 0 1px rgba(229,9,20,0.9), 0 12px 28px rgba(229,9,20,0.32) !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
 }
 
-            .menu__item.nfx - menu - item {
-    display: flex!important;
-    align - items: center!important;
-    justify - content: flex - start!important;
-    gap: 0.62em!important;
-    min - height: 2.48em!important;
-    white - space: nowrap!important;
-    padding - left: 0.72em!important;
-    padding - right: 0.92em!important;
-    font - size: 0!important; /* SAFEGUARD: ховає сирі текст-ноди в item */
+/* ----- Hero / full card ----- */
+.full-start, .full-start-new {
+  position: relative !important;
+  overflow: hidden !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.full-start::before, .full-start-new::before { display: none !important; }
+.full-start::after, .full-start-new::after { display: none !important; }
+.full-start__background {
+  height: 100vh !important;
+  top: 0 !important;
+  filter: saturate(1.05) contrast(1.04) brightness(0.98) !important;
+  transform: scale(1.01) !important;
+}
+.full-start__body, .full-start-new__body {
+  position: relative !important;
+  z-index: 2 !important;
+  min-height: 82vh !important;
+  padding: clamp(82px, 8vh, 118px) 4% clamp(32px, 4vh, 64px) !important;
+  display: flex !important;
+  align-items: flex-end !important;
+}
+.full-start__body::before, .full-start-new__body::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, #0a0d12 0%, rgba(10,13,18,0.82) 24%, rgba(10,13,18,0.46) 48%, rgba(10,13,18,0.12) 68%, transparent 100%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.full-start__right, .full-start-new__right {
+  width: min(64vw, 980px) !important;
+  max-width: 94vw !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  align-items: flex-start !important;
+  z-index: 1 !important;
+}
+.full-start__title, .full-start-new__title {
+  margin: 0 !important;
+  min-height: clamp(140px, 18vh, 260px) !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+}
+.nfx-hero-logo-holder {
+  display: inline-flex !important;
+  align-items: flex-end !important;
+  min-height: clamp(120px, 16vh, 240px) !important;
+  max-width: min(840px, 90vw) !important;
+}
+.nfx-hero-logo {
+  max-width: min(840px, 70vw) !important;
+  max-height: clamp(140px, 20vh, 260px) !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 16px 32px rgba(0,0,0,0.7)) drop-shadow(0 0 26px rgba(229,9,20,0.22)) !important;
+}
+.nfx-hero-text {
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: clamp(40px, 5vw, 70px) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  color: #fff !important;
+  text-shadow: 0 16px 38px rgba(0,0,0,0.7) !important;
+  margin: 0 !important;
+  padding: 0 0 12px 0 !important;
+}
+.full-start__tagline, .full-start-new__tagline, .ifx-original-title {
+  margin-top: 6px !important;
+  color: rgba(255,255,255,0.78) !important;
+  font-size: clamp(14px, 1.1vw, 18px) !important;
+  font-weight: 500 !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6) !important;
+  background: transparent !important;
+  border: none !important;
+}
+.full-start__details, .full-start-new__details {
+  color: rgba(255,255,255,0.86) !important;
+  margin-top: 2px !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6) !important;
+}
+.full-start__buttons, .full-start-new__buttons {
+  margin-top: 12px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+.full-start__button {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  padding: 12px 18px !important;
+  background: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.34) !important;
+}
+.full-start__button.button--play, .full-start-new__button.button--play {
+  background: linear-gradient(102deg, rgba(229,9,20,0.98), var(--nfx-red-deep)) !important;
+  border-color: rgba(229,9,20,0.94) !important;
+  box-shadow: 0 0 0 1px rgba(229,9,20,0.86), 0 16px 32px rgba(229,9,20,0.32) !important;
 }
 
-            .menu__item.nfx - menu - item.nfx - menu - primary - label {
-    display: block!important;
-    opacity: 1!important;
-    visibility: visible!important;
-    width: auto!important;
-    max - width: none!important;
-    font - size: clamp(18px, 1.05vw, 24px)!important;
-    font - weight: 600!important;
-    letter - spacing: 0.02em!important;
-    line - height: 1.14!important;
-    overflow: hidden!important;
-    text - overflow: ellipsis!important;
-    color: #f3f3f3!important;
+@media (max-width: 1180px) {
+  .items-line { padding-top: 44px !important; }
+  .full-start__right, .full-start-new__right { width: min(92vw, 760px) !important; }
+  .nfx-hero-logo-holder { min-height: clamp(104px, 14vh, 200px) !important; }
+  .nfx-hero-logo { max-height: clamp(120px, 16vh, 220px) !important; }
+}
+@media (max-width: 820px) {
+  .items-line { gap: 12px !important; padding: 36px 4% 52px !important; }
+  .card { flex-basis: calc(var(--nfx-card-width) * 0.9) !important; }
+  .card:hover, .card.focus, .card.hover { transform: translateX(0) scale(1.25) !important; }
+  .items-line:hover .card, .items-line:focus-within .card { transform: translateX(-12%) !important; }
+  .card:hover ~ .card, .card.focus ~ .card, .card.hover ~ .card { transform: translateX(12%) !important; }
 }
 
-            .menu__item.nfx - menu - item.nfx - menu - primary - label {
-    display: block!important;
-    opacity: 1!important;
-    visibility: visible!important;
-    width: auto!important;
-    max - width: none!important;
-    font - size: clamp(18px, 1.05vw, 24px)!important;
-    font - weight: 600!important;
-    letter - spacing: 0.02em!important;
-    line - height: 1.14!important;
-    overflow: hidden!important;
-    text - overflow: ellipsis!important;
-    color: #f3f3f3!important;
-}
-
-            .menu__item.nfx - menu - item.nfx - menu - secondary {
-    display: none!important;
-    opacity: 0!important;
-    visibility: hidden!important;
-    width: 0!important;
-    max - width: 0!important;
-}
-
-            .menu__item.nfx - menu - item.menu__item - icon {
-    flex: 0 0 auto!important;
-    font - size: clamp(20px, 1.1vw, 26px)!important;
-}
-
-            .settings - folder.focus,
-            .settings - param.focus,
-            .selectbox - item.focus,
-            .full - start__button.focus,
-            .full - descr__tag.focus,
-            .player - panel.button.focus,
-            .simple - button.focus,
-            .custom - online - btn.focus,
-            .custom - torrent - btn.focus,
-            .main2 - more - btn.focus,
-            .button.focus,
-            .menu__version.focus,
-            .torrent - item.focus,
-            .files__item.focus {
-    background: linear - gradient(92deg, rgba(var(--nfx - red - rgb), 0.96), var(--nfx - red - deep)) !important;
-    color: #fff!important;
-    border - color: rgba(var(--nfx - red - rgb), 0.95) !important;
-    box - shadow: 0 0 0 1px rgba(var(--nfx - red - rgb), 0.9), 0 10px 24px rgba(var(--nfx - red - rgb), 0.34) !important;
-    transform: translateY(-1px)!important;
-}
-
-            /* ===== BLOCK: CUSTOM MENU STYLE (Clean List + Red Accent) ===== */
-            .menu__item.nfx - menu - item {
-    background: transparent!important;
-    border: none!important;
-    border - left: 4px solid transparent!important;
-    border - radius: 0!important;
-    margin - bottom: 2px!important;
-    transition: all 0.2s ease!important;
-}
-
-            .menu__item.focus,
-            .menu__item.hover,
-            .menu__item.traverse {
-    background: linear - gradient(90deg, rgba(var(--nfx - red - rgb), 0.15) 0 %, transparent 100 %) !important;
-    border - color: transparent!important;
-    border - left - color: var(--nfx - red)!important;
-    transform: translateX(6px)!important;
-    box - shadow: none!important;
-}
-
-            .menu__item.focus.menu__item - icon,
-            .menu__item.hover.menu__item - icon {
-    color: var(--nfx - red)!important;
-    filter: drop - shadow(0 0 8px rgba(var(--nfx - red - rgb), 0.6));
-}
-
-            .menu__item.focus.nfx - menu - primary - label,
-            .menu__item.hover.nfx - menu - primary - label {
-    color: #fff!important;
-    text - shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-
-            .settings - input__input,
-    input[type = "text"],
-    input[type = "password"] {
-    background: linear - gradient(130deg, rgba(23, 28, 37, 0.62), rgba(14, 19, 27, 0.44))!important;
-    border: 1px solid rgba(255, 255, 255, 0.14)!important;
-    color: #fff!important;
-    border - radius: 9px!important;
-    backdrop - filter: blur(8px) saturate(122 %)!important;
-    -webkit - backdrop - filter: blur(8px) saturate(122 %)!important;
-}
-
-            .settings - input__input: focus,
-    input[type = "text"]: focus,
-        input[type = "password"]:focus {
-    border - color: rgba(var(--nfx - red - rgb), 0.95) !important;
-    box - shadow: 0 0 0 2px rgba(var(--nfx - red - rgb), 0.24) !important;
-}
-
-            /* ===== BLOCK: FULL CARD HERO (APPLECATION-INSPIRED, NETFLIX GLASS) ===== */
-            .full - start,
-            .full - start - new {
-        position: relative!important;
-        overflow: hidden!important;
-        border: none!important;
-        border- radius: 0!important;
-background: transparent!important;
-            }
-
-            .full-start::before,
-            .full-start-new::before {
-                content: '' !important;
-                position: absolute !important;
-                inset: 0 !important;
-                background: none !important; /* Clear mask */
-                pointer-events: none !important;
-                z-index: 1 !important;
-            }
-
-            .full - start:: after,
-            .full - start - new::after {
-    content: ''!important;
-    position: absolute!important;
-    left: 0!important;
-    right: 0!important;
-    bottom: 0!important;
-    height: 36 % !important;
-    background: linear - gradient(180deg, rgba(6, 10, 15, 0), rgba(6, 10, 15, 0.85) 52 %, rgba(6, 10, 15, 0.98) 100 %)!important;
-    pointer - events: none!important;
-    z - index: 1!important;
-}
-
-            .full - start__background {
-    height: calc(100 % + 5.6em)!important;
-    top: -5.6em!important;
-    opacity: 1!important;
-    filter: saturate(1.06) contrast(1.05) brightness(0.98)!important;
-    transform: translateZ(0) scale(1.01)!important;
-}
-
-            .full - start__body,
-            .full - start - new__body {
-    position: relative!important;
-    z - index: 2!important;
-    min - height: min(82vh, 920px)!important;
-    height: auto!important;
-    display: flex!important;
-    align - items: flex - end!important;
-    padding: clamp(82px, 8vh, 122px) 4 % clamp(28px, 3.4vh, 58px)!important;
-    box - sizing: border - box!important;
-}
-
-            .full - start__left,
-            .full - start - new__left,
-            .full - start__poster,
-            .full - start - new__poster {
-    display: none!important;
-    width: 0!important;
-    min - width: 0!important;
-}
-
-            .full-start__right,
-            .full-start-new__right {
-                width: min(62vw, 940px) !important;
-                max-width: 94vw !important;
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 4px !important; /* Tighter grouping */
-                align-items: flex-start !important;
-            }
-
-            .full-start__head,
-            .full-start-new__head {
-                display: flex !important;
-                align-items: center !important;
-                flex-wrap: wrap !important;
-                gap: 12px !important;
-                max-width: 100% !important;
-                padding: 0 !important;
-                margin-bottom: 0 !important;
-                border: none !important;
-                background: transparent !important;
-                color: rgba(255, 255, 255, 0.9) !important;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-            }
-
-            .full - start__title,
-            .full - start - new__title {
-    min - height: clamp(132px, 20vh, 292px)!important;
-    display: flex!important;
-    align - items: flex - end!important;
-    width: min(94vw, 920px)!important;
-    margin: 0!important;
-}
-
-            .nfx - title--with-logo {
-    color: transparent!important;
-    text - shadow: none!important;
-    letter - spacing: normal!important;
-    display: block!important;
-    width: 100 % !important;
-}
-
-            .nfx - full - logo - holder {
-    width: min(92vw, 840px)!important;
-    max - width: 100 % !important;
-    min - height: clamp(122px, 18vh, 286px)!important;
-    display: inline - flex!important;
-    align - items: flex - end!important;
-}
-
-            .nfx - full - logo {
-    width: auto!important;
-    max - width: 100 % !important;
-    height: clamp(132px, 20vh, 284px)!important;
-    max - height: clamp(132px, 20vh, 284px)!important;
-    object - fit: contain!important;
-    filter: drop - shadow(0 12px 28px rgba(0, 0, 0, 0.7)) drop - shadow(0 0 20px rgba(var(--nfx - red - rgb), 0.26)) !important;
-}
-
-            .full-start__tagline,
-            .full-start-new__tagline,
-            .ifx-original-title {
-                display: block !important;
-                width: fit-content !important;
-                max-width: min(80vw, 800px) !important;
-                margin-top: 8px !important;
-                padding: 0 !important;
-                border: none !important;
-                background: transparent !important;
-                color: rgba(255, 255, 255, 0.75) !important;
-                font-size: clamp(14px, 1.1vw, 18px) !important;
-                font-weight: 400 !important;
-                line-height: 1.4 !important;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-            }
-
-            .full-start__details,
-            .full-start-new__details {
-                margin-top: 4px !important;
-                max-width: min(90vw, 780px) !important;
-                color: rgba(255, 255, 255, 0.84) !important;
-                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
-            }
-
-            .full-start__buttons,
-            .full-start-new__buttons {
-                margin-top: 10px !important;
-                display: flex !important;
-                flex-wrap: wrap !important;
-                align-items: center !important;
-                gap: 10px !important;
-            }
-
-            .full - start__button {
-    border - radius: 14px!important;
-    border: 1px solid rgba(255, 255, 255, 0.16)!important;
-    background: linear - gradient(130deg, rgba(24, 30, 41, 0.5), rgba(12, 17, 24, 0.26))!important;
-    box - shadow: 0 8px 22px rgba(0, 0, 0, 0.34)!important;
-    backdrop - filter: blur(12px) saturate(128 %)!important;
-    -webkit - backdrop - filter: blur(12px) saturate(128 %)!important;
-}
-
-            .full - start__button.button--play,
-            .full - start - new.button--play {
-    background: linear - gradient(102deg, rgba(var(--nfx - red - rgb), 0.98), var(--nfx - red - deep)) !important;
-    border - color: rgba(var(--nfx - red - rgb), 0.95) !important;
-    box - shadow: 0 0 0 1px rgba(var(--nfx - red - rgb), 0.84), 0 12px 28px rgba(var(--nfx - red - rgb), 0.34) !important;
-}
-
-/* ===== BLOCK: FULL CARD RESPONSIVE ===== */
-@media(max - width: 1365px) {
-                .full - start__right,
-                .full - start - new__right {
-        width: min(74vw, 920px)!important;
-    }
-
-                .full - start__title,
-                .full - start - new__title {
-        min - height: clamp(116px, 18vh, 236px)!important;
-    }
-
-                .nfx - full - logo {
-        height: clamp(116px, 17.4vh, 240px)!important;
-        max - height: clamp(116px, 17.4vh, 240px)!important;
-    }
-}
-
-@media(max - width: 940px) {
-                .full - start__body,
-                .full - start - new__body {
-        min - height: min(78vh, 840px)!important;
-        padding: 74px 4.2 % 26px!important;
-    }
-
-                .full - start__right,
-                .full - start - new__right {
-        width: min(92vw, 720px)!important;
-    }
-
-                .nfx - full - logo - holder {
-        min - height: clamp(94px, 13.2vh, 176px)!important;
-    }
-
-                .nfx - full - logo {
-        height: clamp(96px, 13.8vh, 184px)!important;
-        max - height: clamp(96px, 13.8vh, 184px)!important;
-    }
-}
-
-            ::selection {
-    background: rgba(var(--nfx - red - rgb), 0.38) !important;
-}
-
-            :: -webkit - scrollbar {
-    width: 8px!important;
-    height: 8px!important;
-}
-
-            :: -webkit - scrollbar - track {
-    background: #111!important;
-}
-
-            :: -webkit - scrollbar - thumb {
-    background: #2c2c2c!important;
-    border - radius: 8px!important;
-}
-
-            :: -webkit - scrollbar - thumb:hover {
-    background: var(--nfx - red)!important;
-}
-
-            /* ===== BLOCK: TEXT FALLBACK TITLE ===== */
-            .nfx - title - text - fallback {
-    font - family: 'Montserrat', sans - serif!important;
-    font - weight: 500!important; /* Medium */
-    font - size: clamp(2.2rem, 4vw, 3.8rem)!important;
-    line - height: 1.1!important;
-    color: #fff!important;
-    text - shadow: 2px 2px 4px rgba(0, 0, 0, 0.5)!important;
-    margin: 0!important;
-    padding: 0 0 20px 0!important;
-    display: block!important;
-    width: 100 % !important;
-    white - space: normal!important;
-}
+::selection { background: rgba(229,9,20,0.32) !important; }
+::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+::-webkit-scrollbar-thumb { background: #2c2c2c !important; border-radius: 8px !important; }
+::-webkit-scrollbar-thumb:hover { background: var(--nfx-red) !important; }
 `;
 
-        var style = document.createElement('style');
-        style.id = 'netflix_premium_styles';
-        style.textContent = css;
-        document.head.appendChild(style);
-
-        console.log('[Netflix Premium] v5.3 styles injected');
-    }
-
-    /* BLOCK: Reactive setting updates (called from patched Storage.set) */
-    function applySetting(key) {
-        if (key === 'netflix_premium_enabled') settings.enabled = getBool(key, true);
-        if (key === 'netflix_use_backdrops') settings.useBackdrops = getBool(key, true);
-        if (key === 'netflix_show_logos') settings.showLogos = getBool(key, true);
-        if (key === 'netflix_smooth_scroll') settings.smoothScroll = getBool(key, true);
-        if (key === 'netflix_round_corners') settings.roundCorners = getBool(key, true);
-        if (key === 'netflix_card_height') settings.cardHeight = Lampa.Storage.get('netflix_card_height', 'medium');
-
-        injectStyles();
-
-        if (!settings.enabled) {
-            restoreAllTitles();
-            return;
+            var style = document.createElement('style');
+            style.id = 'netflix_premium_styles';
+            style.textContent = css;
+            document.head.appendChild(style);
         }
 
-        refreshCards();
-        ensureSectionTitlesAboveCards(document);
-        ensureMenuSubsectionsVisible(document);
-        applyFullCardLogo(lastFullMovie);
-    }
+        return { inject: inject };
+    })();
 
-    /* 4. UI INIT */
-    /* BLOCK: Settings screen component + params */
+    /* ====================== 5. SETTINGS UI ======================== */
+    Lampa.Lang.add({
+        netflix_premium_title: { en: 'Netflix Premium Style', uk: 'Netflix Преміум Стиль' },
+        netflix_enable: { en: 'Enable Netflix Premium style', uk: 'Увімкнути Netflix Преміум стиль' },
+        netflix_use_backdrops: { en: 'Use backdrops (landscape)', uk: 'Використовувати backdrops (горизонтальні)' },
+        netflix_show_logos: { en: 'Replace hero title with logo', uk: 'Заміняти заголовок на лого' },
+        netflix_smooth_scroll: { en: 'Extra smooth row scrolling', uk: 'Дуже плавний скрол рядів' },
+        netflix_round_corners: { en: 'Rounded corners', uk: 'Заокруглені кути' },
+        netflix_card_height: { en: 'Card height', uk: 'Висота карток' }
+    });
+
     function initSettingsUI() {
         if (window.__netflix_settings_ready) return;
         window.__netflix_settings_ready = true;
@@ -1543,61 +782,70 @@ background: transparent!important;
             param: {
                 name: 'netflix_card_height',
                 type: 'select',
-                values: {
-                    small: 'Small (170px)',
-                    medium: 'Medium (220px)',
-                    large: 'Large (272px)',
-                    xlarge: 'True 4K (340px)'
-                },
+                values: { small: 'Small (170px)', medium: 'Medium (220px)', large: 'Large (272px)', xlarge: 'True 4K (340px)' },
                 default: 'medium'
             },
             field: { name: Lampa.Lang.translate('netflix_card_height') }
         });
     }
 
-    /* BLOCK: Patch Lampa.Storage.set for instant live apply */
+    function applySetting(key) {
+        if (key === 'netflix_premium_enabled') settings.enabled = getBool(key, true);
+        if (key === 'netflix_use_backdrops') settings.useBackdrops = getBool(key, true);
+        if (key === 'netflix_show_logos') settings.showLogos = getBool(key, true);
+        if (key === 'netflix_smooth_scroll') settings.smoothScroll = getBool(key, true);
+        if (key === 'netflix_round_corners') settings.roundCorners = getBool(key, true);
+        if (key === 'netflix_card_height') settings.cardHeight = Lampa.Storage.get('netflix_card_height', 'medium');
+
+        CssInjector.inject();
+
+        if (!settings.enabled) {
+            DomProcessor.restoreTitles();
+            return;
+        }
+
+        DomProcessor.refreshCards();
+        DomProcessor.applyHeroLogo(null);
+    }
+
     function patchStorage() {
         if (window.__netflix_storage_patched) return;
         window.__netflix_storage_patched = true;
 
         var originalSet = Lampa.Storage.set;
         Lampa.Storage.set = function (key, val) {
-            var result = originalSet.apply(this, arguments);
+            var res = originalSet.apply(this, arguments);
             if (key.indexOf('netflix_') === 0) applySetting(key, val);
-            return result;
+            return res;
         };
     }
 
-    /* BLOCK: Plugin startup sequence */
+    /* ========================= 6. INIT ============================ */
     function init() {
         if (window.netflix_premium_initialized) return;
         window.netflix_premium_initialized = true;
 
         initSettingsUI();
         patchStorage();
-        injectStyles();
-        startObserver();
-        bindFullListener();
-        refreshCards();
-        ensureSectionTitlesAboveCards(document);
-        ensureMenuSubsectionsVisible(document);
+        CssInjector.inject();
+        DomProcessor.start();
+        DomProcessor.bindFull();
+        DomProcessor.refreshCards();
 
         if (Lampa.Plugin) {
-            /* Реєстрація плагіна в списку Extensions */
             Lampa.Plugin.display({
                 name: 'Netflix Premium Style',
-                version: '5.3.0',
-                description: 'Cinematic red UI + smooth scroll + logo titles',
+                version: '6.0.0',
+                description: 'Minimalist Netflix halo UI with logo hero & flow cards',
                 type: 'style',
                 author: 'Lampac Agent',
                 onstart: init
             });
         }
 
-        console.log('[Netflix Premium] v5.3 ready');
+        console.log('[Netflix Premium] v6 ready');
     }
 
-    /* BLOCK: Safe boot (відкладений старт, якщо Lampa ще не ініціалізована) */
     if (window.Lampa) init();
     else {
         var timer = setInterval(function () {
