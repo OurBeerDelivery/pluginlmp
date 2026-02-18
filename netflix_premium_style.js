@@ -611,25 +611,34 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     z-index: 1 !important;
 }
 
-/* ── EDGE CARDS: no transform-origin change, use translate3d offset ── */
+/* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
 
-/* First card: scale + shift right to keep visible (no origin change → no jerk) */
+/* First card: left-origin scale + 20px rightward nudge (no clip) */
 .card[data-nfx-edge="first"].focus,
 .card[data-nfx-edge="first"].hover,
 .card[data-nfx-edge="first"]:hover {
+    transform-origin: left center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(calc(var(--nfx-shift) * 0.15), 0, 0) !important;
+               translate3d(20px, 0, 0) !important;
 }
 
-/* Last card: scale + shift left */
+/* First card's neighbors: standard shift + extra 20px to compensate */
+.card[data-nfx-edge="first"].focus ~ .card,
+.card[data-nfx-edge="first"].hover ~ .card,
+.card[data-nfx-edge="first"]:hover ~ .card {
+    transform: translate3d(calc(var(--nfx-shift) + 20px), 0, 0) !important;
+}
+
+/* Last card: right-origin scale + 20px leftward nudge (no clip) */
 .card[data-nfx-edge="last"].focus,
 .card[data-nfx-edge="last"].hover,
 .card[data-nfx-edge="last"]:hover {
+    transform-origin: right center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(calc(var(--nfx-shift) * -0.15), 0, 0) !important;
+               translate3d(-20px, 0, 0) !important;
 }
 
-/* Reduce shift for the last card when a sibling is focused */
+/* Reduce shift for the last card when a non-edge sibling is focused */
 .card.focus ~ .card[data-nfx-edge="last"],
 .card.hover ~ .card[data-nfx-edge="last"],
 .card:hover ~ .card[data-nfx-edge="last"] {
