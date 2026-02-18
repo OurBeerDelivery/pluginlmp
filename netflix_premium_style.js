@@ -873,11 +873,11 @@
         flex - direction: row!important;
         flex - wrap: nowrap!important;
         gap: 18px!important;
-        overflow - x: auto!important;
-        overflow - y: visible!important;
-        padding: 32px 4 % 50px!important;
-        margin - bottom: 0!important;
-        -webkit - overflow - scrolling: touch!important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        padding: 60px 4% 80px !important;
+        margin-bottom: 0 !important;
+        -webkit-overflow-scrolling: touch !important;
         scroll - snap - type: x proximity!important;
         scroll - padding - left: 4 % !important;
         scroll - padding - right: 4 % !important;
@@ -893,34 +893,36 @@
 
             /* ===== BLOCK: CARD VISUAL ===== */
             .card {
-        flex: 0 0 var(--nfx - width)!important;
-        width: var(--nfx - width)!important;
-        height: var(--nfx - height)!important;
-        margin: 0!important;
-        overflow: visible!important;
-        background: transparent!important;
-        border - radius: var(--nfx - radius)!important;
-        z - index: 1!important;
-        scroll - snap - align: start!important;
-        transition: z - index 0s 0.32s!important;
-    }
+                flex: 0 0 var(--nfx-width) !important;
+                width: var(--nfx-width) !important;
+                height: var(--nfx-height) !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+                border-radius: var(--nfx-radius) !important;
+                z-index: 1 !important;
+                scroll-snap-align: start !important;
+                transition: transform 500ms ease, z-index 0s 0s !important;
+                transform: translateZ(0) !important;
+                will-change: transform;
+            }
 
             .card__view {
-        width: 100 % !important;
-        height: 100 % !important;
-        padding - bottom: 0!important;
-        border - radius: var(--nfx - radius)!important;
-        overflow: hidden!important;
-        position: relative!important;
-        background: var(--nfx - card - bg)!important;
-        border: 1px solid rgba(255, 255, 255, 0.08)!important;
-        transition: transform 0.32s cubic - bezier(0.2, 0.85, 0.22, 1),
-            box - shadow 0.32s ease,
-                border - color 0.32s ease!important;
-        box - shadow: 0 8px 24px rgba(0, 0, 0, 0.32)!important;
-        will - change: transform!important;
-        transform: translateZ(0)!important;
-    }
+                width: 100% !important;
+                height: 100% !important;
+                padding-bottom: 0 !important;
+                border-radius: var(--nfx-radius) !important;
+                overflow: hidden !important;
+                position: relative !important;
+                background: var(--nfx-card-bg) !important;
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                transition: transform 500ms cubic-bezier(0.2, 0.85, 0.22, 1),
+                    box-shadow 400ms ease,
+                    border-color 400ms ease !important;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.44) !important;
+                will-change: transform !important;
+                transform: translateZ(0) !important;
+            }
 
             .card__view::before {
         content: ''!important;
@@ -974,37 +976,51 @@
         overflow: hidden!important;
     }
 
-            .card.focus.card__view,
-            .card.hover.card__view,
-            .card: hover.card__view {
-        transform: scale(1.12)!important;
-        border - color: rgba(var(--nfx - red - rgb), 0.85) !important;
-        box - shadow: 0 24px 48px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(var(--nfx - red - rgb), 0.6) !important;
-    }
+            /* ===== BLOCK: NETFLIX HOVER LOGIC ===== */
+            .items-line:hover .card,
+            .items-line:focus-within .card {
+                transform: translateX(-25%) !important;
+            }
 
-            .card.focus.card__view:: before,
-            .card.hover.card__view:: before,
-            .card: hover.card__view::before {
-        opacity: 1!important;
-    }
-
-            .card.focus.card__img,
-            .card.hover.card__img,
-            .card: hover.card__img {
-        transform: scale(1.05)!important;
-    }
+            .card:hover ~ .card,
+            .card.hover ~ .card,
+            .card.focus ~ .card {
+                transform: translateX(25%) !important;
+            }
 
             .card.focus,
             .card.hover,
             .card:hover {
-        z - index: 120!important;
-        transition: z - index 0s 0s!important;
-    }
+                transform: translateX(0) scale(1) !important;
+                z-index: 120 !important;
+            }
 
-            .card.focus.card__view:: after,
-            .card.hover.card__view::after {
-        box - shadow: 0 0 0 2px rgba(var(--nfx - red - rgb), 0.7), 0 0 32px rgba(var(--nfx - red - rgb), 0.35) !important;
-    }
+            .card.focus .card__view,
+            .card.hover .card__view,
+            .card:hover .card__view {
+                transform: scale(1.5) !important;
+                border-color: rgba(var(--nfx-red-rgb), 0.85) !important;
+                box-shadow: 0 24px 48px rgba(0, 0, 0, 0.72) !important;
+            }
+
+            .card.focus .card__view::after,
+            .card.hover .card__view::after,
+            .card:hover .card__view::after {
+                box-shadow: 0 0 0 2px rgba(var(--nfx-red-rgb), 0.7), 0 0 24px rgba(var(--nfx-red-rgb), 0.4) !important;
+                opacity: 1 !important;
+            }
+
+            .card.focus .card__view::before,
+            .card.hover .card__view::before,
+            .card:hover .card__view::before {
+                opacity: 1 !important;
+            }
+
+            .card.focus .card__img,
+            .card.hover .card__img,
+            .card:hover .card__img {
+                transform: scale(1.05) !important;
+            }
 
             .card__age,
             .card__vote,
@@ -1210,11 +1226,7 @@ background: transparent!important;
                 content: '' !important;
                 position: absolute !important;
                 inset: 0 !important;
-                background: linear-gradient(90deg, 
-                    rgba(0,0,0,0.95) 0%, 
-                    rgba(0,0,0,0.55) 35%, 
-                    rgba(0,0,0,0.1) 70%, 
-                    transparent 100%) !important;
+                background: none !important; /* Clear mask */
                 pointer-events: none !important;
                 z-index: 1 !important;
             }
