@@ -303,9 +303,16 @@
             for (var r = 0; r < rows.length; r++) {
                 var cards = rows[r].querySelectorAll('.card');
                 if (!cards.length) continue;
-                for (var c = 0; c < cards.length; c++) cards[c].removeAttribute('data-nfx-edge');
-                cards[0].setAttribute('data-nfx-edge', 'first');
-                cards[cards.length - 1].setAttribute('data-nfx-edge', 'last');
+                for (var c = 0; c < cards.length; c++) {
+                    cards[c].removeAttribute('data-nfx-edge');
+                    cards[c].removeAttribute('data-nfx-single');
+                }
+                if (cards.length === 1) {
+                    cards[0].setAttribute('data-nfx-single', 'true');
+                } else {
+                    cards[0].setAttribute('data-nfx-edge', 'first');
+                    cards[cards.length - 1].setAttribute('data-nfx-edge', 'last');
+                }
             }
         }
 
@@ -520,8 +527,13 @@ body {
 
 
 /* ================================================================
-   3) CARD FOCUS — clean poster + box-shadow only (NO red overlays)
+   3) CARD FOCUS — clean poster + red glow (NO overlays)
    ================================================================ */
+
+/* All cards: center origin, uniform easing */
+.card {
+    transform-origin: center center !important;
+}
 
 .card.focus,
 .card.hover,
@@ -547,34 +559,37 @@ body {
     z-index: 1 !important;
 }
 
-/* ── EDGE PROTECTION ── */
+/* ── EDGE CARDS: no transform-origin change, use translate3d offset ── */
+
+/* First card: scale + shift right to keep visible (no origin change → no jerk) */
 .card[data-nfx-edge="first"].focus,
 .card[data-nfx-edge="first"].hover,
-.card[data-nfx-edge="first"]:hover,
-.card:first-child.focus,
-.card:first-child.hover,
-.card:first-child:hover {
-    transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+.card[data-nfx-edge="first"]:hover {
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
+               translate3d(calc(var(--nfx-shift) * 0.15), 0, 0) !important;
 }
 
+/* Last card: scale + shift left */
 .card[data-nfx-edge="last"].focus,
 .card[data-nfx-edge="last"].hover,
-.card[data-nfx-edge="last"]:hover,
-.card:last-child.focus,
-.card:last-child.hover,
-.card:last-child:hover {
-    transform-origin: right center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+.card[data-nfx-edge="last"]:hover {
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
+               translate3d(calc(var(--nfx-shift) * -0.15), 0, 0) !important;
 }
 
+/* Reduce shift for the last card when a sibling is focused */
 .card.focus ~ .card[data-nfx-edge="last"],
 .card.hover ~ .card[data-nfx-edge="last"],
-.card:hover ~ .card[data-nfx-edge="last"],
-.card.focus ~ .card:last-child,
-.card.hover ~ .card:last-child,
-.card:hover ~ .card:last-child {
+.card:hover ~ .card[data-nfx-edge="last"] {
     transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
+}
+
+/* ── SINGLE CARD: no edge logic, stay centered ── */
+.card[data-nfx-single="true"].focus,
+.card[data-nfx-single="true"].hover,
+.card[data-nfx-single="true"]:hover {
+    transform-origin: center center !important;
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
 
