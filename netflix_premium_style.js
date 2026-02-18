@@ -298,6 +298,17 @@
         if (window.__nfx_cards_bound) return;
         window.__nfx_cards_bound = true;
 
+        // ── Suppress auto-focus scaling until user interacts ──
+        function enableInteraction() {
+            document.body.classList.add('nfx-user-interacted');
+            document.removeEventListener('keydown', enableInteraction);
+            document.removeEventListener('pointerdown', enableInteraction);
+            document.removeEventListener('mousedown', enableInteraction);
+        }
+        document.addEventListener('keydown', enableInteraction, { once: true });
+        document.addEventListener('pointerdown', enableInteraction, { once: true });
+        document.addEventListener('mousedown', enableInteraction, { once: true });
+
         function tagEdges() {
             var rows = document.querySelectorAll('.scroll__body');
             for (var r = 0; r < rows.length; r++) {
@@ -316,13 +327,36 @@
             }
         }
 
+        // ── Dynamic rating badge colors ──
+        function colorizeRatings() {
+            var badges = document.querySelectorAll('.card__vote');
+            for (var i = 0; i < badges.length; i++) {
+                var el = badges[i];
+                if (el.getAttribute('data-nfx-colored')) continue;
+                var text = (el.textContent || el.innerText || '').replace(',', '.').trim();
+                var val = parseFloat(text);
+                if (isNaN(val)) continue;
+                var color;
+                if (val >= 7.5) color = '#2ecc71'; // green
+                else if (val >= 6.5) color = '#f1c40f'; // yellow
+                else if (val >= 5.0) color = '#e67e22'; // orange
+                else color = '#e50914'; // red
+                el.style.setProperty('background', color, 'important');
+                el.setAttribute('data-nfx-colored', '1');
+            }
+        }
+
         var timer = null;
         var obs = new MutationObserver(function () {
             clearTimeout(timer);
-            timer = setTimeout(tagEdges, 80);
+            timer = setTimeout(function () {
+                tagEdges();
+                colorizeRatings();
+            }, 80);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         tagEdges();
+        colorizeRatings();
     }
 
 
@@ -502,7 +536,7 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 
-/* ── RATING BADGE — bottom-right, "leaf" shape ── */
+/* ── RATING BADGE — bottom-right, "leaf" shape, color set by JS ── */
 .card__vote {
     display: block !important;
     position: absolute !important;
@@ -511,7 +545,7 @@ body {
     top: auto !important;
     left: auto !important;
     z-index: 20 !important;
-    background: rgba(46, 204, 113, 0.9) !important;
+    background: rgba(120, 120, 120, 0.6) !important;
     color: #fff !important;
     padding: 2px 8px !important;
     border-radius: 10px 0 10px 0 !important;
@@ -529,6 +563,24 @@ body {
 /* ================================================================
    3) CARD FOCUS — clean poster + red glow (NO overlays)
    ================================================================ */
+
+/* ── Suppress auto-focus until user interaction ── */
+body:not(.nfx-user-interacted) .card.focus,
+body:not(.nfx-user-interacted) .card.hover {
+    transform: translate3d(0, 0, 0) !important;
+    z-index: 1 !important;
+}
+
+body:not(.nfx-user-interacted) .card.focus .card__view,
+body:not(.nfx-user-interacted) .card.hover .card__view {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+body:not(.nfx-user-interacted) .card.focus ~ .card,
+body:not(.nfx-user-interacted) .card.hover ~ .card {
+    transform: translate3d(0, 0, 0) !important;
+}
 
 /* All cards: center origin, uniform easing */
 .card {
