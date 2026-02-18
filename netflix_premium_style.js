@@ -645,11 +645,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
 }
 
-/* ── SINGLE CARD: no edge logic, stay centered ── */
+/* ── SINGLE CARD: use left-origin (no clip) but NO shift ── */
 .card[data-nfx-single="true"].focus,
 .card[data-nfx-single="true"].hover,
 .card[data-nfx-single="true"]:hover {
-    transform-origin: center center !important;
+    transform-origin: left center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
@@ -1026,7 +1026,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    font-size: 0.95em !important;
+    font-size: 1.1em !important;
     color: rgba(255,255,255,0.5) !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
