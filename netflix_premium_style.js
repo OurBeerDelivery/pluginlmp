@@ -209,7 +209,7 @@
             var img = card.querySelector('.card__img');
             if (!img) return;
 
-            var url = 'https://image.tmdb.org/t/p/w780' + data.backdrop_path;
+            var url = 'https://image.tmdb.org/t/p/w1280' + data.backdrop_path;
             if (img.dataset.nfxBackdrop === url) return;
 
             var preload = new Image();
@@ -572,6 +572,8 @@ body {
   backdrop-filter: blur(var(--nfx-blur)) saturate(128%) !important;
   -webkit-backdrop-filter: blur(var(--nfx-blur)) saturate(128%) !important;
 }
+.menu { overflow: visible !important; min-height: 100vh !important; }
+.menu__list { overflow: visible !important; padding-bottom: 12px !important; }
 
 /* ----- Inputs / focusables ----- */
 .settings-folder, .settings-param, .selectbox-item, .full-start__button, .full-descr__tag,
@@ -616,14 +618,7 @@ body {
   display: flex !important;
   align-items: flex-end !important;
 }
-.full-start__body::before, .full-start-new__body::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  background: linear-gradient(90deg, #0a0d12 0%, rgba(10,13,18,0.82) 24%, rgba(10,13,18,0.46) 48%, rgba(10,13,18,0.12) 68%, transparent 100%) !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-}
+.full-start__body::before, .full-start-new__body::before { display: none !important; }
 .full-start__right, .full-start-new__right {
   width: min(64vw, 980px) !important;
   max-width: 94vw !important;
@@ -639,6 +634,22 @@ body {
   display: flex !important;
   align-items: flex-end !important;
   width: 100% !important;
+}
+.full-start__tagline, .full-start-new__tagline, .ifx-original-title {
+  margin-top: 6px !important;
+  color: rgba(255,255,255,0.9) !important;
+  font-size: clamp(15px, 1.2vw, 20px) !important;
+  font-weight: 500 !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.full-start__details, .full-start-new__details {
+  color: rgba(255,255,255,0.9) !important;
+  margin-top: 4px !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.35) !important;
+  background: transparent !important;
 }
 .nfx-hero-logo-holder {
   display: inline-flex !important;
