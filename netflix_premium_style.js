@@ -372,7 +372,7 @@ body {
     overflow: visible !important;
     position: relative !important;
     z-index: 1 !important;
-    padding: 40px 0 !important;
+    padding: 45px 0 !important;
 }
 
 /* Row with a focused card sits above everything */
@@ -410,7 +410,7 @@ body {
 
 .card__view {
     border-radius: var(--nfx-radius) !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     position: relative !important;
     background: #16181d !important;
     border: 2px solid transparent !important;
@@ -418,14 +418,37 @@ body {
                 box-shadow var(--nfx-duration) var(--nfx-ease) !important;
 }
 
-/* ── KILL ALL GHOST MASKS ── */
+/* ── KILL ALL GHOST MASKS / OVERLAYS (aggressive) ── */
 .card__view::after,
-.card__view::before,
-.card__view-shadow {
+.card__view::before {
     display: none !important;
     content: none !important;
     background: none !important;
+    background-image: none !important;
     opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+}
+
+.card__view-shadow,
+.card .card__overlay,
+.card .card__gradient,
+.card .card__mask,
+.card .card__blackout {
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    opacity: 0 !important;
+}
+
+/* Also ensure no filter dimming on poster */
+.card .card__img,
+.card.focus .card__img,
+.card.hover .card__img,
+.card:hover .card__img {
+    filter: none !important;
+    -webkit-filter: none !important;
 }
 
 .card__img {
@@ -449,39 +472,48 @@ body {
     text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
 }
 
-/* Badges */
+/* ── QUALITY BADGE — bottom-left, green, always on top ── */
 .card__quality {
     display: block !important;
     position: absolute !important;
-    top: 6px !important;
-    right: 6px !important;
-    z-index: 4 !important;
-    background: rgba(var(--nfx-accent-rgb), 0.9) !important;
+    bottom: 6px !important;
+    left: 6px !important;
+    top: auto !important;
+    right: auto !important;
+    z-index: 20 !important;
+    background: rgba(46, 204, 113, 0.88) !important;
     color: #fff !important;
-    padding: 2px 6px !important;
+    padding: 2px 8px !important;
     border-radius: 4px !important;
     font-size: 0.7em !important;
     font-weight: 700 !important;
     font-family: var(--nfx-font) !important;
     text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    line-height: 1.4 !important;
     pointer-events: none !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 
+/* ── RATING BADGE — bottom-right, "leaf" shape ── */
 .card__vote {
     display: block !important;
     position: absolute !important;
-    top: 6px !important;
-    left: 6px !important;
-    z-index: 4 !important;
-    background: rgba(0,0,0,0.72) !important;
-    color: #ffd700 !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    font-size: 0.72em !important;
-    font-weight: 700 !important;
+    bottom: 6px !important;
+    right: 6px !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: 20 !important;
+    background: rgba(46, 204, 113, 0.9) !important;
+    color: #fff !important;
+    padding: 2px 8px !important;
+    border-radius: 10px 0 10px 0 !important;
+    font-size: 0.75em !important;
+    font-weight: 800 !important;
     font-family: var(--nfx-font) !important;
+    line-height: 1.4 !important;
     pointer-events: none !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 
 .card__age { display: none !important; }
