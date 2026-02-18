@@ -1,902 +1,933 @@
 (function () {
     'use strict';
 
-    /* ============================================================
-     * Netflix Premium Style v6.0.1 (clean rewrite)
-     * Minimal halo UI, neighbor shifting, logo-first hero
-     * ============================================================ */
+    /* ================================================================
+     *  Netflix Premium Style v7.0  —  Clean Rewrite
+     *
+     *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
+     *  ✦ Animation      → GPU scale3d / translate3d neighbor shifting
+     *  ✦ Hero Layout    → Full-bleed backdrop, gradient overlay, large logo
+     *  ✦ Glassmorphism  → Buttons with backdrop-filter blur
+     *  ✦ Font           → Montserrat everywhere
+     * ================================================================ */
 
-    /* ======================= SETTINGS ========================== */
-    function getBool(key, def) {
-        var v = Lampa.Storage.get(key, def);
-        if (typeof v === 'string') v = v.trim().toLowerCase();
-        return v === true || v === 'true' || v === 1 || v === '1';
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 1 — ANIMATION HELPERS  (from logo.js reference)
+    // ─────────────────────────────────────────────────────────────────
+
+    var FADE_OUT_TEXT = 300;   // ms — title text fades out
+    var MORPH_HEIGHT = 400;   // ms — container morphs to logo height
+    var FADE_IN_IMG = 400;   // ms — logo image fades in
+    var SAFE_DELAY = 200;   // ms — wait before measuring DOM
+
+    /**
+     * Animate an element's height from `start` to `end` over `duration` ms.
+     * Uses requestAnimationFrame with cubic ease-out.
+     */
+    function animateHeight(element, start, end, duration, callback) {
+        var startTime = null;
+        function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            var progress = timestamp - startTime;
+            var percent = Math.min(progress / duration, 1);
+            var ease = 1 - Math.pow(1 - percent, 3);
+            element.style.height = (start + (end - start) * ease) + 'px';
+            if (progress < duration) {
+                requestAnimationFrame(step);
+            } else {
+                if (callback) callback();
+            }
+        }
+        requestAnimationFrame(step);
     }
 
-    var settings = {
-        enabled: getBool('netflix_premium_enabled', true),
-        useBackdrops: getBool('netflix_use_backdrops', true),
-        showLogos: getBool('netflix_show_logos', true),
-        smoothScroll: getBool('netflix_smooth_scroll', true),
-        roundCorners: getBool('netflix_round_corners', true),
-        cardHeight: Lampa.Storage.get('netflix_card_height', 'medium') || 'medium'
-    };
-
-    var CARD_HEIGHTS = { small: '170px', medium: '220px', large: '272px' };
-
-    /* ======================= LOGO ENGINE ======================= */
-    var LogoEngine = (function () {
-        var queue = [];
-        var waiters = {};
-        var busy = false;
-
-        function movieKey(movie) {
-            if (!movie || !movie.id) return '';
-            return (movie.name ? 'tv:' : 'movie:') + movie.id;
-        }
-
-        function normalize(value) {
-            if (!value) return '';
-            if (typeof value === 'object') value = value.url || value.file_path || value.logo || value.path || '';
-            if (typeof value !== 'string') return '';
-            if (/^https?:\/\//i.test(value)) return value;
-            if (value.indexOf('data:image') === 0) return value;
-            if (value.charAt(0) === '/') return 'https://image.tmdb.org/t/p/original' + value;
-            return '';
-        }
-
-        function direct(movie) {
-            var list = [
-                movie && movie.direct_logo_url,
-                movie && movie.logo,
-                movie && movie.logo_path,
-                movie && movie.clearlogo,
-                movie && movie.clear_logo,
-                movie && movie.img_logo,
-                movie && movie.image_logo
-            ];
-            for (var i = 0; i < list.length; i++) {
-                var found = normalize(list[i]);
-                if (found) return found;
+    /**
+     * Animate an element's opacity from `start` to `end` over `duration` ms.
+     */
+    function animateOpacity(element, start, end, duration, callback) {
+        var startTime = null;
+        function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            var progress = timestamp - startTime;
+            var percent = Math.min(progress / duration, 1);
+            var ease = 1 - Math.pow(1 - percent, 3);
+            element.style.opacity = start + (end - start) * ease;
+            if (progress < duration) {
+                requestAnimationFrame(step);
+            } else {
+                if (callback) callback();
             }
-
-            if (movie && movie.images) {
-                var nested = [movie.images.logo, movie.images.clearlogo, movie.images.clear_logo];
-                if (Array.isArray(movie.images.logos) && movie.images.logos.length) nested.push(movie.images.logos[0]);
-                for (var j = 0; j < nested.length; j++) {
-                    var n = normalize(nested[j]);
-                    if (n) return n;
-                }
-            }
-            if (Array.isArray(movie && movie.logos) && movie.logos.length) {
-                var n2 = normalize(movie.logos[0]);
-                if (n2) return n2;
-            }
-            return '';
         }
+        requestAnimationFrame(step);
+    }
 
-        function cacheKey(type, id, lang) {
-            return 'nfpl_logo_' + type + '_' + id + '_' + lang;
-        }
 
-        function getCached(key) {
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 2 — LOGO ENGINE  (Lampa.TMDB.api — NO hardcoded keys)
+    // ─────────────────────────────────────────────────────────────────
+
+    var LogoEngine = {
+        _cachePrefix: 'nfx_logo_v7_',
+
+        /**
+         * Build a cache key for sessionStorage / Lampa.Storage.
+         */
+        _key: function (type, id, lang) {
+            return this._cachePrefix + type + '_' + id + '_' + lang;
+        },
+
+        /**
+         * Read cached logo URL.  Returns:
+         *   string URL  → cached logo exists
+         *   'none'      → we already know there's no logo
+         *   null        → not yet cached
+         */
+        _getCached: function (key) {
             try {
                 var s = sessionStorage.getItem(key);
-                if (s === 'none') return '';
                 if (s) return s;
             } catch (e) { /* ignore */ }
-            var l = Lampa.Storage.get(key, null);
-            if (l === 'none') return '';
-            return l || '';
-        }
+            return Lampa.Storage.get(key, null);
+        },
 
-        function setCached(key, val) {
-            try { sessionStorage.setItem(key, val || 'none'); } catch (e) { /* ignore */ }
-            Lampa.Storage.set(key, val || 'none');
-        }
+        /**
+         * Write to both sessionStorage and Lampa.Storage.
+         */
+        _setCached: function (key, value) {
+            var v = value || 'none';
+            try { sessionStorage.setItem(key, v); } catch (e) { /* ignore */ }
+            Lampa.Storage.set(key, v);
+        },
 
-        function pickLogo(dataApi, lang) {
-            if (!dataApi || !Array.isArray(dataApi.logos) || !dataApi.logos.length) return '';
-            // prefer transparent png (non-svg)
-            var logos = dataApi.logos.slice().sort(function (a, b) {
-                var aSvg = (a.file_path || '').endsWith('.svg');
-                var bSvg = (b.file_path || '').endsWith('.svg');
-                return (aSvg === bSvg) ? 0 : (aSvg ? 1 : -1);
+        /**
+         * Pick the best logo from TMDB response.
+         * Priority: target_lang PNG → target_lang any → 'en' PNG → 'en' any → first PNG → first any.
+         * SVGs are converted to PNG by replacing the extension.
+         */
+        _pickBest: function (logos, targetLang) {
+            if (!logos || !logos.length) return null;
+
+            // Sort: PNGs first (SVGs last)
+            var sorted = logos.slice().sort(function (a, b) {
+                var aIsSvg = (a.file_path || '').toLowerCase().endsWith('.svg');
+                var bIsSvg = (b.file_path || '').toLowerCase().endsWith('.svg');
+                if (aIsSvg === bIsSvg) return 0;
+                return aIsSvg ? 1 : -1;
             });
 
-            for (var i = 0; i < logos.length; i++) {
-                var l = logos[i];
-                if (l && l.iso_639_1 === lang && l.file_path) return l.file_path;
-            }
-            for (var j = 0; j < logos.length; j++) {
-                var en = logos[j];
-                if (en && en.iso_639_1 === 'en' && en.file_path) return en.file_path;
-            }
-            return logos[0].file_path || '';
-        }
-
-        function flush(key, url) {
-            var list = waiters[key] || [];
-            delete waiters[key];
-            for (var i = 0; i < list.length; i++) list[i](url || '');
-        }
-
-        function processQueue() {
-            if (busy || !queue.length) return;
-            busy = true;
-            var job = queue.shift();
-
-            var attempt = job.attempt || 0;
-            var delay = Math.pow(2, attempt) * 150; // exponential backoff
-
-            var apiUrl = Lampa.TMDB.api(
-                job.type + '/' + job.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + job.lang + ',en,null'
-            );
-
-            $.get(apiUrl, function (dataApi) {
-                var path = pickLogo(dataApi, job.lang);
-                var finalUrl = path ? Lampa.TMDB.image('/t/p/original' + path.replace('.svg', '.png')) : '';
-                setCached(job.cacheKey, finalUrl || 'none');
-                flush(job.reqKey, finalUrl);
-                busy = false;
-                processQueue();
-            }).fail(function () {
-                if (attempt < 2) {
-                    job.attempt = attempt + 1;
-                    setTimeout(function () { queue.unshift(job); busy = false; processQueue(); }, delay);
-                } else {
-                    setCached(job.cacheKey, 'none');
-                    flush(job.reqKey, '');
-                    busy = false;
-                    processQueue();
+            // Pass 1: target language
+            for (var i = 0; i < sorted.length; i++) {
+                if (sorted[i].iso_639_1 === targetLang && sorted[i].file_path) {
+                    return sorted[i].file_path;
                 }
-            });
-        }
-
-        function resolve(movie, done) {
-            if (!movie || !movie.id || !Lampa.TMDB || typeof $ === 'undefined' || typeof $.get !== 'function') {
-                done('');
-                return;
             }
-
-            var d = direct(movie);
-            if (d) {
-                done(d);
-                return;
+            // Pass 2: English
+            for (var j = 0; j < sorted.length; j++) {
+                if (sorted[j].iso_639_1 === 'en' && sorted[j].file_path) {
+                    return sorted[j].file_path;
+                }
             }
+            // Pass 3: any
+            if (sorted[0] && sorted[0].file_path) return sorted[0].file_path;
+
+            return null;
+        },
+
+        /**
+         * Get the user's preferred logo language (falls back to Lampa language).
+         */
+        _getLang: function () {
+            var userLang = Lampa.Storage.get('logo_lang', '');
+            return userLang || Lampa.Storage.get('language', 'uk') || 'uk';
+        },
+
+        /**
+         * Resolve a logo URL for a movie/show.
+         * Uses Lampa.TMDB.api() + Lampa.TMDB.key() — NO hardcoded API key.
+         *
+         * @param {object} movie   — Lampa movie/card data (must have .id)
+         * @param {function} done  — callback(logoUrl) or callback(null)
+         */
+        resolve: function (movie, done) {
+            if (!movie || !movie.id) { done(null); return; }
 
             var type = movie.name ? 'tv' : 'movie';
-            var lang = Lampa.Storage.get('logo_lang', Lampa.Storage.get('language', 'en')) || 'en';
-            var key = cacheKey(type, movie.id, lang);
-            var reqKey = key;
+            var lang = this._getLang();
+            var cacheKey = this._key(type, movie.id, lang);
 
-            var cached = getCached(key);
-            if (cached) {
-                done(cached);
-                return;
-            }
+            // 1) Check cache
+            var cached = this._getCached(cacheKey);
+            if (cached === 'none') { done(null); return; }
+            if (cached) { done(cached); return; }
 
-            if (waiters[reqKey]) {
-                waiters[reqKey].push(done);
-                return;
-            }
-            waiters[reqKey] = [done];
+            // 2) Build TMDB URL using Lampa internal API (NO hardcoded key!)
+            var url = Lampa.TMDB.api(
+                type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() +
+                '&include_image_language=' + lang + ',en,null'
+            );
 
-            queue.push({ type: type, id: movie.id, lang: lang, cacheKey: key, reqKey: reqKey, attempt: 0 });
-            processQueue();
-        }
+            var self = this;
+            var size = Lampa.Storage.get('logo_size', 'original') || 'original';
 
-        return { resolve: resolve, direct: direct, movieKey: movieKey };
-    })();
-
-    /* ===================== DOM PROCESSOR ======================== */
-    var Dom = (function () {
-        var observer = null;
-        var smooth = new WeakMap();
-        var lastMovie = null;
-        var lastKey = '';
-
-        function clean(text) {
-            return String(text || '').replace(/\s+/g, ' ').trim();
-        }
-
-        function getTitle(movie, fallback) {
-            return clean((movie && (movie.title || movie.name || movie.original_title || movie.original_name)) || fallback || '');
-        }
-
-        function getCardData(card) {
-            return card.card_data || card.data || card.movie || card._data || (card.onnoderemove && card.onnoderemove.data) || null;
-        }
-
-        function applyBackdrop(card, data) {
-            if (!settings.useBackdrops || !data || !data.backdrop_path) return;
-            var img = card.querySelector('.card__img');
-            if (!img) return;
-            var url = 'https://image.tmdb.org/t/p/w1280' + data.backdrop_path;
-            if (img.dataset.nfpBackdrop === url) return;
-            var preload = new Image();
-            preload.onload = function () {
-                img.src = url;
-                img.dataset.nfpBackdrop = url;
-            };
-            preload.src = url;
-        }
-
-        function processCard(card) {
-            if (!settings.enabled || !card || !card.classList) return;
-            if (card.dataset.nfpDone === '1') return;
-            card.dataset.nfpDone = '1';
-            var data = getCardData(card);
-            applyBackdrop(card, data);
-        }
-
-        function clamp(n, mi, ma) { return Math.max(mi, Math.min(ma, n)); }
-
-        function animateScroll(line, state) {
-            state.current += (state.target - state.current) * 0.18;
-            line.scrollLeft = state.current;
-            if (Math.abs(state.target - state.current) < 0.5) {
-                line.scrollLeft = state.target;
-                state.current = state.target;
-                state.raf = 0;
-                return;
-            }
-            state.raf = requestAnimationFrame(function () { animateScroll(line, state); });
-        }
-
-        function bindSmooth(line) {
-            if (!line || !line.classList || !line.classList.contains('items-line')) return;
-            if (line.dataset.nfpSmooth === '1') return;
-            line.dataset.nfpSmooth = '1';
-            var state = { target: line.scrollLeft || 0, current: line.scrollLeft || 0, raf: 0 };
-            smooth.set(line, state);
-
-            line.addEventListener('wheel', function (e) {
-                if (!settings.enabled || !settings.smoothScroll) return;
-                if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-                var max = Math.max(0, line.scrollWidth - line.clientWidth);
-                if (!max) return;
-                e.preventDefault();
-                state.target = clamp(state.target + (e.deltaY + e.deltaX) * 0.95, 0, max);
-                if (!state.raf) state.raf = requestAnimationFrame(function () { animateScroll(line, state); });
-            }, { passive: false });
-
-            line.addEventListener('mouseenter', function () { line.classList.add('nfp-hovering'); });
-            line.addEventListener('mouseleave', function () { line.classList.remove('nfp-hovering'); });
-        }
-
-        function renderLogo(node, url, title, key) {
-            node.innerHTML = '';
-            node.classList.remove('nfp-hero-text');
-            node.classList.add('nfp-hero-logo-wrap');
-            node.dataset.nfpKey = key || '';
-            var holder = document.createElement('div');
-            holder.className = 'nfp-hero-logo-holder';
-            var img = document.createElement('img');
-            img.className = 'nfp-hero-logo';
-            img.alt = title;
-            img.loading = 'eager';
-            img.decoding = 'async';
-            img.referrerPolicy = 'no-referrer';
-            img.src = url;
-            holder.appendChild(img);
-            node.appendChild(holder);
-        }
-
-        function applyHero(movie) {
-            if (!settings.enabled) return;
-            var titleNodes = document.querySelectorAll('.full-start__title, .full-start-new__title');
-            if (!titleNodes.length) return;
-
-            var key = LogoEngine.movieKey(movie);
-            lastKey = key;
-
-            for (var i = 0; i < titleNodes.length; i++) {
-                var node = titleNodes[i];
-                if (!node.dataset.nfpOrig) node.dataset.nfpOrig = node.innerHTML;
-                var fallback = node.dataset.nfpTitle || clean(node.textContent || '');
-                if (!node.dataset.nfpTitle) node.dataset.nfpTitle = fallback;
-
-                if (!settings.showLogos) {
-                    node.innerHTML = node.dataset.nfpOrig;
-                    node.classList.remove('nfp-hero-logo-wrap', 'nfp-hero-text');
-                    continue;
+            // 3) Fetch
+            $.get(url, function (data_api) {
+                var path = self._pickBest(data_api.logos, lang);
+                if (path) {
+                    // Convert SVG → PNG, build full image URL via Lampa
+                    var imgUrl = Lampa.TMDB.image('/t/p/' + size + path.replace('.svg', '.png'));
+                    self._setCached(cacheKey, imgUrl);
+                    done(imgUrl);
+                } else {
+                    self._setCached(cacheKey, 'none');
+                    done(null);
                 }
-
-                var title = getTitle(movie, fallback);
-                node.innerHTML = '';
-                node.classList.add('nfp-hero-text');
-                node.textContent = title;
-
-                (function (n, t, k) {
-                    var d = LogoEngine.direct(movie);
-                    if (d) {
-                        renderLogo(n, d, t, k);
-                        return;
-                    }
-                    LogoEngine.resolve(movie, function (url) {
-                        if (!url) return;
-                        if (k && lastKey && k !== lastKey) return;
-                        renderLogo(n, url, t, k);
-                    });
-                })(node, title, key);
-            }
-        }
-
-        function hidePoster() {
-            var left = document.querySelector('.full-start__poster, .full-start-new__poster');
-            if (left) left.style.display = 'none';
-        }
-
-        function scan(node) {
-            if (!node || node.nodeType !== 1) return;
-            if (node.classList.contains('card')) processCard(node);
-            if (node.classList.contains('items-line')) bindSmooth(node);
-            if (node.querySelector('.card')) node.querySelectorAll('.card').forEach(processCard);
-            if (node.querySelector('.items-line')) node.querySelectorAll('.items-line').forEach(bindSmooth);
-            if (node.querySelector('.full-start__title, .full-start-new__title')) {
-                applyHero(lastMovie);
-                hidePoster();
-            }
-        }
-
-        function start() {
-            if (observer || !document.body) return;
-            observer = new MutationObserver(function (mut) {
-                for (var i = 0; i < mut.length; i++) {
-                    var added = mut[i].addedNodes;
-                    for (var j = 0; j < added.length; j++) scan(added[j]);
-                }
+            }).fail(function () {
+                // Network error — don't cache, just fail gracefully
+                done(null);
             });
-            observer.observe(document.body, { childList: true, subtree: true });
-            scan(document.body);
         }
+    };
 
-        function bindFull() {
-            if (window.__nfp_full) return;
-            window.__nfp_full = true;
-            if (!Lampa.Listener || !Lampa.Listener.follow) return;
-            Lampa.Listener.follow('full', function (event) {
-                if (!settings.enabled) return;
-                if (event && event.type && event.type !== 'complite') return;
-                if (event && event.data && event.data.movie) {
-                    lastMovie = event.data.movie;
-                    lastKey = LogoEngine.movieKey(lastMovie);
-                }
-                [0, 120, 360, 720].forEach(function (d) {
-                    setTimeout(function () {
-                        applyHero(lastMovie);
-                        hidePoster();
-                    }, d);
+
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 3 — HERO PROCESSOR  (Full Card page — logo + layout)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Apply final positioning styles to a logo <img> element.
+     */
+    function applyLogoStyles(img) {
+        img.style.display = 'block';
+        img.style.maxWidth = '500px';
+        img.style.maxHeight = '250px';
+        img.style.width = 'auto';
+        img.style.height = 'auto';
+        img.style.objectFit = 'contain';
+        img.style.objectPosition = 'left bottom';
+        img.style.filter = 'drop-shadow(0 8px 32px rgba(0,0,0,0.7))';
+        img.style.boxSizing = 'border-box';
+        img.style.paddingBottom = '0.2em';
+    }
+
+    /**
+     * Smooth logo animation:
+     *  1. Fade out the text title
+     *  2. Replace text with an <img>
+     *  3. Morph container height to the image's natural height
+     *  4. Fade in the logo image
+     *
+     * Follows the exact pattern from logo.js.
+     */
+    function startLogoAnimation(imgUrl, titleElem, domTitle, cacheKey) {
+        var img = new Image();
+        img.src = imgUrl;
+
+        var startTextHeight = 0;
+        if (domTitle) startTextHeight = domTitle.getBoundingClientRect().height;
+
+        applyLogoStyles(img);
+        img.style.opacity = '0';
+
+        img.onload = function () {
+            setTimeout(function () {
+                if (domTitle) startTextHeight = domTitle.getBoundingClientRect().height;
+
+                // Step 1: Fade out the text
+                titleElem.css({
+                    transition: 'opacity ' + (FADE_OUT_TEXT / 1000) + 's ease',
+                    opacity: '0'
                 });
-            });
+
+                setTimeout(function () {
+                    // Step 2: Replace text with logo image
+                    titleElem.empty().append(img);
+                    titleElem.css({ opacity: '1', transition: 'none' });
+
+                    var targetHeight = domTitle.getBoundingClientRect().height;
+
+                    domTitle.style.height = startTextHeight + 'px';
+                    domTitle.style.display = 'block';
+                    domTitle.style.overflow = 'hidden';
+                    domTitle.style.boxSizing = 'border-box';
+
+                    void domTitle.offsetHeight; // force reflow
+
+                    // Step 3: Morph height
+                    domTitle.style.transition = 'height ' + (MORPH_HEIGHT / 1000) + 's cubic-bezier(0.4, 0, 0.2, 1)';
+
+                    requestAnimationFrame(function () {
+                        domTitle.style.height = targetHeight + 'px';
+
+                        // Step 4: Fade in the logo
+                        setTimeout(function () {
+                            img.style.transition = 'opacity ' + (FADE_IN_IMG / 1000) + 's ease';
+                            img.style.opacity = '1';
+                        }, Math.max(0, MORPH_HEIGHT - 100));
+
+                        // Step 5: Clean up — restore natural height
+                        setTimeout(function () {
+                            domTitle.style.height = '';
+                            domTitle.style.overflow = '';
+                            domTitle.style.transition = 'none';
+                            applyLogoStyles(img);
+                        }, MORPH_HEIGHT + FADE_IN_IMG + 50);
+                    });
+                }, FADE_OUT_TEXT);
+
+            }, SAFE_DELAY);
+        };
+
+        img.onerror = function () {
+            // Logo failed to load — keep the original text
+            titleElem.css({ opacity: '1', transition: 'none' });
+        };
+    }
+
+    /**
+     * Build a clean metadata string: "Фільм · Драма · Трилер"
+     */
+    function buildMeta(movie) {
+        var parts = [];
+        parts.push(movie.name ? 'Серіал' : 'Фільм');
+        if (movie.genres && movie.genres.length) {
+            for (var i = 0; i < Math.min(movie.genres.length, 3); i++) {
+                if (movie.genres[i].name) parts.push(movie.genres[i].name);
+            }
         }
+        var year = '';
+        if (movie.release_date) year = movie.release_date.substring(0, 4);
+        else if (movie.first_air_date) year = movie.first_air_date.substring(0, 4);
+        if (year) parts.push(year);
+        return parts.join(' · ');
+    }
 
-        function refreshCards() {
-            document.querySelectorAll('.card').forEach(function (c) {
-                c.dataset.nfpDone = '';
-                processCard(c);
-            });
-        }
+    /**
+     * Listen for Lampa's "full" event and inject the logo into the hero page.
+     */
+    function initHeroProcessor() {
+        if (window.__nfx_hero_bound) return;
+        window.__nfx_hero_bound = true;
 
-        function restoreHero() {
-            document.querySelectorAll('.nfp-hero-logo-wrap, .nfp-hero-text').forEach(function (n) {
-                if (n.dataset.nfpOrig) n.innerHTML = n.dataset.nfpOrig;
-            });
-        }
+        Lampa.Listener.follow('full', function (e) {
+            if (e.type !== 'complite') return;
 
-        return { start: start, bindFull: bindFull, refreshCards: refreshCards, applyHero: applyHero, restoreHero: restoreHero };
-    })();
+            var movie = e.data.movie;
+            var type = movie.name ? 'tv' : 'movie';
 
-    /* ======================= CSS INJECTOR ======================= */
-    var Css = (function () {
-        function inject() {
-            var old = document.getElementById('netflix_premium_styles');
-            if (old) old.remove();
-            if (!settings.enabled) {
-                Dom.restoreHero();
-                return;
+            // Get DOM elements from the rendered activity
+            var render = e.object.activity.render();
+            var titleElem = render.find('.full-start-new__title');
+            var headElem = render.find('.full-start-new__head');
+            var detailsElem = render.find('.full-start-new__details');
+            var taglineElem = render.find('.full-start-new__tagline');
+            var domTitle = titleElem[0];
+
+            if (!titleElem.length) return;
+
+            // ── Inject clean metadata ──
+            if (detailsElem.length && !detailsElem.find('.nfx-meta').length) {
+                var metaStr = buildMeta(movie);
+                if (metaStr) {
+                    var metaEl = $('<span class="nfx-meta">' + metaStr + '</span>');
+                    metaEl.css({
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontWeight: '500',
+                        fontSize: '1em',
+                        color: 'rgba(255,255,255,0.72)',
+                        letterSpacing: '0.04em'
+                    });
+
+                    // Move head info into details line (like logo.js does)
+                    if (headElem.length && !detailsElem.find('.nfx-moved-head').length) {
+                        var headContent = headElem.html();
+                        if (headContent) {
+                            headElem.css({ opacity: '0', transition: 'none' });
+                            if (detailsElem.children().length > 0) {
+                                detailsElem.append($('<span class="full-start-new__split nfx-moved-sep">●</span>'));
+                            }
+                            detailsElem.append($('<span class="nfx-moved-head">' + headContent + '</span>'));
+                        }
+                    }
+                }
             }
 
-            var h = CARD_HEIGHTS[settings.cardHeight] || CARD_HEIGHTS.medium;
-            var radius = settings.roundCorners ? '14px' : '6px';
+            // ── Resolve and animate the logo ──
+            titleElem.css({ opacity: '1', transition: 'none' });
 
-            var css = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap');
+            var lang = LogoEngine._getLang();
+            var cacheKey = LogoEngine._key(type, movie.id, lang);
+            var cached = LogoEngine._getCached(cacheKey);
 
+            // Fast path: already cached
+            if (cached && cached !== 'none') {
+                var cachedImg = new Image();
+                cachedImg.src = cached;
+
+                if (cachedImg.complete) {
+                    // Instant replacement (no animation needed)
+                    applyLogoStyles(cachedImg);
+                    titleElem.empty().append(cachedImg);
+                    titleElem.css({ opacity: '1', transition: 'none' });
+                    return;
+                } else {
+                    startLogoAnimation(cached, titleElem, domTitle, cacheKey);
+                    return;
+                }
+            }
+
+            // Already known: no logo available
+            if (cached === 'none') return;
+
+            // Fetch from TMDB
+            LogoEngine.resolve(movie, function (logoUrl) {
+                if (logoUrl) {
+                    startLogoAnimation(logoUrl, titleElem, domTitle, cacheKey);
+                }
+            });
+        });
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 4 — CARD PROCESSOR  (edge tagging for CSS)
+    // ─────────────────────────────────────────────────────────────────
+
+    function initCardProcessor() {
+        if (window.__nfx_cards_bound) return;
+        window.__nfx_cards_bound = true;
+
+        function tagEdgeCards() {
+            var rows = document.querySelectorAll('.scroll__body');
+            for (var r = 0; r < rows.length; r++) {
+                var cards = rows[r].querySelectorAll('.card');
+                if (cards.length === 0) continue;
+
+                for (var c = 0; c < cards.length; c++) {
+                    cards[c].removeAttribute('data-nfx-edge');
+                }
+                cards[0].setAttribute('data-nfx-edge', 'first');
+                cards[cards.length - 1].setAttribute('data-nfx-edge', 'last');
+            }
+        }
+
+        // Run on DOM changes
+        var debounceTimer = null;
+        var observer = new MutationObserver(function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(tagEdgeCards, 80);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Initial pass
+        tagEdgeCards();
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 5 — CSS INJECTOR  (template literals — zero whitespace bugs)
+    // ─────────────────────────────────────────────────────────────────
+
+    function injectCSS() {
+        var old = document.getElementById('nfx-premium-v7');
+        if (old) old.remove();
+
+        var css = `
+/* ================================================================
+   Netflix Premium Style v7.0 — Template Literal CSS
+   ================================================================ */
+
+/* ── Google Font: Montserrat ── */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Global Tokens ── */
 :root {
-  --nfp-bg: #0a0d12;
-  --nfp-accent: #e50914;
-  --nfp-accent-2: #b20710;
-  --nfp-text: #f6f6f6;
-  --nfp-muted: #c1c4cb;
-  --nfp-card-h: ${h};
-  --nfp-card-w: calc(var(--nfp-card-h) * 16 / 9);
-  --nfp-radius: ${radius};
-  --nfp-glass: rgba(255, 255, 255, 0.05);
+    --nfx-bg: #0a0d12;
+    --nfx-accent: #e50914;
+    --nfx-accent-rgb: 229, 9, 20;
+    --nfx-text: #f0f0f0;
+    --nfx-font: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+    --nfx-card-scale: 1.45;
+    --nfx-shift: 25%;
+    --nfx-duration: 500ms;
+    --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --nfx-radius: 8px;
 }
 
 body {
-  background:
-    radial-gradient(1200px 520px at 16% -6%, rgba(229,9,20,0.16), transparent 60%),
-    radial-gradient(960px 520px at 78% 0%, rgba(255,255,255,0.08), transparent 62%),
-    linear-gradient(180deg, #070a10 0%, #0b1018 42%, #111a24 100%) !important;
-  color: var(--nfp-text) !important;
-  font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif !important;
+    background-color: var(--nfx-bg) !important;
+    font-family: var(--nfx-font) !important;
+    color: var(--nfx-text) !important;
 }
 
-/* ─── OVERFLOW FIX: all parent containers must be visible ─── */
+
+/* ================================================================
+   ROW LAYOUT — overflow fix for scaled cards
+   ================================================================ */
+
+/* All parent containers: MUST be visible for scale to work */
 .items-line__body,
 .items-cards,
 .scroll,
 .scroll--horizontal,
 .scroll__content,
 .scroll__body {
-  overflow: visible !important;
+    overflow: visible !important;
 }
 
-/* Rows */
 .items-line {
-  display: flex !important;
-  gap: 16px !important;
-  padding: 40px 4% 44px !important;   /* vertical room for 1.5x scale */
-  overflow: visible !important;        /* NO clipping! */
-  scroll-snap-type: x proximity !important;
-  scroll-padding-left: 4% !important;
-  scroll-padding-right: 4% !important;
-  -webkit-overflow-scrolling: touch !important;
-  position: relative !important;
-  z-index: 1 !important;
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
-.items-line::-webkit-scrollbar { height: 0 !important; width: 0 !important; }
 
-/* Row with a focused card sits above other rows */
+/* Vertical padding so 1.45x scaled cards don't clip top/bottom */
+.scroll__body {
+    padding: 36px 0 !important;
+}
+
+/* Row with a focused card rises above other rows */
 .items-line:has(.card.focus),
 .items-line:has(.card.hover),
 .items-line:has(.card:hover) {
-  z-index: 50 !important;
+    z-index: 50 !important;
 }
 
-/* ─── CARDS ─── */
+/* Category titles */
+.items-line__title {
+    font-family: var(--nfx-font) !important;
+    font-weight: 700 !important;
+    font-size: 1.4em !important;
+    color: var(--nfx-text) !important;
+    letter-spacing: 0.01em !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    padding-left: 4% !important;
+}
+
+
+/* ================================================================
+   CARD BASE — GPU-ready with will-change
+   ================================================================ */
+
 .card {
-  position: relative !important;
-  flex: 0 0 var(--nfp-card-w) !important;
-  width: var(--nfp-card-w) !important;
-  height: var(--nfp-card-h) !important;
-  margin: 0 !important;
-  transform-origin: center center !important;
-  transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), z-index 0s !important;
-  will-change: transform;
-  z-index: 1 !important;
+    position: relative !important;
+    transition: transform var(--nfx-duration) var(--nfx-ease),
+                z-index 0s !important;
+    z-index: 1 !important;
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    transform: translate3d(0, 0, 0) !important;
 }
+
 .card__view {
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: visible !important;        /* badges must NOT clip */
-  border-radius: var(--nfp-radius) !important;
-  background: linear-gradient(140deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  box-shadow: 0 12px 28px rgba(0,0,0,0.36) !important;
-  transition: box-shadow 320ms ease, border-color 320ms ease !important;
+    border-radius: var(--nfx-radius) !important;
+    overflow: visible !important;
+    position: relative !important;
+    background: #16181d !important;
+    border: 2px solid transparent !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+    transition: border-color var(--nfx-duration) var(--nfx-ease),
+                box-shadow var(--nfx-duration) var(--nfx-ease) !important;
 }
-.card__view::after {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: var(--nfp-radius) !important;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%) !important;
-  z-index: 1 !important;
-  pointer-events: none !important;
-}
-.card__view::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: var(--nfp-radius) !important;
-  background: radial-gradient(120% 120% at 12% 12%, rgba(229,9,20,0.18), transparent 48%) !important;
-  opacity: 0 !important;
-  transition: opacity 240ms ease !important;
-  z-index: 1 !important;
-  pointer-events: none !important;
-}
+
 .card__img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: var(--nfp-radius) !important;
-  transform: scale(1.01) !important;
-  transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: var(--nfx-radius) !important;
+    display: block !important;
 }
+
+/* Card title */
 .card__title {
-  position: absolute !important;
-  left: 12px !important;
-  right: 12px !important;
-  bottom: 10px !important;
-  z-index: 3 !important;
-  color: #fff !important;
-  font-family: 'Montserrat', sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 13px !important;
-  line-height: 1.2 !important;
-  text-shadow: 0 8px 18px rgba(0,0,0,0.6) !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
+    font-family: var(--nfx-font) !important;
+    font-size: 0.85em !important;
+    font-weight: 600 !important;
+    color: var(--nfx-text) !important;
+    padding: 8px 4px 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6) !important;
 }
 
-/* ─── BADGES: Quality & Vote visible, Age hidden ─── */
+/* Badges: quality visible, age hidden */
 .card__quality {
-  display: block !important;
-  position: absolute !important;
-  top: 8px !important;
-  right: 8px !important;
-  z-index: 4 !important;
-  background: rgba(229, 9, 20, 0.88) !important;
-  color: #fff !important;
-  padding: 2px 7px !important;
-  border-radius: 4px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  font-family: 'Montserrat', sans-serif !important;
-  letter-spacing: 0.04em !important;
-  line-height: 1.4 !important;
-  text-transform: uppercase !important;
-  pointer-events: none !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    display: block !important;
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    z-index: 4 !important;
+    background: rgba(var(--nfx-accent-rgb), 0.9) !important;
+    color: #fff !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.7em !important;
+    font-weight: 700 !important;
+    font-family: var(--nfx-font) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    pointer-events: none !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
 }
+
 .card__vote {
-  display: block !important;
-  position: absolute !important;
-  top: 8px !important;
-  left: 8px !important;
-  z-index: 4 !important;
-  background: rgba(0, 0, 0, 0.7) !important;
-  color: #ffd700 !important;
-  padding: 2px 7px !important;
-  border-radius: 4px !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-  font-family: 'Montserrat', sans-serif !important;
-  line-height: 1.4 !important;
-  pointer-events: none !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    display: block !important;
+    position: absolute !important;
+    top: 6px !important;
+    left: 6px !important;
+    z-index: 4 !important;
+    background: rgba(0,0,0,0.72) !important;
+    color: #ffd700 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.72em !important;
+    font-weight: 700 !important;
+    font-family: var(--nfx-font) !important;
+    pointer-events: none !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
 }
+
 .card__age {
-  display: none !important;
+    display: none !important;
 }
 
-/* ─── NEIGHBOR SHIFTING (translate3d → GPU) ─── */
-.items-line.nfp-hovering .card { transform: translate3d(-22%, 0, 0) !important; }
-.items-line.nfp-hovering .card:first-child { transform: translate3d(-10%, 0, 0) !important; }
-.items-line.nfp-hovering .card:last-child { transform: translate3d(-14%, 0, 0) !important; }
 
-.card:hover ~ .card,
-.card.hover ~ .card,
-.card.focus ~ .card {
-  transform: translate3d(22%, 0, 0) !important;
-  z-index: 1 !important;
-}
-.items-line .card:last-child:hover ~ .card { transform: translate3d(0,0,0) !important; }
+/* ================================================================
+   NEIGHBOR SHIFTING — GPU translate3d + scale3d
+   ================================================================ */
 
-/* Focused card: scale + HIGH z-index → floats above other rows */
-.card:hover,
+/* Focused card: scale up */
+.card.focus,
 .card.hover,
-.card.focus {
-  transform: translate3d(0,0,0) scale(1.5) !important;
-  z-index: 100 !important;
-}
-
-/* Edge protection: first card → grow rightward */
-.card:first-child:hover,
-.card:first-child.hover,
-.card:first-child.focus {
-  transform-origin: left center !important;
-}
-/* Edge protection: last card → grow leftward */
-.card:last-child:hover,
-.card:last-child.hover,
-.card:last-child.focus {
-  transform-origin: right center !important;
-}
-
-/* Focused card glow */
-.card:hover .card__view,
-.card.hover .card__view,
-.card.focus .card__view {
-  border-color: rgba(229,9,20,0.6) !important;
-  box-shadow: 0 24px 48px rgba(0,0,0,0.62), 0 0 0 1px rgba(229,9,20,0.32) !important;
-}
-.card:hover .card__view::before,
-.card.hover .card__view::before,
-.card.focus .card__view::before { opacity: 1 !important; }
-.card:hover .card__img,
-.card.hover .card__img,
-.card.focus .card__img { transform: scale(1.06) !important; }
-
-/* ─── FULL HERO ─── */
-.full-start, .full-start-new {
-  position: relative !important;
-  overflow: hidden !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.full-start::before, .full-start-new::before,
-.full-start::after, .full-start-new::after { display: none !important; }
-.full-start__background {
-  height: 100vh !important;
-  top: 0 !important;
-  filter: saturate(1.05) contrast(1.04) brightness(0.98) !important;
-  transform: scale(1.01) !important;
-}
-.full-start__poster, .full-start-new__poster,
-.full-start__left, .full-start-new__left { display: none !important; }
-.full-start__body, .full-start-new__body {
-  position: relative !important;
-  z-index: 2 !important;
-  min-height: 82vh !important;
-  padding: clamp(82px, 8vh, 118px) 4% clamp(48px, 6vh, 78px) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-}
-.full-start__body::after, .full-start-new__body::after {
-  content: '' !important;
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 58% !important;
-  background: linear-gradient(90deg, #0a0d12 15%, rgba(10,13,18,0.82) 38%, rgba(10,13,18,0.28) 64%, transparent 100%) !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-}
-.full-start__right, .full-start-new__right {
-  width: min(56vw, 920px) !important;
-  max-width: 94vw !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  align-items: flex-start !important;
-  z-index: 1 !important;
-}
-.full-start__title, .full-start-new__title {
-  margin: 0 !important;
-  min-height: clamp(120px, 16vh, 240px) !important;
-  display: flex !important;
-  align-items: flex-end !important;
-  width: 100% !important;
-}
-.nfp-hero-logo-holder {
-  display: inline-flex !important;
-  align-items: flex-end !important;
-  min-height: clamp(120px, 16vh, 240px) !important;
-  max-width: min(880px, 92vw) !important;
-}
-.nfp-hero-logo {
-  max-width: min(880px, 72vw) !important;
-  max-height: clamp(140px, 20vh, 260px) !important;
-  object-fit: contain !important;
-  filter: drop-shadow(0 18px 32px rgba(0,0,0,0.7)) drop-shadow(0 0 26px rgba(229,9,20,0.22)) !important;
-}
-.nfp-hero-text {
-  font-family: 'Montserrat', sans-serif !important;
-  font-size: clamp(46px, 5.8vw, 86px) !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.01em !important;
-  color: #fff !important;
-  text-shadow: 0 16px 38px rgba(0,0,0,0.65) !important;
-  margin: 0 !important;
-  padding: 0 0 8px 0 !important;
-}
-.full-start__tagline, .full-start-new__tagline, .ifx-original-title {
-  margin-top: 4px !important;
-  color: rgba(255,255,255,0.82) !important;
-  font-size: clamp(14px, 1.05vw, 18px) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
-  text-transform: uppercase !important;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.42) !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-}
-.full-start__details, .full-start-new__details {
-  color: rgba(255,255,255,0.9) !important;
-  margin-top: 2px !important;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
-  background: transparent !important;
-}
-.full-start__description, .full-start-new__description {
-  max-width: 640px !important;
-  color: rgba(255,255,255,0.88) !important;
-  font-size: clamp(15px, 1vw, 18px) !important;
-  line-height: 1.5 !important;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.28) !important;
-}
-.full-start__buttons, .full-start-new__buttons {
-  margin-top: 12px !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-.full-start__button {
-  border-radius: 12px !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  padding: 12px 18px !important;
-  background: rgba(255,255,255,0.06) !important;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.34) !important;
-}
-.full-start__button.button--play, .full-start-new__button.button--play {
-  background: linear-gradient(102deg, rgba(229,9,20,0.98), var(--nfp-accent-2)) !important;
-  border-color: rgba(229,9,20,0.94) !important;
-  box-shadow: 0 0 0 1px rgba(229,9,20,0.86), 0 16px 32px rgba(229,9,20,0.32) !important;
-}
-
-/* ─── MENU / HEADER GLASS ─── */
-.menu, .menu__list, .head {
-  background: linear-gradient(135deg, rgba(12,15,22,0.82), rgba(9,12,18,0.64)) !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(18px) saturate(124%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(124%) !important;
-}
-.menu { overflow: visible !important; min-height: 100vh !important; }
-.menu__list { overflow: visible !important; padding-bottom: 12px !important; }
-.menu__item {
-  border-radius: 12px !important;
-  transition: all 200ms ease !important;
-}
-.menu__item.focus, .menu__item.hover, .menu__item.traverse {
-  background: linear-gradient(110deg, rgba(229,9,20,0.32), rgba(229,9,20,0.12)) !important;
-  border-color: transparent !important;
-  box-shadow: 0 0 0 1px rgba(229,9,20,0.38) !important;
-}
-.head__button, .head .button {
-  transition: background 200ms ease, box-shadow 200ms ease !important;
-  border-radius: 12px !important;
-}
-.head__button:hover, .head .button:hover,
-.head__button.focus, .head .button.focus {
-  background: linear-gradient(120deg, rgba(229,9,20,0.42), rgba(229,9,20,0.18)) !important;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35) !important;
-}
-
-::selection { background: rgba(229,9,20,0.28) !important; }
-::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
-::-webkit-scrollbar-thumb { background: #2e2e2e !important; border-radius: 8px !important; }
-::-webkit-scrollbar-thumb:hover { background: var(--nfp-accent) !important; }
-
-/* ─── RESPONSIVE ─── */
-@media (max-width: 1180px) {
-  .items-line { padding: 32px 4% 38px !important; }
-  .full-start__right, .full-start-new__right { width: min(92vw, 760px) !important; }
-  .nfp-hero-logo-holder { min-height: clamp(104px, 14vh, 200px) !important; }
-  .nfp-hero-logo { max-height: clamp(120px, 16vh, 220px) !important; }
-}
-@media (max-width: 820px) {
-  .items-line { gap: 12px !important; padding: 32px 4% 38px !important; }
-  .card { flex-basis: calc(var(--nfp-card-w) * 0.9) !important; }
-  .card:hover, .card.focus, .card.hover {
-    transform: translate3d(0,0,0) scale(1.3) !important;
+.card:hover {
     z-index: 100 !important;
-  }
-  .items-line.nfp-hovering .card { transform: translate3d(-12%,0,0) !important; }
-  .card:hover ~ .card, .card.focus ~ .card, .card.hover ~ .card { transform: translate3d(12%,0,0) !important; }
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+}
+
+/* Focused card — glow border */
+.card.focus .card__view,
+.card.hover .card__view,
+.card:hover .card__view {
+    border-color: rgba(var(--nfx-accent-rgb), 0.75) !important;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.65),
+                0 0 0 1px rgba(var(--nfx-accent-rgb), 0.4) !important;
+}
+
+/* Sibling cards AFTER focused → shift RIGHT */
+.card.focus ~ .card,
+.card.hover ~ .card,
+.card:hover ~ .card {
+    transform: translate3d(var(--nfx-shift), 0, 0) !important;
+    z-index: 1 !important;
+}
+
+/* If a shifted sibling itself is focused, keep its scale */
+.card.focus ~ .card.focus,
+.card.hover ~ .card.hover {
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+    z-index: 100 !important;
+}
+
+/* ── EDGE PROTECTION ── */
+
+/* First card: grow rightward, don't shift off-screen */
+.card[data-nfx-edge="first"].focus,
+.card[data-nfx-edge="first"].hover,
+.card[data-nfx-edge="first"]:hover,
+.card:first-child.focus,
+.card:first-child.hover,
+.card:first-child:hover {
+    transform-origin: left center !important;
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+}
+
+/* Last card: grow leftward */
+.card[data-nfx-edge="last"].focus,
+.card[data-nfx-edge="last"].hover,
+.card[data-nfx-edge="last"]:hover,
+.card:last-child.focus,
+.card:last-child.hover,
+.card:last-child:hover {
+    transform-origin: right center !important;
+    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+}
+
+/* Last card as neighbor: reduced shift to prevent overflow */
+.card.focus ~ .card[data-nfx-edge="last"],
+.card.hover ~ .card[data-nfx-edge="last"],
+.card:hover ~ .card[data-nfx-edge="last"],
+.card.focus ~ .card:last-child,
+.card.hover ~ .card:last-child,
+.card:hover ~ .card:last-child {
+    transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
+}
+
+
+/* ================================================================
+   FULL CARD HERO — Movie Detail Page
+   Premium "Housemaid" layout: full-bleed backdrop + gradient + logo
+   ================================================================ */
+
+/* Remove default Lampa dark mask */
+.full-start-new .full-start-new__background,
+.full-start-new .full-start__background {
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+}
+
+/* Premium gradient overlay (left → transparent) */
+.full-start-new::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(to right,
+        rgba(10,13,18,0.98) 0%,
+        rgba(10,13,18,0.4) 40%,
+        transparent 85%) !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+}
+
+/* Bottom gradient for blend into background */
+.full-start-new::after {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 35% !important;
+    background: linear-gradient(0deg, var(--nfx-bg) 0%, transparent 100%) !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+}
+
+/* Content block above gradients — left-aligned */
+.full-start-new__body {
+    position: relative !important;
+    z-index: 2 !important;
+    padding-left: 5% !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.full-start-new__right {
+    position: relative !important;
+    z-index: 3 !important;
+    max-width: 650px !important;
+}
+
+/* Hide left poster area — using full-bleed backdrop */
+.full-start-new__left {
+    display: none !important;
+}
+
+/* Background fills the whole viewport */
+.full-start-new .full-start-new__background img,
+.full-start-new .full-start__background img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* ── Hero Title / Logo ── */
+.full-start-new__title {
+    font-family: var(--nfx-font) !important;
+    font-weight: 800 !important;
+    font-size: 2.8em !important;
+    line-height: 1.08 !important;
+    color: #fff !important;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.7) !important;
+    margin-bottom: 12px !important;
+}
+
+/* Title styling when text fallback is used */
+.full-start-new__title .nfx-text-logo {
+    font-family: var(--nfx-font) !important;
+    font-weight: 700 !important;
+    font-size: 1em !important;
+    line-height: 1.08 !important;
+    color: #ffffff !important;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.7),
+                 0 2px 8px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Hero Meta ── */
+.full-start-new__details {
+    font-family: var(--nfx-font) !important;
+    font-size: 1em !important;
+    font-weight: 500 !important;
+    color: rgba(255,255,255,0.72) !important;
+    letter-spacing: 0.03em !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+}
+
+.full-start-new__tagline {
+    font-family: var(--nfx-font) !important;
+    font-style: italic !important;
+    color: rgba(255,255,255,0.58) !important;
+    font-size: 0.95em !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Hero Description ── */
+.full-start-new__text {
+    font-family: var(--nfx-font) !important;
+    color: rgba(255,255,255,0.72) !important;
+    font-size: 0.95em !important;
+    line-height: 1.55 !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    max-width: 550px !important;
+}
+
+/* ── Hero Rate ── */
+.full-start-new__rate-line {
+    font-family: var(--nfx-font) !important;
+}
+
+/* ── Glassmorphism Buttons ── */
+.full-start__button,
+.full-start-new__button {
+    font-family: var(--nfx-font) !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    background: rgba(255,255,255,0.08) !important;
+    backdrop-filter: blur(15px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(1.2) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+    transition: background 300ms ease, transform 200ms ease, box-shadow 300ms ease !important;
+}
+
+.full-start__button.focus,
+.full-start__button:hover,
+.full-start-new__button.focus,
+.full-start-new__button:hover {
+    background: rgba(var(--nfx-accent-rgb), 0.85) !important;
+    border-color: rgba(var(--nfx-accent-rgb), 0.9) !important;
+    box-shadow: 0 0 0 1px rgba(var(--nfx-accent-rgb), 0.6),
+                0 12px 32px rgba(var(--nfx-accent-rgb), 0.3) !important;
+    transform: scale(1.04) !important;
+}
+
+
+/* ================================================================
+   GLASSMORPHISM — Menus, Popups, Settings
+   ================================================================ */
+
+.settings__content,
+.selectbox-item,
+.modal__content {
+    background: rgba(22, 24, 29, 0.75) !important;
+    backdrop-filter: blur(16px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 12px !important;
+}
+
+.menu, .menu__list, .head {
+    background: linear-gradient(135deg, rgba(12,15,22,0.82), rgba(9,12,18,0.64)) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    backdrop-filter: blur(18px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+}
+
+.menu__item.focus,
+.menu__item.hover,
+.menu__item.traverse {
+    background: linear-gradient(110deg, rgba(var(--nfx-accent-rgb),0.3), rgba(var(--nfx-accent-rgb),0.1)) !important;
+    box-shadow: 0 0 0 1px rgba(var(--nfx-accent-rgb), 0.35) !important;
+    border-radius: 10px !important;
+}
+
+
+/* ================================================================
+   SCROLLBAR — thin & dark
+   ================================================================ */
+
+::-webkit-scrollbar {
+    width: 5px !important;
+    height: 5px !important;
+}
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12) !important;
+    border-radius: 10px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.25) !important;
+}
+
+/* Hide scrollbar in card rows */
+.scroll__body {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+.scroll__body::-webkit-scrollbar {
+    display: none !important;
+}
+
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
+@media (max-width: 768px) {
+    .full-start-new__title {
+        font-size: 1.8em !important;
+    }
+    .full-start-new__right {
+        max-width: 90vw !important;
+    }
+    :root {
+        --nfx-card-scale: 1.25;
+        --nfx-shift: 15%;
+    }
 }
 `;
 
-            var style = document.createElement('style');
-            style.id = 'netflix_premium_styles';
-            style.textContent = css;
-            document.head.appendChild(style);
-        }
+        var style = document.createElement('style');
+        style.id = 'nfx-premium-v7';
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
 
-        return { inject: inject };
-    })();
 
-    /* ========================= SETTINGS UI ====================== */
-    Lampa.Lang.add({
-        netflix_premium_title: { en: 'Netflix Premium Style', uk: 'Netflix Преміум Стиль' },
-        netflix_enable: { en: 'Enable Netflix Premium style', uk: 'Увімкнути Netflix Преміум стиль' },
-        netflix_use_backdrops: { en: 'Use backdrops (landscape)', uk: 'Використовувати backdrops (горизонтальні)' },
-        netflix_show_logos: { en: 'Replace full-card title with logo', uk: 'Заміняти заголовок картки на лого' },
-        netflix_smooth_scroll: { en: 'Extra smooth row scrolling', uk: 'Дуже плавний скрол рядів' },
-        netflix_round_corners: { en: 'Rounded corners', uk: 'Заокруглені кути' },
-        netflix_card_height: { en: 'Card height', uk: 'Висота карток' }
-    });
+    // ─────────────────────────────────────────────────────────────────
+    //  SECTION 6 — BOOTSTRAP
+    // ─────────────────────────────────────────────────────────────────
 
-    function initSettingsUI() {
-        if (window.__netflix_settings_ready) return;
-        window.__netflix_settings_ready = true;
+    function bootstrap() {
+        if (window.__nfx_premium_v7) return;
+        window.__nfx_premium_v7 = true;
 
-        var component = 'netflix_premium';
+        injectCSS();
+        initHeroProcessor();
+        initCardProcessor();
 
-        Lampa.SettingsApi.addComponent({
-            component: component,
-            name: Lampa.Lang.translate('netflix_premium_title'),
-            icon: '<svg viewBox="0 0 512 512" fill="currentColor"><path d="M363.3 48h-60v340l-140-340h-76v416h60v-340l140 340h76v-416z"/></svg>'
+        console.log('[NFX Premium] v7.0 — Montserrat · Lampa TMDB · GPU Animations');
+    }
+
+    // Wait for Lampa to be ready
+    if (window.Lampa && Lampa.Listener) {
+        Lampa.Listener.follow('app', function (e) {
+            if (e.type === 'ready') bootstrap();
         });
-
-        Lampa.SettingsApi.addParam({ component: component, param: { name: 'netflix_premium_enabled', type: 'trigger', default: true }, field: { name: Lampa.Lang.translate('netflix_enable') } });
-        Lampa.SettingsApi.addParam({ component: component, param: { name: 'netflix_use_backdrops', type: 'trigger', default: true }, field: { name: Lampa.Lang.translate('netflix_use_backdrops') } });
-        Lampa.SettingsApi.addParam({ component: component, param: { name: 'netflix_show_logos', type: 'trigger', default: true }, field: { name: Lampa.Lang.translate('netflix_show_logos') } });
-        Lampa.SettingsApi.addParam({ component: component, param: { name: 'netflix_smooth_scroll', type: 'trigger', default: true }, field: { name: Lampa.Lang.translate('netflix_smooth_scroll') } });
-        Lampa.SettingsApi.addParam({ component: component, param: { name: 'netflix_round_corners', type: 'trigger', default: true }, field: { name: Lampa.Lang.translate('netflix_round_corners') } });
-        Lampa.SettingsApi.addParam({
-            component: component,
-            param: {
-                name: 'netflix_card_height',
-                type: 'select',
-                values: { small: 'Small (170px)', medium: 'Medium (220px)', large: 'Large (272px)' },
-                default: 'medium'
-            },
-            field: { name: Lampa.Lang.translate('netflix_card_height') }
-        });
-    }
-
-    function applySetting(key) {
-        if (key === 'netflix_premium_enabled') settings.enabled = getBool(key, true);
-        if (key === 'netflix_use_backdrops') settings.useBackdrops = getBool(key, true);
-        if (key === 'netflix_show_logos') settings.showLogos = getBool(key, true);
-        if (key === 'netflix_smooth_scroll') settings.smoothScroll = getBool(key, true);
-        if (key === 'netflix_round_corners') settings.roundCorners = getBool(key, true);
-        if (key === 'netflix_card_height') settings.cardHeight = Lampa.Storage.get('netflix_card_height', 'medium');
-
-        Css.inject();
-        if (!settings.enabled) {
-            Dom.restoreHero();
-            return;
-        }
-        Dom.refreshCards();
-        Dom.applyHero(null);
-    }
-
-    function patchStorage() {
-        if (window.__netflix_storage_patched) return;
-        window.__netflix_storage_patched = true;
-        var originalSet = Lampa.Storage.set;
-        Lampa.Storage.set = function (key, val) {
-            var res = originalSet.apply(this, arguments);
-            if (key.indexOf('netflix_') === 0) applySetting(key, val);
-            return res;
-        };
-    }
-
-    /* =========================== INIT =========================== */
-    function init() {
-        if (window.netflix_premium_initialized) return;
-        window.netflix_premium_initialized = true;
-
-        initSettingsUI();
-        patchStorage();
-        Css.inject();
-        Dom.start();
-        Dom.bindFull();
-        Dom.refreshCards();
-
-        if (Lampa.Plugin) {
-            Lampa.Plugin.display({
-                name: 'Netflix Premium Style',
-                version: '6.0.1',
-                description: 'Halo Netflix UI with logo hero & neighbor shift',
-                type: 'style',
-                author: 'Lampac Agent',
-                onstart: init
-            });
-        }
-
-        console.log('[Netflix Premium] v6.0.1 ready — overflow/badge/z-index fixes');
-    }
-
-    if (window.Lampa) init();
-    else {
-        var timer = setInterval(function () {
-            if (typeof Lampa !== 'undefined') {
-                clearInterval(timer);
-                init();
+        // Also try immediately in case 'ready' already fired
+        setTimeout(bootstrap, 800);
+    } else {
+        // Fallback: poll for Lampa
+        var poll = setInterval(function () {
+            if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+                clearInterval(poll);
+                Lampa.Listener.follow('app', function (e) {
+                    if (e.type === 'ready') bootstrap();
+                });
+                setTimeout(bootstrap, 800);
             }
         }, 200);
     }
+
 })();
