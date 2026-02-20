@@ -394,6 +394,8 @@
         var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
         var logoH = Lampa.Storage.get('nfx_logo_height', '250px');
         var blur = Lampa.Storage.get('nfx_backdrop_blur', '30px');
+        var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '15em');
+        var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
 
         function hexToRgb(h) {
             var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
@@ -422,6 +424,8 @@ ${fontImport}
     --nfx-shift: 25%;
     --nfx-edge-nudge: ${shift};
     --nfx-sb-blur: ${blur};
+    --nfx-sb-width: ${sbWidth};
+    --nfx-sb-opacity: ${sbOpacity};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
     --nfx-radius: 8px;
@@ -992,14 +996,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 /* Container: dark glossy glass, full-height coverage */
 .menu {
-    background: rgba(10, 13, 18, 0.45) !important;
+    background: rgba(10, 13, 18, var(--nfx-sb-opacity)) !important;
     backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
     border-bottom: none !important;
-    min-width: 14em !important;
+    min-width: var(--nfx-sb-width) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
 }
@@ -1287,20 +1291,135 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     function initSettings() {
         if (!window.Lampa || !Lampa.SettingsApi) return;
 
+        var lang = Lampa.Storage.get('language', 'uk');
+        if (lang === 'ua') lang = 'uk';
+
+        var i18n = {
+            'en': {
+                'ps_title': 'Premium Style',
+                'accent_color': 'Accent Color',
+                'red': 'Netflix Red',
+                'green': 'Green',
+                'blue': 'Blue',
+                'orange': 'Orange',
+                'purple': 'Purple',
+                'pink': 'Pink',
+                'font_family': 'Font Family',
+                'sidebar_font_size': 'Sidebar Font Size',
+                'small': 'Small',
+                'normal': 'Normal',
+                'large': 'Large',
+                'xlarge': 'Extra Large',
+                'card_scale': 'Card Focus Scale Factor',
+                'default': 'Default',
+                'edge_shift': 'Edge Shift Nudge',
+                'logo_height': 'Logo Max-Height',
+                'medium': 'Medium',
+                'sb_blur': 'Sidebar Backdrop Blur',
+                'light': 'Light',
+                'premium': 'Premium',
+                'heavy': 'Heavy',
+                'sb_width': 'Sidebar Width',
+                'compact': 'Compact',
+                'wide': 'Wide',
+                'uwide': 'Ultra Wide',
+                'sb_opacity': 'Sidebar Opacity',
+                'clear': 'Almost Clear',
+                'glassy': 'Glassy (Default)',
+                'dark_glass': 'Dark Glass',
+                'solid': 'Solid Dark'
+            },
+            'uk': {
+                'ps_title': 'Premium Style',
+                'accent_color': 'Акцентний колір',
+                'red': 'Червоний (Netflix)',
+                'green': 'Зелений',
+                'blue': 'Синій',
+                'orange': 'Помаранчевий',
+                'purple': 'Фіолетовий',
+                'pink': 'Рожевий',
+                'font_family': 'Шрифт',
+                'sidebar_font_size': 'Розмір шрифту бокового меню',
+                'small': 'Малий',
+                'normal': 'Звичайний',
+                'large': 'Великий',
+                'xlarge': 'Дуже великий',
+                'card_scale': 'Масштаб картки у фокусі',
+                'default': 'За замовчуванням',
+                'edge_shift': 'Відступ крайньої картки',
+                'logo_height': 'Висота логотипу',
+                'medium': 'Середній',
+                'sb_blur': 'Розмиття бокового меню',
+                'light': 'Легке',
+                'premium': 'Преміум',
+                'heavy': 'Сильне',
+                'sb_width': 'Ширина бокового меню',
+                'compact': 'Компактне',
+                'wide': 'Широке',
+                'uwide': 'Ультра широке',
+                'sb_opacity': 'Прозорість бокового меню',
+                'clear': 'Прозоре',
+                'glassy': 'Скло (Стандарт)',
+                'dark_glass': 'Темне скло',
+                'solid': 'Суцільне темне'
+            },
+            'ru': {
+                'ps_title': 'Premium Style',
+                'accent_color': 'Акцентный цвет',
+                'red': 'Красный (Netflix)',
+                'green': 'Зеленый',
+                'blue': 'Синий',
+                'orange': 'Оранжевый',
+                'purple': 'Фиолетовый',
+                'pink': 'Розовый',
+                'font_family': 'Шрифт',
+                'sidebar_font_size': 'Размер шрифта бокового меню',
+                'small': 'Маленький',
+                'normal': 'Обычный',
+                'large': 'Большой',
+                'xlarge': 'Очень большой',
+                'card_scale': 'Масштаб карточки в фокусе',
+                'default': 'По умолчанию',
+                'edge_shift': 'Отступ крайней карточки',
+                'logo_height': 'Высота логотипа',
+                'medium': 'Средний',
+                'sb_blur': 'Размытие бокового меню',
+                'light': 'Легкое',
+                'premium': 'Премиум',
+                'heavy': 'Сильное',
+                'sb_width': 'Ширина бокового меню',
+                'compact': 'Компактное',
+                'wide': 'Широкое',
+                'uwide': 'Ультра широкое',
+                'sb_opacity': 'Прозрачность бокового меню',
+                'clear': 'Прозрачное',
+                'glassy': 'Стекло (Стандарт)',
+                'dark_glass': 'Темное стекло',
+                'solid': 'Сплошное темное'
+            }
+        };
+
+        function t(key) {
+            var dict = i18n[lang] || i18n['en'];
+            return dict[key] || i18n['en'][key] || key;
+        }
+
         Lampa.SettingsApi.addComponent({
             component: 'nfx_premium',
-            name: 'Premium Style',
+            name: t('ps_title'),
             icon: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>'
         });
 
         var prm = [
-            { name: 'nfx_accent_color', type: 'select', values: { '#e50914': 'Netflix Red', '#2ecc71': 'Green', '#3498db': 'Blue', '#e67e22': 'Orange', '#9b59b6': 'Purple', '#e91e63': 'Pink' }, default: '#e50914', title: 'Accent Color' },
-            { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: 'Font Family' },
-            { name: 'nfx_font_size_sidebar', type: 'select', values: { '0.9em': 'Small', '1.0em': 'Normal', '1.1em': 'Large', '1.2em': 'Extra Large' }, default: '1.1em', title: 'Sidebar Font Size' },
-            { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (Default)', '1.45': '1.45x' }, default: '1.35', title: 'Card Focus Scale Factor' },
-            { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: 'Edge Shift Nudge (px)' },
-            { name: 'nfx_logo_height', type: 'select', values: { '150px': 'Small', '200px': 'Medium', '250px': 'Large' }, default: '250px', title: 'Logo Max-Height' },
-            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': 'Light', '30px': 'Premium', '50px': 'Heavy' }, default: '30px', title: 'Sidebar Backdrop Blur' }
+            { name: 'nfx_accent_color', type: 'select', values: { '#e50914': t('red'), '#2ecc71': t('green'), '#3498db': t('blue'), '#e67e22': t('orange'), '#9b59b6': t('purple'), '#e91e63': t('pink') }, default: '#e50914', title: t('accent_color') },
+            { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: t('font_family') },
+            { name: 'nfx_font_size_sidebar', type: 'select', values: { '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
+            { name: 'nfx_sidebar_width', type: 'select', values: { '13em': t('compact'), '15em': t('normal') + ' (' + t('default') + ')', '17em': t('wide'), '19em': t('uwide') }, default: '15em', title: t('sb_width') },
+            { name: 'nfx_sidebar_opacity', type: 'select', values: { '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
+            { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
+            { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
+            { name: 'nfx_logo_height', type: 'select', values: { '150px': t('small'), '200px': t('medium'), '250px': t('large') }, default: '250px', title: t('logo_height') },
+            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') }
         ];
 
         prm.forEach(function (p) {
