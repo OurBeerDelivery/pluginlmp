@@ -372,7 +372,6 @@
 
         var accent = Lampa.Storage.get('nfx_accent_color', '#e50914');
         var fontFam = Lampa.Storage.get('nfx_font_family', 'Montserrat');
-        var fontUrl = Lampa.Storage.get('nfx_font_url', 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
         var fontSb = Lampa.Storage.get('nfx_font_size_sidebar', '1.1em');
         var scale = Lampa.Storage.get('nfx_card_scale', '1.35');
         var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
@@ -384,7 +383,7 @@
             return r ? parseInt(r[1], 16) + ',' + parseInt(r[2], 16) + ',' + parseInt(r[3], 16) : '229, 9, 20';
         }
         var accentRgb = hexToRgb(accent);
-        var fontImport = fontUrl.trim() ? '@import url("' + fontUrl + '");' : '';
+        var fontImport = '@import url("https://fonts.googleapis.com/css2?family=' + fontFam.replace(/ /g, '+') + ':wght@400;500;600;700;800;900&display=swap");';
 
         var css = `
 /* ================================================================
@@ -1246,13 +1245,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
         var prm = [
             { name: 'nfx_accent_color', type: 'select', values: { '#e50914': 'Netflix Red', '#2ecc71': 'Green', '#3498db': 'Blue', '#e67e22': 'Orange', '#9b59b6': 'Purple', '#e91e63': 'Pink' }, default: '#e50914', title: 'Accent Color' },
-            { name: 'nfx_font_family', type: 'input', default: 'Montserrat', title: 'Font Family' },
-            { name: 'nfx_font_url', type: 'input', default: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap', title: 'Font URL (Google Fonts)' },
-            { name: 'nfx_font_size_sidebar', type: 'input', default: '1.1em', title: 'Sidebar Font Size' },
-            { name: 'nfx_card_scale', type: 'input', default: '1.35', title: 'Card Focus Scale Factor' },
-            { name: 'nfx_edge_shift', type: 'input', default: '20px', title: 'Edge Shift Nudge (px or %)' },
-            { name: 'nfx_logo_height', type: 'input', default: '250px', title: 'Logo Max-Height' },
-            { name: 'nfx_backdrop_blur', type: 'input', default: '30px', title: 'Sidebar Backdrop Blur' }
+            { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: 'Font Family' },
+            { name: 'nfx_font_size_sidebar', type: 'select', values: { '0.9em': 'Small', '1.0em': 'Normal', '1.1em': 'Large', '1.2em': 'Extra Large' }, default: '1.1em', title: 'Sidebar Font Size' },
+            { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (Default)', '1.45': '1.45x' }, default: '1.35', title: 'Card Focus Scale Factor' },
+            { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: 'Edge Shift Nudge (px)' },
+            { name: 'nfx_logo_height', type: 'select', values: { '150px': 'Small', '200px': 'Medium', '250px': 'Large' }, default: '250px', title: 'Logo Max-Height' },
+            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': 'Light', '30px': 'Premium', '50px': 'Heavy' }, default: '30px', title: 'Sidebar Backdrop Blur' }
         ];
 
         prm.forEach(function (p) {
