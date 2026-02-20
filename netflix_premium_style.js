@@ -370,7 +370,7 @@
         var old = document.getElementById('nfx-premium-v8');
         if (old) old.remove();
 
-        var accent = Lampa.Storage.get('nfx_accent_color', 'var(--nfx-accent)');
+        var accent = Lampa.Storage.get('nfx_accent_color', '#e50914');
         var fontFam = Lampa.Storage.get('nfx_font_family', 'Montserrat');
         var fontUrl = Lampa.Storage.get('nfx_font_url', 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
         var fontSb = Lampa.Storage.get('nfx_font_size_sidebar', '1.1em');
@@ -1245,7 +1245,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         });
 
         var prm = [
-            { name: 'nfx_accent_color', type: 'input', default: 'var(--nfx-accent)', title: 'Accent Color (Hex)' },
+            { name: 'nfx_accent_color', type: 'select', values: { '#e50914': 'Netflix Red', '#2ecc71': 'Green', '#3498db': 'Blue', '#e67e22': 'Orange', '#9b59b6': 'Purple', '#e91e63': 'Pink' }, default: '#e50914', title: 'Accent Color' },
             { name: 'nfx_font_family', type: 'input', default: 'Montserrat', title: 'Font Family' },
             { name: 'nfx_font_url', type: 'input', default: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap', title: 'Font URL (Google Fonts)' },
             { name: 'nfx_font_size_sidebar', type: 'input', default: '1.1em', title: 'Sidebar Font Size' },
@@ -1256,9 +1256,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         ];
 
         prm.forEach(function (p) {
+            var paramConfig = { name: p.name, type: p.type, default: p.default };
+            if (p.values) paramConfig.values = p.values;
+
             Lampa.SettingsApi.addParam({
                 component: 'nfx_premium',
-                param: { name: p.name, type: p.type, default: p.default },
+                param: paramConfig,
                 field: { name: p.title },
                 onChange: function () { injectCSS(); }
             });
@@ -1273,6 +1276,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         injectCSS();
         initHeroProcessor();
         initCardProcessor();
+
+        if (window.Lampa && Lampa.Storage && Lampa.Storage.listener) {
+            Lampa.Storage.listener.follow('change', function (e) {
+                if (e.name && e.name.indexOf('nfx_') === 0) {
+                    injectCSS();
+                }
+            });
+        }
 
         console.log('[NFX Premium] v8.0 — Multi-screen · Custom UI · Clean Cards');
     }
