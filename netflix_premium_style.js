@@ -2,7 +2,7 @@
     'use strict';
 
     /* ================================================================
-     *  Netflix Premium Style v8.0  —  Multi-screen, Ultra Smooth
+     *  Netflix Premium Style v8.0  —  Multi-screen, Custom UI
      *
      *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
      *  ✦ Hero           → Clean backdrop, NO gradients, text-shadow only
@@ -152,9 +152,10 @@
     // ─────────────────────────────────────────────────────────────────
 
     function applyLogoStyles(img) {
+        var logoH = Lampa.Storage.get('nfx_logo_height', '250px');
         img.style.display = 'block';
-        img.style.maxWidth = '500px';
-        img.style.maxHeight = '250px';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = logoH;
         img.style.width = 'auto';
         img.style.height = 'auto';
         img.style.objectFit = 'contain';
@@ -341,7 +342,7 @@
                 if (val >= 7.5) color = '#2ecc71'; // green
                 else if (val >= 6.5) color = '#f1c40f'; // yellow
                 else if (val >= 5.0) color = '#e67e22'; // orange
-                else color = '#e50914'; // red
+                else color = 'var(--nfx-accent)'; // red
                 el.style.setProperty('background', color, 'important');
                 el.setAttribute('data-nfx-colored', '1');
             }
@@ -366,24 +367,45 @@
     // ─────────────────────────────────────────────────────────────────
 
     function injectCSS() {
-        var old = document.getElementById('nfx-premium-v71');
+        var old = document.getElementById('nfx-premium-v8');
         if (old) old.remove();
+
+        var accent = Lampa.Storage.get('nfx_accent_color', 'var(--nfx-accent)');
+        var fontFam = Lampa.Storage.get('nfx_font_family', 'Montserrat');
+        var fontUrl = Lampa.Storage.get('nfx_font_url', 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+        var fontSb = Lampa.Storage.get('nfx_font_size_sidebar', '1.1em');
+        var scale = Lampa.Storage.get('nfx_card_scale', '1.35');
+        var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
+        var logoH = Lampa.Storage.get('nfx_logo_height', '250px');
+        var blur = Lampa.Storage.get('nfx_backdrop_blur', '30px');
+
+        function hexToRgb(h) {
+            var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+            return r ? parseInt(r[1], 16) + ',' + parseInt(r[2], 16) + ',' + parseInt(r[3], 16) : '229, 9, 20';
+        }
+        var accentRgb = hexToRgb(accent);
+        var fontImport = fontUrl.trim() ? '@import url("' + fontUrl + '");' : '';
 
         var css = `
 /* ================================================================
-   Netflix Premium Style v8.0 — Multi-screen, Ultra Smooth
+   Netflix Premium Style v8.0 — UI Customization
    ================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+${fontImport}
 
 :root {
     --nfx-bg: #0a0d12;
-    --nfx-accent: #e50914;
-    --nfx-accent-rgb: 229, 9, 20;
+    --nfx-accent: ${accent};
+    --nfx-accent-rgb: ${accentRgb};
+    --nfx-accent-gl: rgba(${accentRgb}, 0.5);
+    --nfx-accent-bg: rgba(${accentRgb}, 0.7);
     --nfx-text: #f0f0f0;
-    --nfx-font: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: 1.35;
+    --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
+    --nfx-sb-font-size: ${fontSb};
+    --nfx-card-scale: ${scale};
     --nfx-shift: 25%;
+    --nfx-edge-nudge: ${shift};
+    --nfx-sb-blur: ${blur};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
     --nfx-radius: 8px;
@@ -600,7 +622,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.hover .card__view,
 .card:hover .card__view {
     border-color: transparent !important;
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
+    box-shadow: 0 0 20px var(--nfx-accent-gl),
                0 20px 40px rgba(0,0,0,0.6) !important;
 }
 
@@ -620,14 +642,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card[data-nfx-edge="first"]:hover {
     transform-origin: left center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(20px, 0, 0) !important;
+               translate3d(var(--nfx-edge-nudge), 0, 0) !important;
 }
 
 /* First card's neighbors: standard shift + extra 20px to compensate */
 .card[data-nfx-edge="first"].focus ~ .card,
 .card[data-nfx-edge="first"].hover ~ .card,
 .card[data-nfx-edge="first"]:hover ~ .card {
-    transform: translate3d(calc(var(--nfx-shift) + 20px), 0, 0) !important;
+    transform: translate3d(calc(var(--nfx-shift) + var(--nfx-edge-nudge)), 0, 0) !important;
 }
 
 /* Last card: right-origin scale + 20px leftward nudge (no clip) */
@@ -636,7 +658,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card[data-nfx-edge="last"]:hover {
     transform-origin: right center !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(-20px, 0, 0) !important;
+               translate3d(calc(var(--nfx-edge-nudge) * -1), 0, 0) !important;
 }
 
 /* Reduce shift for the last card when a non-edge sibling is focused */
@@ -703,13 +725,10 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* The main culprit: applecation__overlay has a linear-gradient */
 .applecation__overlay,
 .application__overlay {
-    display: none !important;
     background: none !important;
     background-color: transparent !important;
     background-image: none !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
+    box-shadow: none !important;
 }
 
 .full-start-new__gradient,
@@ -763,12 +782,10 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     background: none !important;
 }
 
-/* Kill any JS-injected inline overlay backgrounds */
+/* Ensure the background image container works in older templates */
 .full-start__background.applecation__overlay {
-    display: none !important;
-    background: none !important;
-    background-image: none !important;
-    opacity: 0 !important;
+    display: block !important;
+    opacity: 1 !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -801,6 +818,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     max-width: 650px !important;
     display: flex !important;
     flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
     gap: 0 !important;
     background: none !important;
 }
@@ -825,6 +844,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     background: none !important;
     background-color: transparent !important;
     box-shadow: none !important;
+    max-width: 100% !important;
 }
 
 /* Logo images: drop-shadow for contrast, NO rectangular mask */
@@ -835,6 +855,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.4)) !important;
     background: none !important;
     box-shadow: none !important;
+    max-width: 100% !important;
 }
 
 /* ── Compact Metadata Block (moved from blue → pink zone) ── */
@@ -929,12 +950,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: rgba(229, 9, 20, 0.7) !important;
+    background: var(--nfx-accent-bg) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
     border: 1px solid rgba(255,255,255,0.3) !important;
     color: #ffffff !important;
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5),
+    box-shadow: 0 0 20px var(--nfx-accent-gl),
                0 8px 28px rgba(0,0,0,0.4) !important;
     transform: scale(1.04) !important;
 }
@@ -956,8 +977,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* Container: dark glossy glass, full-height coverage */
 .menu {
     background: rgba(10, 13, 18, 0.45) !important;
-    backdrop-filter: blur(30px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+    backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
@@ -996,7 +1017,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .menu__item.active {
     background: rgba(255, 255, 255, 0.1) !important;
     box-shadow: none !important;
-    border-left: 3px solid #e50914 !important;
+    border-left: 3px solid var(--nfx-accent) !important;
 }
 
 /* Active text: pure white */
@@ -1027,7 +1048,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    font-size: 1.1em !important;
+    font-size: var(--nfx-sb-font-size) !important;
     color: rgba(255,255,255,0.5) !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
@@ -1121,6 +1142,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 @media (max-width: 576px) {
     .full-start-new__title, .full-start__title {
         font-size: 1.5em !important;
+        margin-bottom: 4px !important;
+    }
+    .full-start-new__title img, .full-start__title img, .applecation__logo img {
+        max-height: 130px !important;
+        max-width: 100% !important;
     }
     .full-start-new__right, .full-start__right {
         max-width: 94vw !important;
@@ -1199,25 +1225,56 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 `;
 
         var style = document.createElement('style');
-        style.id = 'nfx-premium-v71';
+        style.id = 'nfx-premium-v8';
         style.textContent = css;
         document.head.appendChild(style);
     }
 
 
     // ─────────────────────────────────────────────────────────────────
-    //  SECTION 6 — BOOTSTRAP
+    //  SECTION 6 — SETTINGS & BOOTSTRAP
     // ─────────────────────────────────────────────────────────────────
 
-    function bootstrap() {
-        if (window.__nfx_premium_v71) return;
-        window.__nfx_premium_v71 = true;
+    function initSettings() {
+        if (!window.Lampa || !Lampa.SettingsApi) return;
 
+        Lampa.SettingsApi.addComponent({
+            component: 'nfx_premium',
+            name: 'Premium Style',
+            icon: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>'
+        });
+
+        var prm = [
+            { name: 'nfx_accent_color', type: 'input', default: 'var(--nfx-accent)', title: 'Accent Color (Hex)' },
+            { name: 'nfx_font_family', type: 'input', default: 'Montserrat', title: 'Font Family' },
+            { name: 'nfx_font_url', type: 'input', default: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap', title: 'Font URL (Google Fonts)' },
+            { name: 'nfx_font_size_sidebar', type: 'input', default: '1.1em', title: 'Sidebar Font Size' },
+            { name: 'nfx_card_scale', type: 'input', default: '1.35', title: 'Card Focus Scale Factor' },
+            { name: 'nfx_edge_shift', type: 'input', default: '20px', title: 'Edge Shift Nudge (px or %)' },
+            { name: 'nfx_logo_height', type: 'input', default: '250px', title: 'Logo Max-Height' },
+            { name: 'nfx_backdrop_blur', type: 'input', default: '30px', title: 'Sidebar Backdrop Blur' }
+        ];
+
+        prm.forEach(function (p) {
+            Lampa.SettingsApi.addParam({
+                component: 'nfx_premium',
+                param: { name: p.name, type: p.type, default: p.default },
+                field: { name: p.title },
+                onChange: function () { injectCSS(); }
+            });
+        });
+    }
+
+    function bootstrap() {
+        if (window.__nfx_premium_v8) return;
+        window.__nfx_premium_v8 = true;
+
+        initSettings();
         injectCSS();
         initHeroProcessor();
         initCardProcessor();
 
-        console.log('[NFX Premium] v8.0 — Multi-screen · Ultra Smooth · Clean Cards');
+        console.log('[NFX Premium] v8.0 — Multi-screen · Custom UI · Clean Cards');
     }
 
     if (window.Lampa && Lampa.Listener) {
