@@ -265,6 +265,29 @@
 
             titleElem.css({ opacity: '1', transition: 'none' });
 
+            // ── Mobile Hero Background (Poster vs Backdrop) ──
+            var bgContainer = render.find('.full-start-new__background, .full-start__background');
+            var isMobile = window.innerWidth <= 768;
+            var hasBgImg = bgContainer.find('img').length > 0;
+
+            if (isMobile || !hasBgImg) {
+                var posterUrl = '';
+                if (movie.poster_path) {
+                    posterUrl = Lampa.TMDB.image('t/p/w780' + movie.poster_path);
+                } else {
+                    var fallbackImg = render.find('.full-start-new__left img, .full-start__left img');
+                    if (fallbackImg.length) posterUrl = fallbackImg.attr('src');
+                }
+
+                if (posterUrl) {
+                    if (!hasBgImg) {
+                        bgContainer.append('<img src="' + posterUrl + '" class="nfx-mobile-poster" />');
+                    } else if (isMobile) {
+                        bgContainer.find('img').attr('src', posterUrl).addClass('nfx-mobile-poster');
+                    }
+                }
+            }
+
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
             var cached = LogoEngine._getCached(cacheKey);
@@ -1137,6 +1160,33 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
    7) RESPONSIVE & MULTI-SCREEN
    ================================================================ */
 
+/* MOBILE HERO RESPONSIVE BACKGROUND (Phones & Tablets: up to 768px) */
+@media (max-width: 768px) {
+    .full-start-new .full-start-new__background img,
+    .full-start-new .full-start__background img,
+    .full-start__background img,
+    img.nfx-mobile-poster {
+        object-fit: cover !important;
+        object-position: top center !important;
+    }
+
+    /* Gradient overlay to make text readable over bright vertical posters */
+    .applecation__overlay,
+    .application__overlay {
+        display: block !important;
+        background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        background-color: transparent !important;
+        background-image: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        box-shadow: none !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+    }
+}
+
 /* MOBILE (Phones: up to 576px) */
 @media (max-width: 576px) {
     .full-start-new__title, .full-start__title {
@@ -1152,8 +1202,9 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         padding-bottom: 0.5em !important;
     }
     .full-start-new__body, .full-start__body {
-        min-height: 65vh !important;
+        min-height: 75vh !important;
         padding-left: 2% !important;
+        padding-bottom: 2.5em !important;
     }
     :root {
         --nfx-card-scale: 1.1;
