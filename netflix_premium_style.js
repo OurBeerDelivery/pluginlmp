@@ -2,13 +2,14 @@
     'use strict';
 
     /* ================================================================
-     *  Netflix Premium Style v7.1  —  Full Minimalist / Zero Gradient
+     *  Netflix Premium Style v8.0  —  Multi-screen, Ultra Smooth
      *
      *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
      *  ✦ Hero           → Clean backdrop, NO gradients, text-shadow only
      *  ✦ Sidebar        → Glassy blur, red left-border active item
-     *  ✦ Cards          → No ghost masks, clean box-shadow, 1.35x scale
-     *  ✦ GPU            → translate3d / scale3d everywhere
+     *  ✦ Cards          → No ghost masks, clean box-shadow, multi-scale
+     *  ✦ GPU            → translate3d / scale3d everywhere (60fps optimized)
+     *  ✦ Multi-screen   → Native support for Phones, Tablets, TVs, and 4K
      * ================================================================ */
 
     // ─────────────────────────────────────────────────────────────────
@@ -370,7 +371,7 @@
 
         var css = `
 /* ================================================================
-   Netflix Premium Style v7.1 — Zero Gradient / Full Minimalist
+   Netflix Premium Style v8.0 — Multi-screen, Ultra Smooth
    ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
@@ -1077,8 +1078,20 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 
 /* ================================================================
-   6) SCROLLBAR — minimal
+   6) SCROLLING & GPU HARDWARE ACCELERATION
    ================================================================ */
+
+/* Hardware acceleration for ultra smooth scrolling on TV/Mobile */
+.scroll__body, .scroll__content, .items-line__body, .menu__list {
+    will-change: transform, scroll-position !important;
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
+    -webkit-perspective: 1000 !important;
+    perspective: 1000 !important;
+    transform-style: preserve-3d !important;
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+}
 
 ::-webkit-scrollbar {
     width: 4px !important;
@@ -1086,11 +1099,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 ::-webkit-scrollbar-track { background: transparent !important; }
 ::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1) !important;
+    background: rgba(255,255,255,0.15) !important;
     border-radius: 8px !important;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.22) !important;
+    background: rgba(255,255,255,0.3) !important;
 }
 
 .scroll__body {
@@ -1101,22 +1114,86 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 
 /* ================================================================
-   7) RESPONSIVE
+   7) RESPONSIVE & MULTI-SCREEN
    ================================================================ */
 
-@media (max-width: 768px) {
+/* MOBILE (Phones: up to 576px) */
+@media (max-width: 576px) {
     .full-start-new__title, .full-start__title {
-        font-size: 1.6em !important;
+        font-size: 1.5em !important;
     }
     .full-start-new__right, .full-start__right {
-        max-width: 90vw !important;
+        max-width: 94vw !important;
+        padding-bottom: 0.5em !important;
+    }
+    .full-start-new__body, .full-start__body {
+        min-height: 65vh !important;
+        padding-left: 2% !important;
     }
     :root {
-        --nfx-card-scale: 1.2;
-        --nfx-shift: 14%;
+        --nfx-card-scale: 1.1;
+        --nfx-shift: 8%;
+        --nfx-duration: 300ms;
     }
     .items-line {
-        padding: 28px 0 !important;
+        padding: 16px 0 !important;
+    }
+    .menu {
+        min-width: 12em !important;
+    }
+}
+
+/* TABLET & SMALL TV (577px to 1024px) */
+@media (min-width: 577px) and (max-width: 1024px) {
+    .full-start-new__title, .full-start__title {
+        font-size: 1.9em !important;
+    }
+    .full-start-new__right, .full-start__right {
+        max-width: 85vw !important;
+    }
+    :root {
+        --nfx-card-scale: 1.25;
+        --nfx-shift: 18%;
+        --nfx-duration: 350ms;
+    }
+    .items-line {
+        padding: 30px 0 !important;
+    }
+}
+
+/* TV & DESKTOP (1025px and up) */
+/* Default :root uses 1.35x and 25% shift for this range */
+@media (min-width: 1025px) {
+    .full-start-new__title, .full-start__title {
+        font-size: 2.8em !important;
+        margin-bottom: 12px !important;
+    }
+    .full-start-new__right, .full-start__right {
+        max-width: 650px !important;
+    }
+    .items-line {
+        padding: 45px 0 !important;
+    }
+}
+
+/* 4K TV (1920px and up) */
+@media (min-width: 1920px) {
+    .full-start-new__title, .full-start__title {
+        font-size: 3.8em !important;
+    }
+    .full-start-new__right, .full-start__right {
+        max-width: 1000px !important;
+    }
+    :root {
+        --nfx-card-scale: 1.45;
+        --nfx-shift: 30%;
+        --nfx-duration: 450ms;
+    }
+    .items-line {
+        padding: 60px 0 !important;
+    }
+    .card__view {
+        border-radius: calc(var(--nfx-radius) * 1.5) !important;
     }
 }
 `;
@@ -1140,7 +1217,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         initHeroProcessor();
         initCardProcessor();
 
-        console.log('[NFX Premium] v7.1 — Zero Gradient · Glass Sidebar · Clean Cards');
+        console.log('[NFX Premium] v8.0 — Multi-screen · Ultra Smooth · Clean Cards');
     }
 
     if (window.Lampa && Lampa.Listener) {
