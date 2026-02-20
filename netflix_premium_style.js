@@ -266,18 +266,20 @@
             titleElem.css({ opacity: '1', transition: 'none' });
 
             // ── Mobile Hero Background (CSS Variable) ──
-            var posterUrl = '';
-            if (movie.poster_path) {
-                posterUrl = Lampa.TMDB.image('t/p/w780' + movie.poster_path);
+            var bgUrl = '';
+            if (movie.backdrop_path) {
+                bgUrl = Lampa.TMDB.image('t/p/original' + movie.backdrop_path);
+            } else if (movie.poster_path) {
+                bgUrl = Lampa.TMDB.image('t/p/w780' + movie.poster_path);
             } else if (movie.img) {
-                posterUrl = movie.img;
+                bgUrl = movie.img;
             } else {
                 var fallbackImg = render.find('.full-start-new__left img, .full-start__left img');
-                if (fallbackImg.length) posterUrl = fallbackImg.attr('src');
+                if (fallbackImg.length) bgUrl = fallbackImg.attr('src');
             }
 
-            if (posterUrl && domTitle) {
-                render[0].style.setProperty('--nfx-mobile-bg', 'url(' + posterUrl + ')');
+            if (bgUrl && domTitle) {
+                render[0].style.setProperty('--nfx-mobile-bg', 'url(' + bgUrl + ')');
             }
 
             var lang = LogoEngine._getLang();
@@ -1163,7 +1165,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     .full-start {
         background-image: var(--nfx-mobile-bg) !important;
         background-size: cover !important;
-        background-position: top center !important;
+        background-position: center 15% !important; /* Focuses near the top to keep faces visible */
         background-repeat: no-repeat !important;
     }
 
