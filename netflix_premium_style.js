@@ -265,27 +265,19 @@
 
             titleElem.css({ opacity: '1', transition: 'none' });
 
-            // ── Mobile Hero Background (Poster vs Backdrop) ──
-            var bgContainer = render.find('.full-start-new__background, .full-start__background');
-            var isMobile = window.innerWidth <= 768;
-            var hasBgImg = bgContainer.find('img').length > 0;
+            // ── Mobile Hero Background (CSS Variable) ──
+            var posterUrl = '';
+            if (movie.poster_path) {
+                posterUrl = Lampa.TMDB.image('t/p/w780' + movie.poster_path);
+            } else if (movie.img) {
+                posterUrl = movie.img;
+            } else {
+                var fallbackImg = render.find('.full-start-new__left img, .full-start__left img');
+                if (fallbackImg.length) posterUrl = fallbackImg.attr('src');
+            }
 
-            if (isMobile || !hasBgImg) {
-                var posterUrl = '';
-                if (movie.poster_path) {
-                    posterUrl = Lampa.TMDB.image('t/p/w780' + movie.poster_path);
-                } else {
-                    var fallbackImg = render.find('.full-start-new__left img, .full-start__left img');
-                    if (fallbackImg.length) posterUrl = fallbackImg.attr('src');
-                }
-
-                if (posterUrl) {
-                    if (!hasBgImg) {
-                        bgContainer.append('<img src="' + posterUrl + '" class="nfx-mobile-poster" />');
-                    } else if (isMobile) {
-                        bgContainer.find('img').attr('src', posterUrl).addClass('nfx-mobile-poster');
-                    }
-                }
+            if (posterUrl && domTitle) {
+                render[0].style.setProperty('--nfx-mobile-bg', 'url(' + posterUrl + ')');
             }
 
             var lang = LogoEngine._getLang();
@@ -1162,12 +1154,17 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 /* MOBILE HERO RESPONSIVE BACKGROUND (Phones & Tablets: up to 768px) */
 @media (max-width: 768px) {
-    .full-start-new .full-start-new__background img,
-    .full-start-new .full-start__background img,
-    .full-start__background img,
-    img.nfx-mobile-poster {
-        object-fit: cover !important;
-        object-position: top center !important;
+    .full-start-new__background,
+    .full-start__background {
+        display: none !important;
+    }
+
+    .full-start-new,
+    .full-start {
+        background-image: var(--nfx-mobile-bg) !important;
+        background-size: cover !important;
+        background-position: top center !important;
+        background-repeat: no-repeat !important;
     }
 
     /* Gradient overlay to make text readable over bright vertical posters */
