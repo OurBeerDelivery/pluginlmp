@@ -1097,7 +1097,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     height: 1.1em !important;
 }
 
-/* Header bar — 100% transparent */
+/* Header bar — 100% transparent initially */
 .head {
     background: transparent !important;
     background-color: transparent !important;
@@ -1106,6 +1106,17 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     -webkit-backdrop-filter: none !important;
     border: none !important;
     box-shadow: none !important;
+    transition: background 0.4s ease, backdrop-filter 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease !important;
+    z-index: 100 !important;
+}
+
+/* Scrolled state: Dark premium glass */
+.head.head--scrolled {
+    background: rgba(10, 13, 18, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
 }
 
 .head__actions {
@@ -1452,7 +1463,21 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             });
         }
 
-        console.log('[NFX Premium] v8.0 — Multi-screen · Custom UI · Clean Cards');
+        // Global scroll listener for floating glass header
+        document.addEventListener('scroll', function (e) {
+            if (e.target && e.target.classList && e.target.classList.contains('scroll__body')) {
+                var head = document.querySelector('.head');
+                if (head) {
+                    if (e.target.scrollTop > 50) {
+                        head.classList.add('head--scrolled');
+                    } else {
+                        head.classList.remove('head--scrolled');
+                    }
+                }
+            }
+        }, true);
+
+        console.log('[NFX Premium] v8.4 — Multi-screen · Clean Cards · Dynamic Header');
     }
 
     if (window.Lampa && Lampa.Listener) {
