@@ -1038,6 +1038,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* ── Menu Items: geometry & text fit ── */
+.menu__item[style*="display: none"],
+.menu__item.hide,
+.menu__item.hidden {
+    display: none !important;
+}
+
 .menu__item {
     border-radius: 0 !important;
     background: rgba(255, 255, 255, 0.04) !important;
@@ -1046,7 +1052,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     margin: 0 !important;
     transition: border-color 200ms ease,
                 background 200ms ease !important;
-    display: flex !important;
+    display: flex;
     align-items: center !important;
     gap: 0.7em !important;
     white-space: nowrap !important;
@@ -1109,7 +1115,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     flex-shrink: 0 !important;
     width: 1.1em !important;
     height: 1.1em !important;
-    display: flex !important;
+    display: flex;
     align-items: center !important;
     justify-content: center !important;
 }
@@ -1517,7 +1523,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.6 — Logo Lang · TV Scaling · Native Compatibility');
+        console.log('[NFX Premium] v8.7 — Sidebar UI Fix');
     }
 
     if (window.Lampa && Lampa.Listener) {
