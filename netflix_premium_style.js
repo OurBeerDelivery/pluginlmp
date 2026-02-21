@@ -166,7 +166,7 @@
     // ─────────────────────────────────────────────────────────────────
 
     function applyLogoStyles(img) {
-        var logoH = Lampa.Storage.get('nfx_logo_height', '250px');
+        var logoH = Lampa.Storage.get('nfx_logo_height', '200px');
         img.style.display = 'block';
         img.style.maxWidth = '100%';
         img.style.maxHeight = logoH;
@@ -406,7 +406,7 @@
         var fontSb = Lampa.Storage.get('nfx_font_size_sidebar', '1.1em');
         var scale = Lampa.Storage.get('nfx_card_scale', '1.35');
         var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
-        var logoH = Lampa.Storage.get('nfx_logo_height', '250px');
+        var logoH = Lampa.Storage.get('nfx_logo_height', '200px');
         var blur = Lampa.Storage.get('nfx_backdrop_blur', '30px');
         var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '15em');
         var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
@@ -762,15 +762,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
    ================================================================ */
 
 /* ── Backdrop: 100% fullscreen, no mask, no margins ── */
-/* Pull the entire Hero block up to cover the space normally reserved for the header */
+/* ── Backdrop: 100% fullscreen, no mask, no margins ── */
 .full-start-new, 
 .full-start {
     position: relative !important;
     overflow: hidden !important;
     margin: 0 !important;
-    margin-top: -10em !important; /* PULLS the background image up under the transparent header */
     padding: 0 !important;
-    padding-top: 10em !important; /* PUSHES the text/logo safely back down */
 }
 
 .full-start-new .full-start-new__background,
@@ -896,7 +894,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     padding-left: 5% !important;
     display: flex !important;
     align-items: flex-end !important;
-    min-height: 85vh !important; /* Force tall container */
+    min-height: 85vh !important;
+    padding-top: 6em !important; /* Critical Safe Zone for floating header icons */
     padding-bottom: 2em !important;
     background: none !important;
 }
@@ -1172,17 +1171,23 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     height: 1.1em !important;
 }
 
-/* Header bar — 100% transparent */
+/* 1. Global Header: Float it and make it completely invisible */
 .head {
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    z-index: 100 !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important;
+    background: transparent !important; background-color: transparent !important; background-image: none !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    border: none !important; box-shadow: none !important; z-index: 100 !important;
 }
+
+/* 2. Kill Lampa's native wrap padding globally */
+.wrap { padding-top: 0 !important; }
+
+/* 3. Default State (Catalogs): Push content down so it doesn't hide under the floating header */
+.activity__body { padding-top: 5.5em !important; }
+
+/* 4. MAGIC: If we are on a movie page, kill the padding so the image hits the absolute top! */
+body.nfx-mode-full .activity__body { padding-top: 0 !important; }
 
 .head__actions {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
@@ -1546,7 +1551,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             { name: 'nfx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
             { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
             { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
-            { name: 'nfx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '250px', title: t('logo_height') },
+            { name: 'nfx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '200px', title: t('logo_height') },
             { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') }
         ];
 
@@ -1571,6 +1576,24 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         injectCSS();
         initHeroProcessor();
         initCardProcessor();
+
+        // Tracker for Full Bleed
+        function checkFullMode() {
+            var active = Lampa.Activity.active();
+            if (active && active.component === 'full') {
+                document.body.classList.add('nfx-mode-full');
+            } else {
+                document.body.classList.remove('nfx-mode-full');
+            }
+        }
+
+        // Initial Check
+        setTimeout(checkFullMode, 500);
+
+        // Dynamic Check on navigation
+        Lampa.Listener.follow('activity', function () {
+            setTimeout(checkFullMode, 50);
+        });
 
         if (window.Lampa && Lampa.Storage && Lampa.Storage.listener) {
             Lampa.Storage.listener.follow('change', function (e) {
@@ -1599,7 +1622,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.16 — Negative Margin Full-Bleed Fix');
+        console.log('[NFX Premium] v8.18 — Full Bleed Activity Tracker');
     }
 
     if (window.Lampa && Lampa.Listener) {
