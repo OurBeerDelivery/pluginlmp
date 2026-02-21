@@ -893,7 +893,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     padding-left: 5% !important;
     display: flex !important;
     align-items: flex-end !important;
-    min-height: 80vh !important;
+    min-height: 85vh !important; /* Increased from 80vh */
+    padding-top: 5.5em !important; /* New: Safe zone for absolute header */
     padding-bottom: 2em !important;
     background: none !important;
 }
@@ -1169,8 +1170,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     height: 1.1em !important;
 }
 
-/* Header bar — 100% transparent initially */
+/* Header bar — 100% transparent globally, absolute positioning */
 .head {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
     background: transparent !important;
     background-color: transparent !important;
     background-image: none !important;
@@ -1225,6 +1231,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     -ms-overflow-style: none !important;
 }
 .scroll__body::-webkit-scrollbar { display: none !important; }
+
+/* Push normal catalog grids down to clear the absolute header */
+.scroll__body > .items-line:first-child {
+    margin-top: 5em !important;
+}
 
 
 /* ================================================================
@@ -1596,7 +1607,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.13 — GPU Glow · Seamless Header');
+        console.log('[NFX Premium] v8.14 — Full-Bleed Header · TV Layout Protection');
     }
 
     if (window.Lampa && Lampa.Listener) {
