@@ -767,13 +767,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     content: none !important;
 }
 
-/* The main culprit: applecation__overlay has a linear-gradient */
+/* All static overlays/gradients are disabled for the dynamic scroll fog */
 .applecation__overlay,
-.application__overlay {
-    background: none !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    box-shadow: none !important;
+.application__overlay,
+.full-start__background.applecation__overlay {
+    display: none !important;
 }
 
 .full-start-new__gradient,
@@ -827,10 +825,19 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     background: none !important;
 }
 
-/* Ensure the background image container works in older templates */
-.full-start__background.applecation__overlay {
+/* ── DYNAMIC SCROLL FOG LAYER ── */
+.full-start-new::before,
+.full-start::before {
+    content: "" !important;
     display: block !important;
-    opacity: 1 !important;
+    position: absolute !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Smooth gradient covering the bottom half */
+    background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
+    opacity: var(--nfx-fog-level, 0.15) !important; /* Starts very light for high visibility */
+    z-index: 1 !important;
+    pointer-events: none !important;
+    transition: opacity 0.1s linear !important; /* Smooth out the scroll updates */
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -847,7 +854,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .full-start-new__body,
 .full-start__body {
     position: relative !important;
-    z-index: 2 !important;
+    z-index: 2 !important; /* Above fog */
     padding-left: 5% !important;
     display: flex !important;
     align-items: flex-end !important;
@@ -892,12 +899,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     max-width: 100% !important;
 }
 
-/* Logo images: drop-shadow for contrast, NO rectangular mask */
+/* Logo images: Clean look, no drop-shadows or rectangular masks */
 .full-start-new__title img,
 .full-start__title img,
 .applecation__logo img,
 .new-interface-full-logo {
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.4)) !important;
+    filter: none !important;
     background: none !important;
     box-shadow: none !important;
     max-width: 100% !important;
@@ -1509,21 +1516,28 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             });
         }
 
-        // Global scroll listener for floating glass header
+        // Global scroll listener for floating glass header & dynamic fog
         document.addEventListener('scroll', function (e) {
             if (e.target && e.target.classList && e.target.classList.contains('scroll__body')) {
+                var st = e.target.scrollTop;
+
+                // 1. Floating Header Logic
                 var head = document.querySelector('.head');
                 if (head) {
-                    if (e.target.scrollTop > 50) {
-                        head.classList.add('head--scrolled');
-                    } else {
-                        head.classList.remove('head--scrolled');
-                    }
+                    if (st > 50) head.classList.add('head--scrolled');
+                    else head.classList.remove('head--scrolled');
+                }
+
+                // 2. Dynamic Hero Fog Logic
+                var hero = e.target.querySelector('.full-start-new, .full-start');
+                if (hero) {
+                    var additionalFog = Math.min(st / 400, 0.8);
+                    hero.style.setProperty('--nfx-fog-level', 0.15 + additionalFog);
                 }
             }
         }, true);
 
-        console.log('[NFX Premium] v8.7 — Sidebar UI Fix');
+        console.log('[NFX Premium] v8.9 — Cinematic UX · Clean Logos · Dynamic Fog');
     }
 
     if (window.Lampa && Lampa.Listener) {
