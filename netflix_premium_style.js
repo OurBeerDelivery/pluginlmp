@@ -439,6 +439,20 @@
             var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
             return r ? parseInt(r[1], 16) + ',' + parseInt(r[2], 16) + ',' + parseInt(r[3], 16) : '229, 9, 20';
         }
+
+        var ratingSet = Lampa.Storage.get('nfx_rating_set', 'no_kp');
+        var ratingCSS = '';
+
+        if (ratingSet === 'no_kp') {
+            ratingCSS = '.rate--kp { display: none !important; }';
+        } else if (ratingSet === 'west') {
+            ratingCSS = '.rate--kp, .rate--cub, .rate--rotten { display: none !important; }';
+        } else if (ratingSet === 'tmdb') {
+            ratingCSS = '.rate--kp, .rate--imdb, .rate--cub, .rate--rotten { display: none !important; }';
+        } else if (ratingSet === 'none') {
+            ratingCSS = '.full-start-new__rate-line, .full-start__rate-line { display: none !important; }';
+        }
+
         var accentRgb = hexToRgb(accent);
         var fontImport = '@import url("https://fonts.googleapis.com/css2?family=' + fontFam.replace(/ /g, '+') + ':wght@400;500;600;700;800;900&display=swap");';
 
@@ -965,6 +979,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* Ratings (TMDB / KP) */
+${ratingCSS}
 .full-start-new__rate-line,
 .full-start__rate-line {
     font-family: var(--nfx-font) !important;
@@ -1405,7 +1420,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'small_rad': 'Small (4px)',
                 'med_rad': 'Medium (8px)',
                 'large_rad': 'Large (12px)',
-                'xl_rad': 'Extra Large (16px)'
+                'xl_rad': 'Extra Large (16px)',
+                'rating_set': 'Ratings Display',
+                'r_all': 'All Ratings',
+                'r_no_kp': 'Hide Kinopoisk (KP)',
+                'r_west': 'TMDB + IMDB Only',
+                'r_tmdb': 'TMDB Only',
+                'r_none': 'Hide All Ratings'
             },
             'uk': {
                 'ps_title': 'Premium Style',
@@ -1455,7 +1476,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'small_rad': 'Малі (4px)',
                 'med_rad': 'Середні (8px)',
                 'large_rad': 'Великі (12px)',
-                'xl_rad': 'Максимальні (16px)'
+                'xl_rad': 'Максимальні (16px)',
+                'rating_set': 'Відображення рейтингів',
+                'r_all': 'Всі рейтинги',
+                'r_no_kp': 'Без Кінопошуку (KP)',
+                'r_west': 'Тільки TMDB + IMDB',
+                'r_tmdb': 'Тільки TMDB',
+                'r_none': 'Приховати всі'
             },
             'ru': {
                 'ps_title': 'Premium Style',
@@ -1505,7 +1532,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'small_rad': 'Маленькие (4px)',
                 'med_rad': 'Средние (8px)',
                 'large_rad': 'Большие (12px)',
-                'xl_rad': 'Максимальные (16px)'
+                'xl_rad': 'Максимальные (16px)',
+                'rating_set': 'Отображение рейтингов',
+                'r_all': 'Все рейтинги',
+                'r_no_kp': 'Без Кинопоиска (KP)',
+                'r_west': 'Только TMDB + IMDB',
+                'r_tmdb': 'Только TMDB',
+                'r_none': 'Скрыть все'
             }
         };
 
@@ -1533,7 +1566,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
             { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
             { name: 'nfx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '200px', title: t('logo_height') },
-            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') }
+            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') },
+            { name: 'nfx_rating_set', type: 'select', values: { 'all': t('r_all'), 'no_kp': t('r_no_kp'), 'west': t('r_west'), 'tmdb': t('r_tmdb'), 'none': t('r_none') }, default: 'no_kp', title: t('rating_set') }
         ];
 
         prm.forEach(function (p) {
@@ -1587,7 +1621,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.20 — Mobile Background Breakout');
+        console.log('[NFX Premium] v8.21 — Customizable Ratings');
     }
 
     if (window.Lampa && Lampa.Listener) {
