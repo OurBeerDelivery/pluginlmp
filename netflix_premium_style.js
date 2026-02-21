@@ -771,18 +771,17 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     padding: 0 !important;
 }
 
+/* Force the background image to stretch up and cover the empty padding space */
 .full-start-new .full-start-new__background,
 .full-start-new .full-start__background,
 .full-start__background {
     position: absolute !important;
-    top: 0 !important;
+    top: -6em !important; /* Break out of the container upwards */
     left: 0 !important;
     width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    mask-image: none !important;
-    -webkit-mask-image: none !important;
+    height: calc(100% + 6em) !important; /* Compensate for the pull-up */
+    margin: 0 !important; padding: 0 !important;
+    mask-image: none !important; -webkit-mask-image: none !important;
 }
 
 .full-start-new .full-start-new__background img,
@@ -862,18 +861,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* ── DYNAMIC SCROLL FOG LAYER ── */
-.full-start-new::before,
-.full-start::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-    /* Smooth gradient covering the bottom half */
+.full-start-new::before, .full-start::before {
+    content: "" !important; display: block !important; position: absolute !important;
+    top: -6em !important; /* Match breakout */
+    left: 0 !important; right: 0 !important; bottom: 0 !important;
+    height: calc(100% + 6em) !important; /* Match breakout */
     background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
-    opacity: var(--nfx-fog-level, 0.15) !important; /* Starts very light for high visibility */
-    z-index: 1 !important;
-    pointer-events: none !important;
-    transition: opacity 0.1s linear !important; /* Smooth out the scroll updates */
+    opacity: var(--nfx-fog-level, 0.15) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.1s linear !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -887,17 +881,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* ── Content: left-aligned, bottom-weighted ── */
-.full-start-new__body, 
-.full-start__body {
-    position: relative !important;
-    z-index: 2 !important;
-    padding-left: 5% !important;
-    display: flex !important;
-    align-items: flex-end !important;
-    min-height: 85vh !important;
-    padding-top: 6em !important; /* Critical Safe Zone for floating header icons */
-    padding-bottom: 2em !important;
-    background: none !important;
+.full-start-new__body, .full-start__body {
+    position: relative !important; z-index: 2 !important; padding-left: 5% !important;
+    display: flex !important; align-items: flex-end !important;
+    min-height: 80vh !important;
+    padding-top: 6em !important; /* Protect logo from overlapping top header icons */
+    padding-bottom: 2em !important; background: none !important;
 }
 
 .full-start-new__right,
@@ -1171,7 +1160,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     height: 1.1em !important;
 }
 
-/* 1. Global Header: Float it and make it completely invisible */
+/* Make header float perfectly transparent over everything */
 .head {
     position: absolute !important;
     top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important;
@@ -1179,15 +1168,6 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     border: none !important; box-shadow: none !important; z-index: 100 !important;
 }
-
-/* 2. Kill Lampa's native wrap padding globally */
-.wrap { padding-top: 0 !important; }
-
-/* 3. Default State (Catalogs): Push content down so it doesn't hide under the floating header */
-.activity__body { padding-top: 5.5em !important; }
-
-/* 4. MAGIC: If we are on a movie page, kill the padding so the image hits the absolute top! */
-body.nfx-mode-full .activity__body { padding-top: 0 !important; }
 
 .head__actions {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
@@ -1577,23 +1557,7 @@ body.nfx-mode-full .activity__body { padding-top: 0 !important; }
         initHeroProcessor();
         initCardProcessor();
 
-        // Tracker for Full Bleed
-        function checkFullMode() {
-            var active = Lampa.Activity.active();
-            if (active && active.component === 'full') {
-                document.body.classList.add('nfx-mode-full');
-            } else {
-                document.body.classList.remove('nfx-mode-full');
-            }
-        }
 
-        // Initial Check
-        setTimeout(checkFullMode, 500);
-
-        // Dynamic Check on navigation
-        Lampa.Listener.follow('activity', function () {
-            setTimeout(checkFullMode, 50);
-        });
 
         if (window.Lampa && Lampa.Storage && Lampa.Storage.listener) {
             Lampa.Storage.listener.follow('change', function (e) {
@@ -1622,7 +1586,7 @@ body.nfx-mode-full .activity__body { padding-top: 0 !important; }
             }
         }, true);
 
-        console.log('[NFX Premium] v8.18 — Full Bleed Activity Tracker');
+        console.log('[NFX Premium] v8.19 — Background Breakout Full-Bleed');
     }
 
     if (window.Lampa && Lampa.Listener) {
