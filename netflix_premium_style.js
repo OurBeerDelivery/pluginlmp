@@ -535,13 +535,27 @@ body {
     position: relative !important;
     background: #16181d !important;
     border: 3px solid var(--nfx-card-border-idle) !important;
-    transition: border-color var(--nfx-duration) var(--nfx-ease),
-                box-shadow var(--nfx-duration) var(--nfx-ease) !important;
+    transition: border-color var(--nfx-duration) var(--nfx-ease) !important;
+}
+
+/* Hardware-accelerated Glow Layer */
+.card__view::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit !important;
+    /* Draw the heavy shadow once */
+    box-shadow: 0 0 20px var(--nfx-accent-gl), 0 20px 40px rgba(0,0,0,0.6) !important;
+    opacity: 0 !important; /* Hidden by default */
+    z-index: -1 !important; /* Sit behind the poster */
+    pointer-events: none !important;
+    transition: opacity var(--nfx-duration) var(--nfx-ease) !important;
+    will-change: opacity !important;
 }
 
 /* ── KILL ALL GHOST MASKS / OVERLAYS (aggressive) ── */
-.card__view::after,
-.card__view::before {
+.card__view::after {
     display: none !important;
     content: none !important;
     background: none !important;
@@ -655,7 +669,11 @@ body:not(.nfx-user-interacted) .card.hover {
 body:not(.nfx-user-interacted) .card.focus .card__view,
 body:not(.nfx-user-interacted) .card.hover .card__view {
     border-color: var(--nfx-card-border-idle) !important;
-    box-shadow: none !important;
+}
+
+body:not(.nfx-user-interacted) .card.focus .card__view::before,
+body:not(.nfx-user-interacted) .card.hover .card__view::before {
+    opacity: 0 !important;
 }
 
 body:not(.nfx-user-interacted) .card.focus ~ .card,
@@ -680,8 +698,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.hover .card__view,
 .card:hover .card__view {
     border-color: var(--nfx-card-border-focus) !important;
-    box-shadow: 0 0 20px var(--nfx-accent-gl),
-               0 20px 40px rgba(0,0,0,0.6) !important;
+}
+
+.card.focus .card__view::before,
+.card.hover .card__view::before,
+.card:hover .card__view::before {
+    opacity: 1 !important;
 }
 
 /* ── NEIGHBOR SHIFTING (GPU translate3d) ── */
@@ -1156,17 +1178,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     -webkit-backdrop-filter: none !important;
     border: none !important;
     box-shadow: none !important;
-    transition: background 0.4s ease, backdrop-filter 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease !important;
     z-index: 100 !important;
-}
-
-/* Scrolled state: Dark premium glass */
-.head.head--scrolled {
-    background: rgba(10, 13, 18, 0.85) !important;
-    backdrop-filter: blur(20px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.6) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
 }
 
 .head__actions {
@@ -1565,28 +1577,26 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             });
         }
 
-        // Global scroll listener for floating glass header & dynamic fog
+        var isScrolling = false;
+        // Global scroll listener for dynamic fog
         document.addEventListener('scroll', function (e) {
             if (e.target && e.target.classList && e.target.classList.contains('scroll__body')) {
-                var st = e.target.scrollTop;
-
-                // 1. Floating Header Logic
-                var head = document.querySelector('.head');
-                if (head) {
-                    if (st > 50) head.classList.add('head--scrolled');
-                    else head.classList.remove('head--scrolled');
-                }
-
-                // 2. Dynamic Hero Fog Logic
-                var hero = e.target.querySelector('.full-start-new, .full-start');
-                if (hero) {
-                    var additionalFog = Math.min(st / 400, 0.8);
-                    hero.style.setProperty('--nfx-fog-level', 0.15 + additionalFog);
+                if (!isScrolling) {
+                    window.requestAnimationFrame(function () {
+                        var st = e.target.scrollTop;
+                        var hero = e.target.querySelector('.full-start-new, .full-start');
+                        if (hero) {
+                            var additionalFog = Math.min(st / 400, 0.8);
+                            hero.style.setProperty('--nfx-fog-level', 0.05 + additionalFog);
+                        }
+                        isScrolling = false;
+                    });
+                    isScrolling = true;
                 }
             }
         }, true);
 
-        console.log('[NFX Premium] v8.10 — Cinema UX · Total Card Styles');
+        console.log('[NFX Premium] v8.13 — GPU Glow · Seamless Header');
     }
 
     if (window.Lampa && Lampa.Listener) {
