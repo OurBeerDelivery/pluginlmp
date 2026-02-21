@@ -762,12 +762,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
    ================================================================ */
 
 /* ── Backdrop: 100% fullscreen, no mask, no margins ── */
-.full-start-new,
+/* Pull the entire Hero block up to cover the space normally reserved for the header */
+.full-start-new, 
 .full-start {
     position: relative !important;
     overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    margin-top: -4.5em !important; /* Pulls background up under the header */
+    padding-top: 4.5em !important; /* Pushes content back down to clear the header */
 }
 
 .full-start-new .full-start-new__background,
@@ -886,15 +887,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* ── Content: left-aligned, bottom-weighted ── */
-.full-start-new__body,
+.full-start-new__body, 
 .full-start__body {
     position: relative !important;
-    z-index: 2 !important; /* Above fog */
+    z-index: 2 !important;
     padding-left: 5% !important;
     display: flex !important;
     align-items: flex-end !important;
-    min-height: 85vh !important; /* Increased from 80vh */
-    padding-top: 5.5em !important; /* New: Safe zone for absolute header */
+    min-height: 85vh !important; /* Force tall container */
     padding-bottom: 2em !important;
     background: none !important;
 }
@@ -1185,6 +1185,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     border: none !important;
     box-shadow: none !important;
     z-index: 100 !important;
+    padding-top: 1em !important; /* Optional: gives icons breathing room from the TV bezel */
 }
 
 .head__actions {
@@ -1229,12 +1230,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .scroll__body {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
+    padding-top: 1em !important;
 }
 .scroll__body::-webkit-scrollbar { display: none !important; }
 
 /* Push normal catalog grids down to clear the absolute header */
 .scroll__body > .items-line:first-child {
-    margin-top: 5em !important;
+    margin-top: 4em !important;
 }
 
 
@@ -1607,7 +1609,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.14 — Full-Bleed Header · TV Layout Protection');
+        console.log('[NFX Premium] v8.15 — True Full-Bleed Hero · TV UX Fix');
     }
 
     if (window.Lampa && Lampa.Listener) {
