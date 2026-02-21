@@ -116,6 +116,8 @@
         },
 
         _getLang: function () {
+            var manual = Lampa.Storage.get('nfx_logo_lang', 'auto');
+            if (manual && manual !== 'auto') return manual;
             var u = Lampa.Storage.get('logo_lang', '');
             return u || Lampa.Storage.get('language', 'uk') || 'uk';
         },
@@ -409,6 +411,19 @@
         var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '15em');
         var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
 
+        var menuCustomCSS = '';
+        if (sbOpacity !== 'native') {
+            menuCustomCSS += 'background: rgba(10, 13, 18, ' + sbOpacity + ') !important; ';
+        }
+        if (sbWidth !== 'native') {
+            menuCustomCSS += 'min-width: ' + sbWidth + ' !important; ';
+        }
+
+        var menuTextCustomCSS = '';
+        if (fontSb !== 'native') {
+            menuTextCustomCSS += 'font-size: ' + fontSb + ' !important; ';
+        }
+
         function hexToRgb(h) {
             var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
             return r ? parseInt(r[1], 16) + ',' + parseInt(r[2], 16) + ',' + parseInt(r[3], 16) : '229, 9, 20';
@@ -431,13 +446,10 @@ ${fontImport}
     --nfx-accent-bg: rgba(${accentRgb}, 0.7);
     --nfx-text: #f0f0f0;
     --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-sb-font-size: ${fontSb};
     --nfx-card-scale: ${scale};
     --nfx-shift: 25%;
     --nfx-edge-nudge: ${shift};
     --nfx-sb-blur: ${blur};
-    --nfx-sb-width: ${sbWidth};
-    --nfx-sb-opacity: ${sbOpacity};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
     --nfx-radius: 8px;
@@ -1009,14 +1021,13 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 /* Container: dark glossy glass, full-height coverage */
 .menu {
-    background: rgba(10, 13, 18, var(--nfx-sb-opacity)) !important;
+    ${menuCustomCSS}
     backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
     border-bottom: none !important;
-    min-width: var(--nfx-sb-width) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
 }
@@ -1081,7 +1092,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    font-size: var(--nfx-sb-font-size) !important;
+    ${menuTextCustomCSS}
     color: rgba(255,255,255,0.5) !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
@@ -1351,7 +1362,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'clear': 'Almost Clear',
                 'glassy': 'Glassy (Default)',
                 'dark_glass': 'Dark Glass',
-                'solid': 'Solid Dark'
+                'solid': 'Solid Dark',
+                'auto': 'Auto (Lampa)',
+                'native_off': 'Native (Turn Off)',
+                'micro': 'Micro',
+                'tiny': 'Tiny',
+                'logo_lang': 'Logo Language Override'
             },
             'uk': {
                 'ps_title': 'Premium Style',
@@ -1385,7 +1401,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'clear': 'Прозоре',
                 'glassy': 'Скло (Стандарт)',
                 'dark_glass': 'Темне скло',
-                'solid': 'Суцільне темне'
+                'solid': 'Суцільне темне',
+                'auto': 'Авто (Lampa)',
+                'native_off': 'Оригінальний (Вимкнено)',
+                'micro': 'Мікро',
+                'tiny': 'Крихітний',
+                'logo_lang': 'Мова логотипу (Перевизначення)'
             },
             'ru': {
                 'ps_title': 'Premium Style',
@@ -1419,7 +1440,12 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'clear': 'Прозрачное',
                 'glassy': 'Стекло (Стандарт)',
                 'dark_glass': 'Темное стекло',
-                'solid': 'Сплошное темное'
+                'solid': 'Сплошное темное',
+                'auto': 'Авто (Lampa)',
+                'native_off': 'Оригинальный (Выкл)',
+                'micro': 'Микро',
+                'tiny': 'Крошечный',
+                'logo_lang': 'Язык логотипа (Переопределение)'
             }
         };
 
@@ -1436,13 +1462,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
         var prm = [
             { name: 'nfx_accent_color', type: 'select', values: { '#e50914': t('red'), '#2ecc71': t('green'), '#3498db': t('blue'), '#e67e22': t('orange'), '#9b59b6': t('purple'), '#e91e63': t('pink') }, default: '#e50914', title: t('accent_color') },
+            { name: 'nfx_logo_lang', type: 'select', values: { 'auto': t('auto'), 'uk': 'Ukrainian (UK/UA)', 'ru': 'Russian (RU)', 'en': 'English (EN)' }, default: 'auto', title: t('logo_lang') },
             { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: t('font_family') },
-            { name: 'nfx_font_size_sidebar', type: 'select', values: { '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
-            { name: 'nfx_sidebar_width', type: 'select', values: { '13em': t('compact'), '15em': t('normal') + ' (' + t('default') + ')', '17em': t('wide'), '19em': t('uwide') }, default: '15em', title: t('sb_width') },
-            { name: 'nfx_sidebar_opacity', type: 'select', values: { '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
+            { name: 'nfx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
+            { name: 'nfx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '13em': t('compact'), '15em': t('normal') + ' (' + t('default') + ')', '17em': t('wide'), '19em': t('uwide') }, default: '15em', title: t('sb_width') },
+            { name: 'nfx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
             { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
             { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
-            { name: 'nfx_logo_height', type: 'select', values: { '150px': t('small'), '200px': t('medium'), '250px': t('large') }, default: '250px', title: t('logo_height') },
+            { name: 'nfx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '250px', title: t('logo_height') },
             { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') }
         ];
 
@@ -1490,7 +1517,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.5 — Smart UI · Dynamic Header · i18n');
+        console.log('[NFX Premium] v8.6 — Logo Lang · TV Scaling · Native Compatibility');
     }
 
     if (window.Lampa && Lampa.Listener) {
