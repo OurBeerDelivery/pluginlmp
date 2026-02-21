@@ -767,8 +767,10 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .full-start {
     position: relative !important;
     overflow: hidden !important;
-    margin-top: -4.5em !important; /* Pulls background up under the header */
-    padding-top: 4.5em !important; /* Pushes content back down to clear the header */
+    margin: 0 !important;
+    margin-top: -10em !important; /* PULLS the background image up under the transparent header */
+    padding: 0 !important;
+    padding-top: 10em !important; /* PUSHES the text/logo safely back down */
 }
 
 .full-start-new .full-start-new__background,
@@ -867,7 +869,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     content: "" !important;
     display: block !important;
     position: absolute !important;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
     /* Smooth gradient covering the bottom half */
     background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
     opacity: var(--nfx-fog-level, 0.15) !important; /* Starts very light for high visibility */
@@ -1170,13 +1172,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     height: 1.1em !important;
 }
 
-/* Header bar — 100% transparent globally, absolute positioning */
+/* Header bar — 100% transparent */
 .head {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
     background: transparent !important;
     background-color: transparent !important;
     background-image: none !important;
@@ -1185,7 +1182,6 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     border: none !important;
     box-shadow: none !important;
     z-index: 100 !important;
-    padding-top: 1em !important; /* Optional: gives icons breathing room from the TV bezel */
 }
 
 .head__actions {
@@ -1230,14 +1226,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .scroll__body {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    padding-top: 1em !important;
 }
 .scroll__body::-webkit-scrollbar { display: none !important; }
-
-/* Push normal catalog grids down to clear the absolute header */
-.scroll__body > .items-line:first-child {
-    margin-top: 4em !important;
-}
 
 
 /* ================================================================
@@ -1255,7 +1245,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     .full-start {
         background-image: var(--nfx-mobile-bg) !important;
         background-size: cover !important;
-        background-position: center 15% !important; /* Focuses near the top to keep faces visible */
+        background-position: center top !important; /* Focuses near the top to keep faces visible */
         background-repeat: no-repeat !important;
     }
 
@@ -1609,7 +1599,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.15 — True Full-Bleed Hero · TV UX Fix');
+        console.log('[NFX Premium] v8.16 — Negative Margin Full-Bleed Fix');
     }
 
     if (window.Lampa && Lampa.Listener) {
