@@ -411,6 +411,17 @@
         var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '15em');
         var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
 
+        function getBorderColor(val) {
+            if (val === 'accent') return 'var(--nfx-accent)';
+            if (val === 'white') return '#ffffff';
+            if (val === 'black') return '#000000';
+            return 'transparent';
+        }
+
+        var bFocus = getBorderColor(Lampa.Storage.get('nfx_card_border_focus', 'accent'));
+        var bIdle = getBorderColor(Lampa.Storage.get('nfx_card_border_idle', 'transparent'));
+        var cardRad = Lampa.Storage.get('nfx_card_radius', '8px');
+
         var menuCustomCSS = '';
         if (sbOpacity !== 'native') {
             menuCustomCSS += 'background: rgba(10, 13, 18, ' + sbOpacity + ') !important; ';
@@ -452,7 +463,9 @@ ${fontImport}
     --nfx-sb-blur: ${blur};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: 8px;
+    --nfx-radius: ${cardRad};
+    --nfx-card-border-focus: ${bFocus};
+    --nfx-card-border-idle: ${bIdle};
     --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
 }
 
@@ -521,7 +534,7 @@ body {
     overflow: visible !important;
     position: relative !important;
     background: #16181d !important;
-    border: 2px solid transparent !important;
+    border: 3px solid var(--nfx-card-border-idle) !important;
     transition: border-color var(--nfx-duration) var(--nfx-ease),
                 box-shadow var(--nfx-duration) var(--nfx-ease) !important;
 }
@@ -641,7 +654,7 @@ body:not(.nfx-user-interacted) .card.hover {
 
 body:not(.nfx-user-interacted) .card.focus .card__view,
 body:not(.nfx-user-interacted) .card.hover .card__view {
-    border-color: transparent !important;
+    border-color: var(--nfx-card-border-idle) !important;
     box-shadow: none !important;
 }
 
@@ -666,7 +679,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
-    border-color: transparent !important;
+    border-color: var(--nfx-card-border-focus) !important;
     box-shadow: 0 0 20px var(--nfx-accent-gl),
                0 20px 40px rgba(0,0,0,0.6) !important;
 }
@@ -1380,7 +1393,18 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'native_off': 'Native (Turn Off)',
                 'micro': 'Micro',
                 'tiny': 'Tiny',
-                'logo_lang': 'Logo Language Override'
+                'logo_lang': 'Logo Language Override',
+                'transparent': 'Transparent',
+                'white': 'White',
+                'black': 'Black',
+                'card_border_focus': 'Card Focus Border',
+                'card_border_idle': 'Card Idle Border',
+                'card_radius': 'Card Corner Radius',
+                'square': 'Square (0px)',
+                'small_rad': 'Small (4px)',
+                'med_rad': 'Medium (8px)',
+                'large_rad': 'Large (12px)',
+                'xl_rad': 'Extra Large (16px)'
             },
             'uk': {
                 'ps_title': 'Premium Style',
@@ -1419,7 +1443,18 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'native_off': 'Оригінальний (Вимкнено)',
                 'micro': 'Мікро',
                 'tiny': 'Крихітний',
-                'logo_lang': 'Мова логотипу (Перевизначення)'
+                'logo_lang': 'Мова логотипу (Перевизначення)',
+                'transparent': 'Прозора',
+                'white': 'Біла',
+                'black': 'Чорна',
+                'card_border_focus': 'Обводка картки у фокусі',
+                'card_border_idle': 'Обводка картки у спокої',
+                'card_radius': 'Заокруглення кутів картки',
+                'square': 'Квадратні (0px)',
+                'small_rad': 'Малі (4px)',
+                'med_rad': 'Середні (8px)',
+                'large_rad': 'Великі (12px)',
+                'xl_rad': 'Максимальні (16px)'
             },
             'ru': {
                 'ps_title': 'Premium Style',
@@ -1458,7 +1493,18 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
                 'native_off': 'Оригинальный (Выкл)',
                 'micro': 'Микро',
                 'tiny': 'Крошечный',
-                'logo_lang': 'Язык логотипа (Переопределение)'
+                'logo_lang': 'Язык логотипа (Переопределение)',
+                'transparent': 'Прозрачная',
+                'white': 'Белая',
+                'black': 'Черная',
+                'card_border_focus': 'Обводка карточки в фокусе',
+                'card_border_idle': 'Обводка карточки в покое',
+                'card_radius': 'Закругление углов карточки',
+                'square': 'Квадратные (0px)',
+                'small_rad': 'Маленькие (4px)',
+                'med_rad': 'Средние (8px)',
+                'large_rad': 'Большие (12px)',
+                'xl_rad': 'Максимальные (16px)'
             }
         };
 
@@ -1477,6 +1523,9 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             { name: 'nfx_accent_color', type: 'select', values: { '#e50914': t('red'), '#2ecc71': t('green'), '#3498db': t('blue'), '#e67e22': t('orange'), '#9b59b6': t('purple'), '#e91e63': t('pink') }, default: '#e50914', title: t('accent_color') },
             { name: 'nfx_logo_lang', type: 'select', values: { 'auto': t('auto'), 'uk': 'Ukrainian (UK/UA)', 'ru': 'Russian (RU)', 'en': 'English (EN)' }, default: 'auto', title: t('logo_lang') },
             { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: t('font_family') },
+            { name: 'nfx_card_border_focus', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white') }, default: 'accent', title: t('card_border_focus') },
+            { name: 'nfx_card_border_idle', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white'), 'black': t('black') }, default: 'transparent', title: t('card_border_idle') },
+            { name: 'nfx_card_radius', type: 'select', values: { '0px': t('square'), '4px': t('small_rad'), '8px': t('med_rad') + ' (' + t('default') + ')', '12px': t('large_rad'), '16px': t('xl_rad') }, default: '8px', title: t('card_radius') },
             { name: 'nfx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
             { name: 'nfx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '13em': t('compact'), '15em': t('normal') + ' (' + t('default') + ')', '17em': t('wide'), '19em': t('uwide') }, default: '15em', title: t('sb_width') },
             { name: 'nfx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
@@ -1537,7 +1586,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.9 — Cinematic UX · Clean Logos · Dynamic Fog');
+        console.log('[NFX Premium] v8.10 — Cinema UX · Total Card Styles');
     }
 
     if (window.Lampa && Lampa.Listener) {
