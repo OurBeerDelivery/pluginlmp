@@ -1221,22 +1221,23 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 /* MOBILE HERO RESPONSIVE BACKGROUND (Phones & Tablets: up to 768px) */
 @media (max-width: 768px) {
-    .full-start-new__background,
-    .full-start__background {
-        display: none !important;
+    .full-start-new__background, .full-start__background { 
+        display: none !important; 
     }
 
-    .full-start-new,
-    .full-start {
+    .full-start-new, .full-start {
         background-image: var(--nfx-mobile-bg) !important;
         background-size: cover !important;
-        background-position: center top !important; /* Focuses near the top to keep faces visible */
+        background-position: center top !important;
         background-repeat: no-repeat !important;
+        /* Pull container up under the header */
+        margin-top: -5.5em !important;
+        /* Push content back down safely */
+        padding-top: 5.5em !important;
     }
 
-    /* Gradient overlay to make text readable over bright vertical posters */
-    .applecation__overlay,
-    .application__overlay {
+    /* Gradient overlay to make text readable */
+    .applecation__overlay, .application__overlay {
         display: block !important;
         background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
         background-color: transparent !important;
@@ -1586,7 +1587,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.19 — Background Breakout Full-Bleed');
+        console.log('[NFX Premium] v8.20 — Mobile Background Breakout');
     }
 
     if (window.Lampa && Lampa.Listener) {
