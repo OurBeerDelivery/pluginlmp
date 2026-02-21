@@ -94,12 +94,24 @@
                 return aS === bS ? 0 : (aS ? 1 : -1);
             });
 
+            // 1. Direct match
             for (var i = 0; i < sorted.length; i++) {
                 if (sorted[i].iso_639_1 === targetLang && sorted[i].file_path) return sorted[i].file_path;
             }
+
+            // 2. Ukrainian Fallback -> Russian
+            if (targetLang === 'uk' || targetLang === 'ua') {
+                for (var r = 0; r < sorted.length; r++) {
+                    if (sorted[r].iso_639_1 === 'ru' && sorted[r].file_path) return sorted[r].file_path;
+                }
+            }
+
+            // 3. Fallback -> English
             for (var j = 0; j < sorted.length; j++) {
                 if (sorted[j].iso_639_1 === 'en' && sorted[j].file_path) return sorted[j].file_path;
             }
+
+            // 4. Any
             return sorted[0] && sorted[0].file_path ? sorted[0].file_path : null;
         },
 
@@ -124,7 +136,7 @@
 
             var url = Lampa.TMDB.api(
                 type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() +
-                '&include_image_language=' + lang + ',en,null'
+                '&include_image_language=' + lang + ',ru,en,null'
             );
 
             var self = this;
@@ -549,7 +561,8 @@ body {
     font-size: 0.85em !important;
     font-weight: 600 !important;
     color: var(--nfx-text) !important;
-    padding: 8px 4px 2px !important;
+    padding: 4px 2px 0px !important;
+    line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -1477,7 +1490,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
             }
         }, true);
 
-        console.log('[NFX Premium] v8.4 — Multi-screen · Clean Cards · Dynamic Header');
+        console.log('[NFX Premium] v8.5 — Smart UI · Dynamic Header · i18n');
     }
 
     if (window.Lampa && Lampa.Listener) {
