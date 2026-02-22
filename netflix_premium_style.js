@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var isExoticOS = /Vidaa|Web0S|Tizen|SmartTV|Metrological|NetCast/i.test(navigator.userAgent);
+
     /* ================================================================
      *  Netflix Premium Style v8.0  —  Multi-screen, Custom UI
      *
@@ -408,8 +410,15 @@
         var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
         var logoH = Lampa.Storage.get('nfx_logo_height', '200px');
         var blur = Lampa.Storage.get('nfx_backdrop_blur', '30px');
-        var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '15em');
+        var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '280px');
         var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
+
+        // AUTO LITE-MODE FOR LOW-END TVS
+        if (isExoticOS) {
+            sbWidth = 'native'; // Let Lampa's native engine handle width to prevent layout breaks
+            sbOpacity = '0.98'; // Force near-solid background because blur is disabled
+            blur = '0px';       // Kill GPU-heavy glass effect completely
+        }
 
         function getBorderColor(val) {
             if (val === 'accent') return 'var(--nfx-accent)';
@@ -1561,7 +1570,7 @@ ${ratingCSS}
             { name: 'nfx_card_border_idle', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white'), 'black': t('black') }, default: 'transparent', title: t('card_border_idle') },
             { name: 'nfx_card_radius', type: 'select', values: { '0px': t('square'), '4px': t('small_rad'), '8px': t('med_rad') + ' (' + t('default') + ')', '12px': t('large_rad'), '16px': t('xl_rad') }, default: '8px', title: t('card_radius') },
             { name: 'nfx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
-            { name: 'nfx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '13em': t('compact'), '15em': t('normal') + ' (' + t('default') + ')', '17em': t('wide'), '19em': t('uwide') }, default: '15em', title: t('sb_width') },
+            { name: 'nfx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '220px': t('compact'), '280px': t('normal') + ' (' + t('default') + ')', '340px': t('wide'), '400px': t('uwide') }, default: '280px', title: t('sb_width') },
             { name: 'nfx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
             { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
             { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
@@ -1621,7 +1630,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NFX Premium] v8.21 — Customizable Ratings');
+        console.log('[NFX Premium] v8.22 — Ultimate Performance & TV Compatibility');
     }
 
     if (window.Lampa && Lampa.Listener) {
