@@ -301,7 +301,15 @@
             // ── Inject "About" Button for Description ──
             var btnsParams = render.find('.full-start-new__buttons, .full-start__buttons');
             if (btnsParams.length && !render.find('.ntflx-desc-btn').length) {
-                var btnText = type === 'tv' ? 'Про серіал' : 'Про фільм';
+                var langUi = Lampa.Storage.get('language') || 'uk';
+                var i18n = {
+                    'uk': { about_movie: 'Про фільм', about_tv: 'Про серіал', details: 'Детальна Інформація', desc_empty: 'Опис відсутній', release: 'Дата релізу', rating: 'Рейтинг', genres: 'Жанри', countries: 'Країни', cast: 'У ролях', loading: 'Інформація завантажується...', duration: 'Тривалість', min: 'хв.', state: 'Статус' },
+                    'ru': { about_movie: 'О фильме', about_tv: 'О сериале', details: 'Подробная Информация', desc_empty: 'Описание отсутствует', release: 'Дата релиза', rating: 'Рейтинг', genres: 'Жанры', countries: 'Страны', cast: 'В ролях', loading: 'Информация загружается...', duration: 'Продолжительность', min: 'мин.', state: 'Статус' },
+                    'en': { about_movie: 'About Movie', about_tv: 'About TV Show', details: 'Detailed Information', desc_empty: 'No description', release: 'Release Date', rating: 'Rating', genres: 'Genres', countries: 'Countries', cast: 'Top Cast', loading: 'Loading information...', duration: 'Duration', min: 'min.', state: 'Status' }
+                };
+                var t = i18n[langUi] || i18n['uk'];
+
+                var btnText = type === 'tv' ? t.about_tv : t.about_movie;
                 var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
                 var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
                 
@@ -319,42 +327,55 @@
                     closeBtn.on('hover:enter click', closeUI);
                     
                     var container = $('<div style="max-width: 1200px; width: 100%; display:flex; flex-direction:column; gap: 4em; padding-top: 2em; animation: fadeIn 0.4s ease-out;"></div>');
-                    container.append('<div style="text-align:center;"><h2 style="font-size: 5em; font-weight:900; line-height: 1.1; margin:0; letter-spacing:-0.03em;">'+(movie.title || movie.name)+'</h2><div style="color:var(--ntflx-accent); font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:0.1em; margin-top:1em;">Детальна Інформація</div></div>');
+                    container.append('<div style="text-align:center;"><h2 style="font-size: 5em; font-weight:900; line-height: 1.1; margin:0; letter-spacing:-0.03em;">'+(movie.title || movie.name)+'</h2><div style="color:var(--ntflx-accent); font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:0.1em; margin-top:1em;">'+t.details+'</div></div>');
 
                     var grid = $('<div style="display:flex; gap: 4em; flex-wrap: wrap;"></div>');
                     
                     var leftCol = $('<div style="flex: 2; min-width: 400px; display:flex; flex-direction:column; gap: 2.5em;"></div>');
-                    leftCol.append('<div style="font-size: 1.4em; font-weight: 300; line-height: 1.6; color:#f0f0f0;">'+(movie.overview || 'Опис відсутній')+'</div>');
+                    leftCol.append('<div style="font-size: 1.4em; font-weight: 300; line-height: 1.6; color:#f0f0f0;">'+(movie.overview || t.desc_empty)+'</div>');
                     
                     var metaGrid = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2em;"></div>');
                     var addMeta = function(label, val) {
-                        if(val) metaGrid.append('<div><div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5em; font-weight:bold;">'+label+'</div><div style="font-size:1.1em; font-weight:500;">'+val+'</div></div>');
+                        if(val) metaGrid.append('<div><div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5em; font-weight:bold;">'+label+'</div><div style="font-size:1.1em; font-weight:500; color:#f0f0f0;">'+val+'</div></div>');
                     };
-                    addMeta('Дата релізу', movie.release_date || movie.first_air_date);
-                    addMeta('Рейтинг', movie.vote_average);
-                    addMeta('Жанри', movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
-                    addMeta('Країни', movie.production_countries ? movie.production_countries.map(function(c){return c.name;}).join(', ') : '');
+                    addMeta(t.release, movie.release_date || movie.first_air_date);
+                    
+                    var ratingHTML = movie.vote_average ? '<span style="border:1px solid #555; padding: 2px 6px; border-radius:4px; font-size:12px; margin-right:6px; color:#a0a0a0;">TMDB</span>' + movie.vote_average : '';
+                    if (ratingHTML) addMeta(t.rating, ratingHTML);
+                    
+                    var durationText = movie.runtime ? movie.runtime + ' ' + t.min : (movie.episode_run_time && movie.episode_run_time.length ? movie.episode_run_time[0] + ' ' + t.min : '');
+                    if (durationText) addMeta(t.duration, durationText);
+                    
+                    if (movie.status) addMeta(t.state, movie.status);
+                    
+                    addMeta(t.genres, movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
+                    addMeta(t.countries, movie.production_countries ? movie.production_countries.map(function(c){return c.name;}).join(', ') : '');
                     
                     leftCol.append(metaGrid);
                     
                     var rightCol = $('<div style="flex: 1; min-width: 300px; display:flex; flex-direction:column; gap: 1.5em;"></div>');
-                    rightCol.append('<div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; font-weight:bold;">У ролях</div>');
+                    rightCol.append('<div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; font-weight:bold;">'+t.cast+'</div>');
 
-                    // Retrieve actors from saved DOM nodes or just use simple text info if DOM extraction is harsh
                     var personsWrap = $('<div style="display:flex; flex-direction:column; gap: 1em;"></div>');
-                    if (window._ntflx_saved_persons && window._ntflx_saved_persons.length) {
-                        window._ntflx_saved_persons.forEach(function(pNode) {
-                            var img = pNode.find('img').attr('src');
-                            var name = pNode.find('.full-person__title').text();
-                            var role = pNode.find('.full-person__role').text();
-                            if(name) {
-                                personsWrap.append('<div style="display:flex; align-items:center; gap: 1em;"><div style="width:50px; height:50px; border-radius:50%; overflow:hidden; background:#222;"><img src="'+(img||'')+'" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display=\\\'none\\\'"></div><div><div style="font-weight:bold; font-size:1.1em;">'+name+'</div><div style="font-size:0.85em; color:#a0a0a0;">'+role+'</div></div></div>');
-                            }
-                        });
-                    } else {
-                        personsWrap.append('<div style="color:#777;">Інформація завантажується...</div>');
-                    }
+                    personsWrap.append('<div style="color:#777;">'+t.loading+'</div>');
                     rightCol.append(personsWrap);
+
+                    // Fetch actors robustly
+                    var creditsUrl = Lampa.TMDB.api(type + '/' + movie.id + '/credits?api_key=' + Lampa.TMDB.key() + '&language=' + langUi);
+                    Lampa.network.silent(creditsUrl, function(data) {
+                        if (data.cast && data.cast.length) {
+                            var topCast = data.cast.slice(0, 6);
+                            personsWrap.empty();
+                            topCast.forEach(function(actor) {
+                                var imgUrl = actor.profile_path ? Lampa.TMDB.image('w185' + actor.profile_path) : '';
+                                personsWrap.append('<div style="display:flex; align-items:center; gap: 1em;"><div style="width:50px; height:50px; border-radius:50%; overflow:hidden; background:#222;"><img src="'+imgUrl+'" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display=\\\'none\\\'"></div><div><div style="font-weight:bold; font-size:1.1em; color:#f0f0f0;">'+actor.name+'</div><div style="font-size:0.85em; color:#a0a0a0;">'+actor.character+'</div></div></div>');
+                            });
+                        } else {
+                            personsWrap.html('<div style="color:#777;">'+t.desc_empty+'</div>');
+                        }
+                    }, function() {
+                        personsWrap.html('<div style="color:#e50914;">' + t.error + '</div>');
+                    });
 
                     grid.append(leftCol).append(rightCol);
                     container.append(grid);
@@ -618,6 +639,13 @@ ${fontImport}
     --ntflx-card-border-focus: ${bFocus};
     --ntflx-card-border-idle: ${bIdle};
     --ntflx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
+}
+
+/* Hide extraneous hero info */
+.full-start-new__tagline, .full-start__tagline,
+.full-start-new__rate, .full-start__rate,
+.full-start-new__status, .full-start__status {
+    display: none !important;
 }
 
 body {
