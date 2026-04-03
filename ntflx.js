@@ -281,26 +281,7 @@
 
             titleElem.css({ opacity: '1', transition: 'none' });
 
-            // --- DEBUG LAMPA ACTIVITY STRUCTURE ---
-            setTimeout(function() {
-                var act = e.object.activity;
-                var comp = act.component || {};
-                var debugInfo = { keys: Object.keys(comp) };
-                Object.keys(comp).forEach(function(k) {
-                    if (Array.isArray(comp[k])) {
-                        debugInfo[k + '_length'] = comp[k].length;
-                        if (comp[k].length > 0 && comp[k][0] && typeof comp[k][0] === 'object') {
-                            var methods = [];
-                            if (comp[k][0].render) methods.push('render');
-                            if (comp[k][0].toggle) methods.push('toggle');
-                            if (comp[k][0].destroy) methods.push('destroy');
-                            debugInfo[k + '_item_methods'] = methods;
-                        }
-                    }
-                });
-                console.log("NTFLX_DEBUG_COMPONENT:", JSON.stringify(debugInfo));
-            }, 1000);
-            // --------------------------------------
+
 
             // ── Mobile Hero Background (CSS Variable) ──
             var bgUrl = '';
@@ -671,58 +652,66 @@
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
             var actComp = e.object.activity.component;
-            var ntflxClean = function() {
-                // Remove components from Lampa's internal array by content so empty items don't trap focus
-                if (actComp && actComp.items && Array.isArray(actComp.items)) {
-                    actComp.items = actComp.items.filter(function(item) {
-                        try {
-                            if (!item || !item.render) return true;
-                            var el = item.render();
-                            if (!el || el.length === 0) return true;
+            var _ntflxItemsFiltered = false;
 
-                            // MUST KEEP the main info block (which contains buttons and headers)
-                            if (el.hasClass('full-start-new') || el.hasClass('full-start') || el.hasClass('full-start__main')) {
-                                return true;
-                            }
-                            
-                            var text = el.text().toLowerCase();
-                            var badMatch = /^коментар|^комментар|^реакц/i.test(text) || text.indexOf('коментар') > -1 || text.indexOf('комментар') > -1 || text.indexOf('реакц') > -1;
-                            var hasCommentClass = el.is('[class*="comment"]') || el.find('[class*="comment"]').length > 0;
-                            var hasActorsClass = el.has('.full-person').length > 0;
-                            var hasBadTitle = false;
-                            
-                            var titleEl = el.find('.items-line__title');
-                            if (titleEl.length) {
-                                var txt = titleEl.text().toLowerCase();
-                                var badWords = ['детально','детали','подробно','описание','опис','обзор','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review','подобные','схожі'];
-                                // Warning: User wants recommendations ('рекоменд')! The word 'подобные'/'схожі' might be the recommendations themselves. Wait, 'подобные' is similar. Let's ONLY ban detailed descriptions, not recommendations!
-                                var banWords = ['детально','детали','подробно','описание','опис','обзор','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review'];
-                                for (var i = 0; i < banWords.length; i++) {
-                                    if (txt.indexOf(banWords[i]) !== -1) {
-                                        hasBadTitle = true; break;
-                                    }
-                                }
-                            }
+            var ntflxFilterItems = function() {
+                // Run items filter ONCE only — re-filtering a filtered array causes data loss
+                if (_ntflxItemsFiltered) return;
+                if (!actComp || !actComp.items || !Array.isArray(actComp.items)) return;
+                _ntflxItemsFiltered = true;
 
-                            if (badMatch || hasCommentClass || hasActorsClass || hasBadTitle) {
-                                // Save actors specifically before destroying
-                                if (hasActorsClass && !window._ntflx_saved_persons) {
-                                    window._ntflx_saved_persons = [];
-                                    el.find('.full-person').each(function(){
-                                        window._ntflx_saved_persons.push($(this).clone());
-                                    });
-                                }
-                                if (item.destroy) item.destroy();
-                                else el.remove();
-                                return false; // Filter this out of internal array
-                            }
-                            return true;
-                        } catch(err) {
+                actComp.items = actComp.items.filter(function(item) {
+                    try {
+                        if (!item || !item.render) return true;
+                        var el = item.render();
+                        if (!el || el.length === 0) return true;
+
+                        // MUST KEEP the main info block (contains buttons and title)
+                        if (el.hasClass('full-start-new') || el.hasClass('full-start') || el.hasClass('full-start__main')) {
                             return true;
                         }
-                    });
-                }
 
+                        // Check by CSS class (comment blocks)
+                        var hasCommentClass = el.is('[class*="comment"]') || el.find('[class*="comment"]').length > 0;
+                        // Check for actors component
+                        var hasActorsClass = el.has('.full-person').length > 0;
+
+                        // Check ONLY the title text, NOT the full element text
+                        var hasBadTitle = false;
+                        var titleEl = el.find('.items-line__title');
+                        if (titleEl.length) {
+                            var txt = titleEl.text().toLowerCase();
+                            var banWords = ['детально','детали','подробно','описание','опис','обзор',
+                                            'режисер','режиссер','актори','актеры','в ролях',
+                                            'коментар','комментар',
+                                            'director','comments','actors','review'];
+                            for (var i = 0; i < banWords.length; i++) {
+                                if (txt.indexOf(banWords[i]) !== -1) {
+                                    hasBadTitle = true; break;
+                                }
+                            }
+                        }
+
+                        if (hasCommentClass || hasActorsClass || hasBadTitle) {
+                            // Save actors before destroying
+                            if (hasActorsClass && !window._ntflx_saved_persons) {
+                                window._ntflx_saved_persons = [];
+                                el.find('.full-person').each(function(){
+                                    window._ntflx_saved_persons.push($(this).clone());
+                                });
+                            }
+                            if (item.destroy) item.destroy();
+                            else el.remove();
+                            return false;
+                        }
+                        return true;
+                    } catch(err) {
+                        return true;
+                    }
+                });
+            };
+
+            var ntflxCleanDOM = function() {
                 // Clean visual dom items that don't block component navigation
                 render.find([
                     '.full-start-new__details', '.full-start__details',
@@ -744,7 +733,8 @@
             };
 
             // Run cleanup immediately
-            ntflxClean();
+            ntflxFilterItems();
+            ntflxCleanDOM();
 
             // Watch for lazy-loaded content permanently (some Lampa plugins inject widgets very late)
             // Only trigger cleanup when new nodes are actually added to avoid infinite loops
@@ -756,7 +746,10 @@
                         break;
                     }
                 }
-                if (added) ntflxClean();
+                if (added) {
+                    ntflxFilterItems();
+                    ntflxCleanDOM();
+                }
             });
             hideObserver.observe(render[0], { childList: true, subtree: true });
 
