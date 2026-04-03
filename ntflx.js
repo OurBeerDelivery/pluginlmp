@@ -348,23 +348,15 @@
                     
                     var closeBtn = $('<div class="selector" style="position:absolute; top: 2.5em; right: 3em; cursor:pointer; color:#a0a0a0; padding:10px; border-radius:50%; transition: color 0.3s;"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
                     
-                    var closeUI = function() {
+                    var isClosing = false;
+                    var closeUI = function(e) {
+                        if (isClosing) return;
+                        isClosing = true;
+                        if (e && e.stopPropagation) e.stopPropagation();
+                        
                         overlay.remove();
-                        // Remove controller so it doesn't persist
-                        if (Lampa.Controller.controllers && Lampa.Controller.controllers['ntflx_details']) {
-                            delete Lampa.Controller.controllers['ntflx_details'];
-                        }
-                        // Restore 'full' view with focus on buttons
+                        // Safely restore focus to previous state without corrupting Lampa's internal index
                         Lampa.Controller.toggle('full');
-                        // After a short delay, set focus to the first button in the hero
-                        setTimeout(function(){
-                            var firstBtn = render.find('.full-start__button.selector, .full-start-new__button.selector').first();
-                            if (firstBtn.length) {
-                                firstBtn.trigger('hover:focus');
-                                firstBtn.addClass('focus');
-                                Lampa.Controller.collectionFocus(firstBtn[0], render);
-                            }
-                        }, 100);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -505,17 +497,35 @@
                         }
                     }
                 });
+                // Aggressive text match: find any tag with exact "Коментарі" text and destroy its wrapper
+                render.find('div, span').filter(function() {
+                    var childCount = $(this).children().length;
+                    if (childCount > 1) return false;
+                    var t = $(this).text().trim().toLowerCase();
+                    return /^коментар|^комментар|^реакц/i.test(t);
+                }).each(function() {
+                    var wrapper = $(this).closest('.items-line');
+                    if (wrapper.length) wrapper.remove();
+                    else $(this).parent().remove();
+                });
             };
 
             // Run cleanup immediately
             ntflxClean();
 
-            // Watch for lazy-loaded content (longer timeout since Lampa loads asynchronously)
-            var hideObserver = new MutationObserver(ntflxClean);
+            // Watch for lazy-loaded content permanently (some Lampa plugins inject widgets very late)
+            // Only trigger cleanup when new nodes are actually added to avoid infinite loops
+            var hideObserver = new MutationObserver(function(mutations) {
+                var added = false;
+                for (var i = 0; i < mutations.length; i++) {
+                    if (mutations[i].addedNodes && mutations[i].addedNodes.length > 0) {
+                        added = true;
+                        break;
+                    }
+                }
+                if (added) ntflxClean();
+            });
             hideObserver.observe(render[0], { childList: true, subtree: true });
-
-            // Keep observer running for 8s to catch async-loaded blocks (comments, actors)
-            setTimeout(function() { hideObserver.disconnect(); }, 8000);
 
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
