@@ -353,10 +353,16 @@
                         if (isClosing) return;
                         isClosing = true;
                         if (e && e.stopPropagation) e.stopPropagation();
-                        
                         overlay.remove();
-                        // Safely restore focus to previous state without corrupting Lampa's internal index
-                        Lampa.Controller.toggle('full');
+                        // Remove the controller cleanly from registry
+                        if (Lampa.Controller.remove) {
+                            Lampa.Controller.remove('ntflx_details');
+                        } else if (Lampa.Controller.controllers) {
+                            delete Lampa.Controller.controllers['ntflx_details'];
+                        }
+                        // Let Lampa restore state naturally — it knows where we came from
+                        if (Lampa.Controller.previous) Lampa.Controller.previous();
+                        else Lampa.Controller.toggle('full');
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -432,6 +438,10 @@
                             Lampa.Controller.collectionSet(overlay);
                             Lampa.Controller.collectionFocus(closeBtn[0], overlay);
                         },
+                        toggle: function () {
+                            Lampa.Controller.collectionSet(overlay);
+                            Lampa.Controller.collectionFocus(closeBtn[0], overlay);
+                        },
                         up: function() { Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
                         down: function() {},
                         right: function() {},
@@ -446,6 +456,35 @@
                 descBtn.on('hover:enter', function(){
                     descBtn.trigger('click');
                 });
+            }
+
+            // ── Kill applecation.js scroll dimming on the background image ──
+            // applecation.js hooks .scroll__body webkitTransform and adds .dim class to
+            // .full-start__background on scroll — we override that setter to a no-op
+            var scrollBody = render.find('.scroll__body')[0];
+            if (scrollBody && !scrollBody._ntflxDimPatched) {
+                scrollBody._ntflxDimPatched = true;
+                var bgEl = render.find('.full-start__background:not(.applecation__overlay)')[0];
+                if (bgEl) {
+                    // Remove .dim immediately in case it was already applied
+                    bgEl.classList.remove('dim');
+                    // Override the setter that applecation.js registers so .dim never gets added
+                    try {
+                        var _origDesc = Object.getOwnPropertyDescriptor(scrollBody.style, '-webkit-transform') ||
+                                       Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'webkitTransform');
+                        Object.defineProperty(scrollBody.style, '-webkit-transform', {
+                            set: function(val) {
+                                // Skip the dim toggling, just set the value
+                                if (_origDesc && _origDesc.set) _origDesc.set.call(this, val);
+                                else this.setProperty('-webkit-transform', val);
+                            },
+                            get: function() {
+                                return _origDesc && _origDesc.get ? _origDesc.get.call(this) : this.getPropertyValue('-webkit-transform');
+                            },
+                            configurable: true
+                        });
+                    } catch(e) {}
+                }
             }
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
