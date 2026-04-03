@@ -305,13 +305,14 @@
                 var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
                 var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
                 
-                descBtn.on('hover:enter', function() {
+                descBtn.on('click', function() {
                     // Extract text from the normally hidden description node, or fallback
                     var textNode = render.find('.full-start-new__text, .full-start__text');
                     var descText = textNode.text() || movie.overview || 'Опис відсутній';
+                    
                     Lampa.Modal.show({
-                        title: movie.title || movie.name,
-                        html: $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.15em; line-height: 1.6; color: var(--ntflx-text); max-width: 800px;">' + descText + '</div>'),
+                        title: movie.title || movie.name || 'Опис',
+                        html: $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.1em; line-height: 1.5; color: #fff; max-width: 800px; white-space: pre-wrap;">' + descText + '</div>'),
                         size: 'large',
                         onBack: function() {
                             Lampa.Modal.close();
@@ -320,6 +321,11 @@
                     });
                 });
                 btnsParams.append(descBtn);
+                
+                // Also listen for Lampa's internal enter event for D-pad navigation
+                descBtn.on('hover:enter', function(){
+                    descBtn.trigger('click');
+                });
             }
 
             var lang = LogoEngine._getLang();
