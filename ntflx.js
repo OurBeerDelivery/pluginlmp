@@ -990,12 +990,8 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
     content: none !important;
 }
 
-/* All static overlays/gradients are disabled for the dynamic scroll fog */
-.applecation__overlay,
-.application__overlay,
-.full-start__background.applecation__overlay {
-    display: none !important;
-}
+
+/* All static overlays/gradients are fully killed below */
 
 .full-start-new__gradient,
 .full-start__gradient,
@@ -1056,25 +1052,44 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
 /* ── HIDE DETAILS TEXT (Replaced by Info Button) ── */
 .full-start-new__text, .full-start__text {
     display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important; padding: 0 !important;
 }
 
-/* ── HIDE REACTIONS (Pink zone) ── */
+/* ── HIDE REACTIONS + all dead-space blocks ── */
+/* These must have height:0 so Lampa scroll controller skips them */
 .full-start-new__reactions,
-.full-start__reactions {
+.full-start__reactions,
+.full-start-new__params,
+.full-start__params,
+.full-start-new__vote,
+.full-start__vote,
+.full-start-new__bottom,
+.full-start__bottom {
     display: none !important;
     height: 0 !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ── Kill ALL bottom fog/overlay on desktop too ── */
+.applecation__overlay,
+.application__overlay {
+    display: none !important;
+    background: none !important;
 }
 
 /* ── Content: left-aligned, bottom-weighted ── */
 .full-start-new__body, .full-start__body {
     position: relative !important; z-index: 2 !important; padding-left: 5% !important;
     display: flex !important; align-items: flex-end !important;
-    min-height: 80vh !important;
-    padding-top: 6em !important; /* Protect logo from overlapping top header icons */
-    padding-bottom: 2em !important; background: none !important;
+    min-height: 70vh !important; /* Reduced: less dead space between buttons and recs */
+    padding-top: 6em !important;
+    padding-bottom: 1.5em !important; background: none !important;
 }
 
 .full-start-new__right,
