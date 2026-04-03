@@ -4,7 +4,7 @@
     var isExoticOS = /Vidaa|Web0S|Tizen|SmartTV|Metrological|NetCast/i.test(navigator.userAgent);
 
     /* ================================================================
-     *  Netflix Premium Style v9.0  —  Multi-screen, Custom UI
+     *  NTFLX Premium Style v9.0  —  Multi-screen, Custom UI
      *
      *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
      *  ✦ Hero           → Clean backdrop, NO gradients, text-shadow only
@@ -467,7 +467,7 @@
 
         var css = `
 /* ================================================================
-   Netflix Premium Style v9.0 — UI Customization
+   NTFLX Premium Style v9.0 — UI Customization
    ================================================================ */
 
 ${fontImport}
