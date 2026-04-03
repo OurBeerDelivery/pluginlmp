@@ -298,6 +298,30 @@
                 render[0].style.setProperty('--ntflx-mobile-bg', 'url(' + bgUrl + ')');
             }
 
+            // ── Inject "About" Button for Description ──
+            var btnsParams = render.find('.full-start-new__buttons, .full-start__buttons');
+            if (btnsParams.length && !render.find('.ntflx-desc-btn').length) {
+                var btnText = type === 'tv' ? 'Про серіал' : 'Про фільм';
+                var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
+                var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
+                
+                descBtn.on('hover:enter', function() {
+                    // Extract text from the normally hidden description node, or fallback
+                    var textNode = render.find('.full-start-new__text, .full-start__text');
+                    var descText = textNode.text() || movie.overview || 'Опис відсутній';
+                    Lampa.Modal.show({
+                        title: movie.title || movie.name,
+                        html: $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.15em; line-height: 1.6; color: var(--ntflx-text); max-width: 800px;">' + descText + '</div>'),
+                        size: 'large',
+                        onBack: function() {
+                            Lampa.Modal.close();
+                            Lampa.Controller.toggle('full');
+                        }
+                    });
+                });
+                btnsParams.append(descBtn);
+            }
+
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
             var cached = LogoEngine._getCached(cacheKey);
@@ -403,8 +427,8 @@
         var old = document.getElementById('ntflx-premium-v9');
         if (old) old.remove();
 
-        var accent = Lampa.Storage.get('ntflx_accent_color', '#e50914');
-        var fontFam = Lampa.Storage.get('ntflx_font_family', 'Montserrat');
+        var accent = Lampa.Storage.get('ntflx_accent_color', '#ec130e');
+        var fontFam = Lampa.Storage.get('ntflx_font_family', 'Manrope');
         var fontSb = Lampa.Storage.get('ntflx_font_size_sidebar', '1.1em');
         var scale = Lampa.Storage.get('ntflx_card_scale', '1.35');
         var shift = Lampa.Storage.get('ntflx_edge_shift', '20px');
@@ -429,7 +453,7 @@
 
         var bFocus = getBorderColor(Lampa.Storage.get('ntflx_card_border_focus', 'accent'));
         var bIdle = getBorderColor(Lampa.Storage.get('ntflx_card_border_idle', 'transparent'));
-        var cardRad = Lampa.Storage.get('ntflx_card_radius', '8px');
+        var cardRad = Lampa.Storage.get('ntflx_card_radius', '4px');
 
         var menuCustomCSS = '';
         if (sbOpacity !== 'native') {
@@ -463,7 +487,7 @@
         }
 
         var accentRgb = hexToRgb(accent);
-        var fontImport = '@import url("https://fonts.googleapis.com/css2?family=' + fontFam.replace(/ /g, '+') + ':wght@400;500;600;700;800;900&display=swap");';
+        var fontImport = '@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap");';
 
         var css = `
 /* ================================================================
@@ -480,6 +504,7 @@ ${fontImport}
     --ntflx-accent-bg: rgba(${accentRgb}, 0.7);
     --ntflx-text: #f0f0f0;
     --ntflx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
+    --ntflx-font-label: 'Inter', sans-serif;
     --ntflx-card-scale: ${scale};
     --ntflx-shift: 25%;
     --ntflx-edge-nudge: ${shift};
@@ -883,14 +908,14 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
     background: none !important;
 }
 
-/* ── DYNAMIC SCROLL FOG LAYER ── */
+/* ── DYNAMIC SCROLL FOG LAYER DISABLED ── */
 .full-start-new::before, .full-start::before {
-    content: "" !important; display: block !important; position: absolute !important;
-    top: -6em !important; /* Match breakout */
-    left: 0 !important; right: 0 !important; bottom: 0 !important;
-    height: calc(100% + 6em) !important; /* Match breakout */
-    background: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
-    opacity: var(--ntflx-fog-level, 0.15) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.1s linear !important;
+    display: none !important;
+}
+
+/* ── HIDE DETAILS TEXT (Replaced by Info Button) ── */
+.full-start-new__text, .full-start__text {
+    display: none !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
