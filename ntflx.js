@@ -322,7 +322,21 @@
                     
                     var closeUI = function() {
                         overlay.remove();
+                        // Remove controller so it doesn't persist
+                        if (Lampa.Controller.controllers && Lampa.Controller.controllers['ntflx_details']) {
+                            delete Lampa.Controller.controllers['ntflx_details'];
+                        }
+                        // Restore 'full' view with focus on buttons
                         Lampa.Controller.toggle('full');
+                        // After a short delay, set focus to the first button in the hero
+                        setTimeout(function(){
+                            var firstBtn = render.find('.full-start__button.selector, .full-start-new__button.selector').first();
+                            if (firstBtn.length) {
+                                firstBtn.trigger('hover:focus');
+                                firstBtn.addClass('focus');
+                                Lampa.Controller.collectionFocus(firstBtn[0], render);
+                            }
+                        }, 100);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -427,7 +441,8 @@
                     '.full-start-new__tagline', '.full-start__tagline',
                     '.full-start-new__rate', '.full-start__rate',
                     '.full-start-new__status', '.full-start__status',
-                    '.full-start-new__rate-line', '.full-start__rate-line'
+                    '.full-start-new__rate-line', '.full-start__rate-line',
+                    '.applecation__overlay', '.application__overlay'  // fog injected by applecation.js
                 ].join(', ')).remove();
 
                 // Save actors for modal before removing persons row
