@@ -305,32 +305,77 @@
                 var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
                 var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
                 
+                descBtn.css({'margin-left': '0.5em'}); // Fix overlap
+                
                 descBtn.on('click', function() {
-                    var modalHtml = $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.1em; line-height: 1.5; color: #fff; max-width: 800px; white-space: pre-wrap;"></div>');
-                    var overview = movie.overview || 'Опис відсутній';
-                    modalHtml.append('<div style="font-size: 1.2em; margin-bottom: 20px;">' + overview + '</div>');
+                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(10,8,8,0.96); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); overflow-y: auto; padding: 4em 3em; display:flex; flex-direction:column; align-items:center;"></div>');
                     
-                    var meta = [];
-                    if (movie.release_date || movie.first_air_date) meta.push('<span style="opacity:0.7">Рік:</span> ' + (movie.release_date || movie.first_air_date));
-                    if (movie.vote_average) meta.push('<span style="opacity:0.7">Рейтинг:</span> ' + movie.vote_average);
-                    if (movie.genres && movie.genres.length) meta.push('<span style="opacity:0.7">Жанри:</span> ' + movie.genres.map(function(g){return g.name;}).join(', '));
-                    if (movie.production_countries && movie.production_countries.length) meta.push('<span style="opacity:0.7">Країни:</span> ' + movie.production_countries.map(function(c){return c.name;}).join(', '));
+                    var closeBtn = $('<div class="selector" style="position:absolute; top: 2.5em; right: 3em; cursor:pointer; color:#a0a0a0; padding:10px; border-radius:50%; transition: color 0.3s;"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
                     
-                    if (meta.length) {
-                        modalHtml.append('<div style="margin-bottom: 20px; font-size: 0.9em;">' + meta.join(' &nbsp;|&nbsp; ') + '</div>');
+                    var closeUI = function() {
+                        overlay.remove();
+                        Lampa.Controller.toggle('full');
+                    };
+                    closeBtn.on('hover:enter click', closeUI);
+                    
+                    var container = $('<div style="max-width: 1200px; width: 100%; display:flex; flex-direction:column; gap: 4em; padding-top: 2em; animation: fadeIn 0.4s ease-out;"></div>');
+                    container.append('<div style="text-align:center;"><h2 style="font-size: 5em; font-weight:900; line-height: 1.1; margin:0; letter-spacing:-0.03em;">'+(movie.title || movie.name)+'</h2><div style="color:var(--ntflx-accent); font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:0.1em; margin-top:1em;">Детальна Інформація</div></div>');
+
+                    var grid = $('<div style="display:flex; gap: 4em; flex-wrap: wrap;"></div>');
+                    
+                    var leftCol = $('<div style="flex: 2; min-width: 400px; display:flex; flex-direction:column; gap: 2.5em;"></div>');
+                    leftCol.append('<div style="font-size: 1.4em; font-weight: 300; line-height: 1.6; color:#f0f0f0;">'+(movie.overview || 'Опис відсутній')+'</div>');
+                    
+                    var metaGrid = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2em;"></div>');
+                    var addMeta = function(label, val) {
+                        if(val) metaGrid.append('<div><div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5em; font-weight:bold;">'+label+'</div><div style="font-size:1.1em; font-weight:500;">'+val+'</div></div>');
+                    };
+                    addMeta('Дата релізу', movie.release_date || movie.first_air_date);
+                    addMeta('Рейтинг', movie.vote_average);
+                    addMeta('Жанри', movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
+                    addMeta('Країни', movie.production_countries ? movie.production_countries.map(function(c){return c.name;}).join(', ') : '');
+                    
+                    leftCol.append(metaGrid);
+                    
+                    var rightCol = $('<div style="flex: 1; min-width: 300px; display:flex; flex-direction:column; gap: 1.5em;"></div>');
+                    rightCol.append('<div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; font-weight:bold;">У ролях</div>');
+
+                    // Retrieve actors from saved DOM nodes or just use simple text info if DOM extraction is harsh
+                    var personsWrap = $('<div style="display:flex; flex-direction:column; gap: 1em;"></div>');
+                    if (window._ntflx_saved_persons && window._ntflx_saved_persons.length) {
+                        window._ntflx_saved_persons.forEach(function(pNode) {
+                            var img = pNode.find('img').attr('src');
+                            var name = pNode.find('.full-person__title').text();
+                            var role = pNode.find('.full-person__role').text();
+                            if(name) {
+                                personsWrap.append('<div style="display:flex; align-items:center; gap: 1em;"><div style="width:50px; height:50px; border-radius:50%; overflow:hidden; background:#222;"><img src="'+(img||'')+'" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display=\\\'none\\\'"></div><div><div style="font-weight:bold; font-size:1.1em;">'+name+'</div><div style="font-size:0.85em; color:#a0a0a0;">'+role+'</div></div></div>');
+                            }
+                        });
+                    } else {
+                        personsWrap.append('<div style="color:#777;">Інформація завантажується...</div>');
                     }
+                    rightCol.append(personsWrap);
+
+                    grid.append(leftCol).append(rightCol);
+                    container.append(grid);
+                    overlay.append(closeBtn).append(container);
                     
-                    // We can also extract the original details block to grab extra localized strings if available, but movie object has most.
+                    $('body').append(overlay);
                     
-                    Lampa.Modal.open({
-                        title: movie.title || movie.name || 'Опис',
-                        html: modalHtml,
-                        size: 'large',
-                        onBack: function() {
-                            Lampa.Modal.close();
-                            Lampa.Controller.toggle('full');
-                        }
+                    // Disable standard back event natively closing activity
+                    Lampa.Controller.add('ntflx_details', {
+                        toggle: function () {
+                            Lampa.Controller.collectionSet(overlay);
+                            Lampa.Controller.collectionFocus(overlay.find('.selector')[0] || false, overlay);
+                        },
+                        up: function() { Lampa.Controller.collectionFocus(overlay.find('.selector').first()[0], overlay); },
+                        down: function() {},
+                        right: function() {},
+                        left: function() {},
+                        back: closeUI
                     });
+                    
+                    Lampa.Controller.toggle('ntflx_details');
                 });
                 btnsParams.append(descBtn);
                 
@@ -339,10 +384,23 @@
                 });
             }
 
-            // ── Dynamically Hide Everything Except Hero & Recommendations ──
+            // ── Dynamically Remove Everything Except Hero & Recommendations ──
             var hideObserver = new MutationObserver(function() {
-                render.find('.full-start-new__details, .full-start__details').css('display', 'none');
-                render.find('.full-person, .full-review, .comments, .full-comments').closest('.items-line').css('display', 'none');
+                var removedAny = false;
+                
+                // Hide embedded text descriptions
+                render.find('.full-start-new__details, .full-start__details').remove();
+
+                // Save actors for the modal, then remove line
+                var personsLine = render.find('.full-person').closest('.items-line');
+                if (personsLine.length && !window._ntflx_saved_persons) {
+                    window._ntflx_saved_persons = [];
+                    personsLine.find('.full-person').each(function(){
+                        window._ntflx_saved_persons.push($(this).clone());
+                    });
+                }
+                
+                // Remove unwanted vertical scrolling elements
                 render.find('.items-line__title').each(function() {
                     var text = $(this).text().toLowerCase();
                     if (text.indexOf('детально') !== -1 || text.indexOf('детали') !== -1 || 
@@ -350,9 +408,20 @@
                         text.indexOf('актори') !== -1 || text.indexOf('актеры') !== -1 || 
                         text.indexOf('в ролях') !== -1 ||
                         text.indexOf('коментарі') !== -1 || text.indexOf('комментарии') !== -1) {
-                        $(this).closest('.items-line').css('display', 'none');
+                        
+                        var line = $(this).closest('.items-line');
+                        line.remove();
+                        removedAny = true;
                     }
                 });
+                
+                // Force Native Scroll Controller updates to kill empty spaces
+                if (removedAny && e.object.activity && e.object.activity.scroll && e.object.activity.scroll.build) {
+                    // Force re-indexing of vertical list without hidden elements
+                    e.object.activity.scroll.render().find('.items-line').each(function(i, el) {
+                        if (!$.contains(document, el)) $(this).remove();
+                    });
+                }
             });
             hideObserver.observe(render[0], { childList: true, subtree: true });
 
