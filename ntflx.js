@@ -325,9 +325,45 @@
             if (btnsParams.length && !render.find('.ntflx-desc-btn').length) {
                 var langUi = Lampa.Storage.get('language') || 'uk';
                 var i18n = {
-                    'uk': { about_movie: 'Про фільм', about_tv: 'Про серіал', details: 'Детальна Інформація', desc_empty: 'Опис відсутній', release: 'Дата релізу', rating: 'Рейтинг', genres: 'Жанри', countries: 'Країни', cast: 'У ролях', loading: 'Інформація завантажується...', duration: 'Тривалість', min: 'хв.', state: 'Статус' },
-                    'ru': { about_movie: 'О фильме', about_tv: 'О сериале', details: 'Подробная Информация', desc_empty: 'Описание отсутствует', release: 'Дата релиза', rating: 'Рейтинг', genres: 'Жанры', countries: 'Страны', cast: 'В ролях', loading: 'Информация загружается...', duration: 'Продолжительность', min: 'мин.', state: 'Статус' },
-                    'en': { about_movie: 'About Movie', about_tv: 'About TV Show', details: 'Detailed Information', desc_empty: 'No description', release: 'Release Date', rating: 'Rating', genres: 'Genres', countries: 'Countries', cast: 'Top Cast', loading: 'Loading information...', duration: 'Duration', min: 'min.', state: 'Status' }
+                    'uk': {
+                        about_movie: 'Про фільм', about_tv: 'Про серіал',
+                        details: 'Детальна Інформація',
+                        desc_empty: 'Опис відсутній',
+                        release: 'Дата релізу', rating: 'Рейтинг',
+                        genres: 'Жанри', countries: 'Країни',
+                        cast: 'У ролях', loading: 'Завантаження...',
+                        duration: 'Тривалість', min: 'хв.',
+                        state: 'Статус', orig_lang: 'Мова оригіналу',
+                        budget: 'Бюджет', revenue: 'Касові збори',
+                        studio: 'Студія', director: 'Режисер',
+                        keywords: 'Теги'
+                    },
+                    'ru': {
+                        about_movie: 'О фильме', about_tv: 'О сериале',
+                        details: 'Подробная Информация',
+                        desc_empty: 'Описание отсутствует',
+                        release: 'Дата релиза', rating: 'Рейтинг',
+                        genres: 'Жанры', countries: 'Страны',
+                        cast: 'В ролях', loading: 'Загрузка...',
+                        duration: 'Продолжительность', min: 'мин.',
+                        state: 'Статус', orig_lang: 'Язык оригинала',
+                        budget: 'Бюджет', revenue: 'Кассовые сборы',
+                        studio: 'Студия', director: 'Режиссёр',
+                        keywords: 'Теги'
+                    },
+                    'en': {
+                        about_movie: 'About Movie', about_tv: 'About Show',
+                        details: 'Detailed Information',
+                        desc_empty: 'No description',
+                        release: 'Release Date', rating: 'Rating',
+                        genres: 'Genres', countries: 'Countries',
+                        cast: 'Top Cast', loading: 'Loading...',
+                        duration: 'Duration', min: 'min.',
+                        state: 'Status', orig_lang: 'Original Language',
+                        budget: 'Budget', revenue: 'Revenue',
+                        studio: 'Studio', director: 'Director',
+                        keywords: 'Keywords'
+                    }
                 };
                 var t = i18n[langUi] || i18n['uk'];
 
@@ -444,21 +480,21 @@
                     addMeta(t.countries, movie.production_countries ? movie.production_countries.map(function(c){return c.name;}).join(', ') : '');
 
                     if (movie.original_language) {
-                        addMeta(t.orig_lang || 'Original Language', movie.original_language.toUpperCase());
+                        addMeta(t.orig_lang, movie.original_language.toUpperCase());
                     }
 
                     // Budget & Revenue (movie only)
+                    var fmt = function(n) { return '$' + (n/1000000).toFixed(1) + 'M'; };
                     if (movie.budget && movie.budget > 0) {
-                        var fmt = function(n) { return '$' + (n/1000000).toFixed(1) + 'M'; };
-                        addMeta(t.budget || 'Budget', fmt(movie.budget));
+                        addMeta(t.budget, fmt(movie.budget));
                     }
                     if (movie.revenue && movie.revenue > 0) {
-                        addMeta(t.revenue || 'Revenue', fmt(movie.revenue));
+                        addMeta(t.revenue, fmt(movie.revenue));
                     }
 
                     // Production companies
                     if (movie.production_companies && movie.production_companies.length) {
-                        addMeta(t.studio || 'Studio', movie.production_companies.slice(0,3).map(function(c){return c.name;}).join(', '));
+                        addMeta(t.studio, movie.production_companies.slice(0,3).map(function(c){return c.name;}).join(', '));
                     }
 
                     leftCol.append(metaGrid);
@@ -511,7 +547,7 @@
                         var kws = (detail.keywords && (detail.keywords.keywords || detail.keywords.results)) || [];
                         if (kws.length) {
                             var kwWrap = $('<div style="margin-top:1em;"></div>');
-                            kwWrap.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:'0.5em', fontWeight:'bold'}).text('Теги'));
+                            kwWrap.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:'0.5em', fontWeight:'bold'}).text(t.keywords));
                             var kwInner = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                             kws.slice(0,10).forEach(function(k) {
                                 kwInner.append($('<span>').css({
@@ -558,7 +594,7 @@
                                 var director = data.crew.find(function(c){ return c.job === 'Director'; });
                                 if (director) {
                                     rightCol.append($('<div>').css({marginTop:'1.5em'}));
-                                    rightCol.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:'bold', marginBottom:'0.5em'}).text(t.director || 'Режисер'));
+                                    rightCol.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:'bold', marginBottom:'0.5em'}).text(t.director));
                                     var dirRow = $('<div>').css({display:'flex', alignItems:'center', gap:'0.8em'});
                                     var dirImg = $('<div>').css({width:'42px', height:'42px', borderRadius:'50%', overflow:'hidden', background:'#222', flexShrink:'0', border:'2px solid rgba(255,255,255,0.08)'});
                                     if (director.profile_path) {
