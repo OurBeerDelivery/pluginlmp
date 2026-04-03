@@ -281,6 +281,26 @@
 
             titleElem.css({ opacity: '1', transition: 'none' });
 
+            // --- DEBUG LAMPA ACTIVITY STRUCTURE ---
+            setTimeout(function() {
+                var act = e.object.activity;
+                var debugInfo = { keys: Object.keys(act) };
+                Object.keys(act).forEach(function(k) {
+                    if (Array.isArray(act[k])) {
+                        debugInfo[k + '_length'] = act[k].length;
+                        if (act[k].length > 0 && act[k][0] && typeof act[k][0] === 'object') {
+                            var methods = [];
+                            if (act[k][0].render) methods.push('render');
+                            if (act[k][0].toggle) methods.push('toggle');
+                            if (act[k][0].destroy) methods.push('destroy');
+                            debugInfo[k + '_item_methods'] = methods;
+                        }
+                    }
+                });
+                console.log("NTFLX_DEBUG_ACTIVITY:", JSON.stringify(debugInfo));
+            }, 1000);
+            // --------------------------------------
+
             // ── Mobile Hero Background (CSS Variable) ──
             var bgUrl = '';
             if (movie.backdrop_path) {
