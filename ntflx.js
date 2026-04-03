@@ -360,21 +360,30 @@
                     personsWrap.append('<div style="color:#777;">'+t.loading+'</div>');
                     rightCol.append(personsWrap);
 
-                    // Fetch actors robustly
+                    // Fetch actors — use jQuery DOM to avoid escape/onerror issues
                     var creditsUrl = Lampa.TMDB.api(type + '/' + movie.id + '/credits?api_key=' + Lampa.TMDB.key() + '&language=' + langUi);
                     $.get(creditsUrl, function(data) {
                         if (data.cast && data.cast.length) {
                             var topCast = data.cast.slice(0, 6);
                             personsWrap.empty();
                             topCast.forEach(function(actor) {
-                                var imgUrl = actor.profile_path ? Lampa.TMDB.image('w185' + actor.profile_path) : '';
-                                personsWrap.append('<div style="display:flex; align-items:center; gap: 1em;"><div style="width:50px; height:50px; border-radius:50%; overflow:hidden; background:#222;"><img src="'+imgUrl+'" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display=\\\'none\\\'"></div><div><div style="font-weight:bold; font-size:1.1em; color:#f0f0f0;">'+actor.name+'</div><div style="font-size:0.85em; color:#a0a0a0;">'+actor.character+'</div></div></div>');
+                                var imgUrl = actor.profile_path ? Lampa.TMDB.image('t/p/w185' + actor.profile_path) : '';
+                                var row = $('<div>').css({display:'flex', alignItems:'center', gap:'1em', marginBottom:'0.5em'});
+                                var imgWrap = $('<div>').css({width:'50px', height:'50px', borderRadius:'50%', overflow:'hidden', background:'#333', flexShrink:'0'});
+                                var img = $('<img>').attr('src', imgUrl).css({width:'100%', height:'100%', objectFit:'cover'});
+                                img.on('error', function() { imgWrap.css({display:'flex', alignItems:'center', justifyContent:'center'}).html('<svg viewBox="0 0 24 24" width="24" height="24" fill="#555"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>'); img.remove(); });
+                                imgWrap.append(img);
+                                var info = $('<div>').css({overflow:'hidden'});
+                                info.append($('<div>').css({fontWeight:'bold', fontSize:'1.1em', color:'#f0f0f0'}).text(actor.name));
+                                info.append($('<div>').css({fontSize:'0.85em', color:'#a0a0a0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}).text(actor.character || ''));
+                                row.append(imgWrap).append(info);
+                                personsWrap.append(row);
                             });
                         } else {
                             personsWrap.html('<div style="color:#777;">'+t.desc_empty+'</div>');
                         }
                     }).fail(function() {
-                        personsWrap.html('<div style="color:#e50914;">' + t.error + '</div>');
+                        personsWrap.html('<div style="color:#777;">'+t.loading+'</div>');
                     });
 
                     grid.append(leftCol).append(rightCol);
@@ -383,13 +392,13 @@
                     
                     $('body').append(overlay);
                     
-                    // Disable standard back event natively closing activity
+                    // Controller with immediate focus for TV remote — back closes overlay
                     Lampa.Controller.add('ntflx_details', {
                         toggle: function () {
                             Lampa.Controller.collectionSet(overlay);
-                            Lampa.Controller.collectionFocus(overlay.find('.selector')[0] || false, overlay);
+                            Lampa.Controller.collectionFocus(closeBtn[0], overlay);
                         },
-                        up: function() { Lampa.Controller.collectionFocus(overlay.find('.selector').first()[0], overlay); },
+                        up: function() { Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
                         down: function() {},
                         right: function() {},
                         left: function() {},
