@@ -306,13 +306,25 @@
                 var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
                 
                 descBtn.on('click', function() {
-                    // Extract text from the normally hidden description node, or fallback
-                    var textNode = render.find('.full-start-new__text, .full-start__text');
-                    var descText = textNode.text() || movie.overview || 'Опис відсутній';
+                    var modalHtml = $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.1em; line-height: 1.5; color: #fff; max-width: 800px; white-space: pre-wrap;"></div>');
+                    var overview = movie.overview || 'Опис відсутній';
+                    modalHtml.append('<div style="font-size: 1.2em; margin-bottom: 20px;">' + overview + '</div>');
                     
-                    Lampa.Modal.show({
+                    var meta = [];
+                    if (movie.release_date || movie.first_air_date) meta.push('<span style="opacity:0.7">Рік:</span> ' + (movie.release_date || movie.first_air_date));
+                    if (movie.vote_average) meta.push('<span style="opacity:0.7">Рейтинг:</span> ' + movie.vote_average);
+                    if (movie.genres && movie.genres.length) meta.push('<span style="opacity:0.7">Жанри:</span> ' + movie.genres.map(function(g){return g.name;}).join(', '));
+                    if (movie.production_countries && movie.production_countries.length) meta.push('<span style="opacity:0.7">Країни:</span> ' + movie.production_countries.map(function(c){return c.name;}).join(', '));
+                    
+                    if (meta.length) {
+                        modalHtml.append('<div style="margin-bottom: 20px; font-size: 0.9em;">' + meta.join(' &nbsp;|&nbsp; ') + '</div>');
+                    }
+                    
+                    // We can also extract the original details block to grab extra localized strings if available, but movie object has most.
+                    
+                    Lampa.Modal.open({
                         title: movie.title || movie.name || 'Опис',
-                        html: $('<div class="ntflx-modal-desc" style="padding: 20px 30px; font-size: 1.1em; line-height: 1.5; color: #fff; max-width: 800px; white-space: pre-wrap;">' + descText + '</div>'),
+                        html: modalHtml,
                         size: 'large',
                         onBack: function() {
                             Lampa.Modal.close();
@@ -322,11 +334,27 @@
                 });
                 btnsParams.append(descBtn);
                 
-                // Also listen for Lampa's internal enter event for D-pad navigation
                 descBtn.on('hover:enter', function(){
                     descBtn.trigger('click');
                 });
             }
+
+            // ── Dynamically Hide Everything Except Hero & Recommendations ──
+            var hideObserver = new MutationObserver(function() {
+                render.find('.full-start-new__details, .full-start__details').css('display', 'none');
+                render.find('.full-person, .full-review, .comments, .full-comments').closest('.items-line').css('display', 'none');
+                render.find('.items-line__title').each(function() {
+                    var text = $(this).text().toLowerCase();
+                    if (text.indexOf('детально') !== -1 || text.indexOf('детали') !== -1 || 
+                        text.indexOf('режисер') !== -1 || text.indexOf('режиссер') !== -1 || 
+                        text.indexOf('актори') !== -1 || text.indexOf('актеры') !== -1 || 
+                        text.indexOf('в ролях') !== -1 ||
+                        text.indexOf('коментарі') !== -1 || text.indexOf('комментарии') !== -1) {
+                        $(this).closest('.items-line').css('display', 'none');
+                    }
+                });
+            });
+            hideObserver.observe(render[0], { childList: true, subtree: true });
 
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
