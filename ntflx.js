@@ -414,46 +414,52 @@
                 });
             }
 
-            // ── Dynamically Remove Everything Except Hero & Recommendations ──
-            var hideObserver = new MutationObserver(function() {
-                var removedAny = false;
-                
-                // Hide embedded text descriptions
-                render.find('.full-start-new__details, .full-start__details').remove();
+            // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
+            var ntflxClean = function() {
+                // Directly remove by selector — these create dead navigation zones if just CSS-hidden
+                render.find([
+                    '.full-start-new__details', '.full-start__details',
+                    '.full-start-new__reactions', '.full-start__reactions',
+                    '.full-start-new__params', '.full-start__params',
+                    '.full-start-new__vote', '.full-start__vote',
+                    '.full-start-new__bottom', '.full-start__bottom',
+                    '.full-start-new__text', '.full-start__text',
+                    '.full-start-new__tagline', '.full-start__tagline',
+                    '.full-start-new__rate', '.full-start__rate',
+                    '.full-start-new__status', '.full-start__status',
+                    '.full-start-new__rate-line', '.full-start__rate-line'
+                ].join(', ')).remove();
 
-                // Save actors for the modal, then remove line
+                // Save actors for modal before removing persons row
                 var personsLine = render.find('.full-person').closest('.items-line');
                 if (personsLine.length && !window._ntflx_saved_persons) {
                     window._ntflx_saved_persons = [];
                     personsLine.find('.full-person').each(function(){
                         window._ntflx_saved_persons.push($(this).clone());
                     });
+                    personsLine.remove();
                 }
-                
-                // Remove unwanted vertical scrolling elements
+
+                // Remove items-lines by title content (actors, director, reviews, comments)
                 render.find('.items-line__title').each(function() {
-                    var text = $(this).text().toLowerCase();
-                    if (text.indexOf('детально') !== -1 || text.indexOf('детали') !== -1 || 
-                        text.indexOf('режисер') !== -1 || text.indexOf('режиссер') !== -1 || 
-                        text.indexOf('актори') !== -1 || text.indexOf('актеры') !== -1 || 
-                        text.indexOf('в ролях') !== -1 ||
-                        text.indexOf('коментарі') !== -1 || text.indexOf('комментарии') !== -1) {
-                        
-                        var line = $(this).closest('.items-line');
-                        line.remove();
-                        removedAny = true;
+                    var txt = $(this).text().toLowerCase();
+                    var badWords = ['детально','детали','режисер','режиссер','актори','актеры','в ролях','коментарі','комментарии','director','comments','actors'];
+                    for (var i = 0; i < badWords.length; i++) {
+                        if (txt.indexOf(badWords[i]) !== -1) {
+                            $(this).closest('.items-line').remove();
+                            return;
+                        }
                     }
                 });
-                
-                // Force Native Scroll Controller updates to kill empty spaces
-                if (removedAny && e.object.activity && e.object.activity.scroll && e.object.activity.scroll.build) {
-                    // Force re-indexing of vertical list without hidden elements
-                    e.object.activity.scroll.render().find('.items-line').each(function(i, el) {
-                        if (!$.contains(document, el)) $(this).remove();
-                    });
-                }
-            });
+            };
+
+            // Run cleanup immediately + watch for lazy-loaded content
+            ntflxClean();
+            var hideObserver = new MutationObserver(ntflxClean);
             hideObserver.observe(render[0], { childList: true, subtree: true });
+
+            // Stop observer after content stabilizes (avoid runaway loops)
+            setTimeout(function() { hideObserver.disconnect(); }, 3000);
 
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
@@ -1087,9 +1093,9 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
 .full-start-new__body, .full-start__body {
     position: relative !important; z-index: 2 !important; padding-left: 5% !important;
     display: flex !important; align-items: flex-end !important;
-    min-height: 70vh !important; /* Reduced: less dead space between buttons and recs */
+    min-height: 80vh !important; /* Keep full height so recs start below hero */
     padding-top: 6em !important;
-    padding-bottom: 1.5em !important; background: none !important;
+    padding-bottom: 2.5em !important; background: none !important;
 }
 
 .full-start-new__right,
