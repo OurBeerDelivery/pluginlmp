@@ -545,7 +545,10 @@
                     '.full-start-new__rate', '.full-start__rate',
                     '.full-start-new__status', '.full-start__status',
                     '.full-start-new__rate-line', '.full-start__rate-line',
-                    '.applecation__overlay', '.application__overlay'
+                    '.full-start-new__tags', '.full-start__tags',
+                    '.full-start-new__info', '.full-start__info',
+                    '.applecation__overlay', '.application__overlay',
+                    '.full-start-new__persons', '.full-start__persons'
                 ].join(', ')).remove();
             };
 
@@ -764,8 +767,24 @@ ${fontImport}
 /* Hide extraneous hero info */
 .full-start-new__tagline, .full-start__tagline,
 .full-start-new__rate, .full-start__rate,
-.full-start-new__status, .full-start__status {
+.full-start-new__status, .full-start__status,
+.full-start-new__details, .full-start__details,
+.full-start-new__reactions, .full-start__reactions,
+.full-start-new__params, .full-start__params,
+.full-start-new__vote, .full-start__vote,
+.full-start-new__bottom, .full-start__bottom,
+.full-start-new__text, .full-start__text,
+.full-start-new__rate-line, .full-start__rate-line,
+.full-start-new__tags, .full-start__tags,
+.full-start-new__info, .full-start__info,
+.full-start-new__persons, .full-start__persons {
     display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 body {
