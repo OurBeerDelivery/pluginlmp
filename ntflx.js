@@ -1384,7 +1384,7 @@ ${ratingCSS}
             'en': {
                 'ps_title': 'Premium Style',
                 'accent_color': 'Accent Color',
-                'red': 'Netflix Red',
+                'red': 'NTFLX Red',
                 'green': 'Green',
                 'blue': 'Blue',
                 'orange': 'Orange',
@@ -1440,7 +1440,7 @@ ${ratingCSS}
             'uk': {
                 'ps_title': 'Premium Style',
                 'accent_color': 'Акцентний колір',
-                'red': 'Червоний (Netflix)',
+                'red': 'Червоний (NTFLX)',
                 'green': 'Зелений',
                 'blue': 'Синій',
                 'orange': 'Помаранчевий',
@@ -1496,7 +1496,7 @@ ${ratingCSS}
             'ru': {
                 'ps_title': 'Premium Style',
                 'accent_color': 'Акцентный цвет',
-                'red': 'Красный (Netflix)',
+                'red': 'Красный (NTFLX)',
                 'green': 'Зеленый',
                 'blue': 'Синий',
                 'orange': 'Оранжевый',
