@@ -298,6 +298,34 @@
                 render[0].style.setProperty('--ntflx-mobile-bg', 'url(' + bgUrl + ')');
             }
 
+            // ── Smart Focus Tracking: scroll any focused .selector into view smoothly ──
+            // Solves navigation dead-zone feel — when Lampa focuses any element,
+            // we ensure it's always in view regardless of DOM layout
+            if (!render[0]._ntflxFocusObserver) {
+                var ntflxScrollFocus = function(el) {
+                    if (!el) return;
+                    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+                    if (!rect) return;
+                    var viewH = window.innerHeight || 600;
+                    if (rect.top < 70 || rect.bottom > viewH - 70) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                };
+                var ntflxFocusObs = new MutationObserver(function(mutations) {
+                    for (var mi = 0; mi < mutations.length; mi++) {
+                        var m = mutations[mi];
+                        if (m.type === 'attributes' && m.attributeName === 'class') {
+                            var el = m.target;
+                            if (el.classList && (el.classList.contains('focus') || el.classList.contains('hover'))) {
+                                ntflxScrollFocus(el);
+                            }
+                        }
+                    }
+                });
+                ntflxFocusObs.observe(render[0], { attributes: true, subtree: true, attributeFilter: ['class'] });
+                render[0]._ntflxFocusObserver = ntflxFocusObs;
+            }
+
             // ── Inject "About" Button for Description ──
             var btnsParams = render.find('.full-start-new__buttons, .full-start__buttons');
             if (btnsParams.length && !render.find('.ntflx-desc-btn').length) {
@@ -430,7 +458,7 @@
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
             var ntflxClean = function() {
-                // Directly remove by selector — these create dead navigation zones if just CSS-hidden
+                // Remove known class selectors
                 render.find([
                     '.full-start-new__details', '.full-start__details',
                     '.full-start-new__reactions', '.full-start__reactions',
@@ -442,8 +470,13 @@
                     '.full-start-new__rate', '.full-start__rate',
                     '.full-start-new__status', '.full-start__status',
                     '.full-start-new__rate-line', '.full-start__rate-line',
-                    '.applecation__overlay', '.application__overlay'  // fog injected by applecation.js
+                    '.applecation__overlay', '.application__overlay'
                 ].join(', ')).remove();
+
+                // Remove comment blocks by wildcard class matching
+                render.find('[class*="comment"]').closest('.items-line').addBack('.items-line').remove();
+                // Also remove any standalone comment containers not inside items-line
+                render.find('[class*="comment"]').not('.items-line *').remove();
 
                 // Save actors for modal before removing persons row
                 var personsLine = render.find('.full-person').closest('.items-line');
@@ -455,26 +488,34 @@
                     personsLine.remove();
                 }
 
-                // Remove items-lines by title content (actors, director, reviews, comments)
-                render.find('.items-line__title').each(function() {
-                    var txt = $(this).text().toLowerCase();
-                    var badWords = ['детально','детали','режисер','режиссер','актори','актеры','в ролях','коментарі','комментарии','director','comments','actors'];
+                // Remove items-lines by title text (broadened word list incl. Ukrainian variants)
+                render.find('.items-line').each(function() {
+                    var titleEl = $(this).find('.items-line__title');
+                    var txt = titleEl.text().toLowerCase();
+                    var badWords = [
+                        'детально','детали','режисер','режиссер',
+                        'актори','актеры','в ролях',
+                        'коментар','комментар',  // prefix match covers plural/singular
+                        'director','comments','actors','review'
+                    ];
                     for (var i = 0; i < badWords.length; i++) {
                         if (txt.indexOf(badWords[i]) !== -1) {
-                            $(this).closest('.items-line').remove();
+                            $(this).remove();
                             return;
                         }
                     }
                 });
             };
 
-            // Run cleanup immediately + watch for lazy-loaded content
+            // Run cleanup immediately
             ntflxClean();
+
+            // Watch for lazy-loaded content (longer timeout since Lampa loads asynchronously)
             var hideObserver = new MutationObserver(ntflxClean);
             hideObserver.observe(render[0], { childList: true, subtree: true });
 
-            // Stop observer after content stabilizes (avoid runaway loops)
-            setTimeout(function() { hideObserver.disconnect(); }, 3000);
+            // Keep observer running for 8s to catch async-loaded blocks (comments, actors)
+            setTimeout(function() { hideObserver.disconnect(); }, 8000);
 
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
