@@ -360,64 +360,219 @@
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
-                    var container = $('<div style="max-width: 1200px; width: 100%; display:flex; flex-direction:column; gap: 4em; padding-top: 2em; animation: fadeIn 0.4s ease-out;"></div>');
-                    container.append('<div style="text-align:center;"><h2 style="font-size: 5em; font-weight:900; line-height: 1.1; margin:0; letter-spacing:-0.03em;">'+(movie.title || movie.name)+'</h2><div style="color:var(--ntflx-accent); font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:0.1em; margin-top:1em;">'+t.details+'</div></div>');
+                    var container = $('<div style="max-width: 1200px; width: 100%; display:flex; flex-direction:column; gap: 3em; padding-top: 2em; animation: fadeIn 0.4s ease-out;"></div>');
 
-                    var grid = $('<div style="display:flex; gap: 4em; flex-wrap: wrap;"></div>');
-                    
-                    var leftCol = $('<div style="flex: 2; min-width: 400px; display:flex; flex-direction:column; gap: 2.5em;"></div>');
-                    leftCol.append('<div style="font-size: 1.4em; font-weight: 300; line-height: 1.6; color:#f0f0f0;">'+(movie.overview || t.desc_empty)+'</div>');
-                    
-                    var metaGrid = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2em;"></div>');
-                    var addMeta = function(label, val) {
-                        if(val) metaGrid.append('<div><div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5em; font-weight:bold;">'+label+'</div><div style="font-size:1.1em; font-weight:500; color:#f0f0f0;">'+val+'</div></div>');
+                    // ── HEADER: Logo image or text fallback ──
+                    var headerBlock = $('<div style="text-align:center; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:0.8em;"></div>');
+                    var logoWrap = $('<div style="display:flex; justify-content:center; align-items:flex-end; max-height:140px; overflow:hidden;"></div>');
+                    // Placeholder text shown while logo loads
+                    var titleFallback = $('<h2 style="font-size:4em; font-weight:900; line-height:1.1; margin:0; letter-spacing:-0.03em;">' + (movie.title || movie.name) + '</h2>');
+                    logoWrap.append(titleFallback);
+                    var detailsLabel = $('<div style="color:var(--ntflx-accent); font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.15em;">' + t.details + '</div>');
+                    headerBlock.append(logoWrap).append(detailsLabel);
+                    container.append(headerBlock);
+
+                    // Fetch logo async — replace title if found
+                    var logoLang = langUi === 'uk' ? 'uk' : (langUi === 'ru' ? 'ru' : 'en');
+                    var imagesUrl = Lampa.TMDB.api(type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + logoLang + ',ru,en,null');
+                    $.get(imagesUrl, function(imgData) {
+                        var logos = imgData.logos || [];
+                        // Sort by vote_average and language preference
+                        logos.sort(function(a, b) {
+                            var la = (a.iso_639_1 === logoLang) ? 2 : (a.iso_639_1 === 'en') ? 1 : 0;
+                            var lb = (b.iso_639_1 === logoLang) ? 2 : (b.iso_639_1 === 'en') ? 1 : 0;
+                            if (lb !== la) return lb - la;
+                            return (b.vote_average || 0) - (a.vote_average || 0);
+                        });
+                        if (logos.length) {
+                            var logoPath = logos[0].file_path.replace('.svg', '.png');
+                            var logoUrl = Lampa.TMDB.image('t/p/w500' + logoPath);
+                            var logoImg = $('<img>').attr('src', logoUrl).css({
+                                maxHeight: '130px', maxWidth: '500px', width: 'auto', height: 'auto',
+                                objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.9))',
+                                opacity: 0, transition: 'opacity 0.4s ease'
+                            });
+                            logoImg.on('load', function() { titleFallback.remove(); logoImg.css('opacity', 1); });
+                            logoImg.on('error', function() { /* keep text */ });
+                            logoWrap.empty().append(logoImg);
+                        }
+                    });
+
+                    // ── MAIN GRID ──
+                    var grid = $('<div style="display:flex; gap: 3em; flex-wrap: wrap;"></div>');
+                    var leftCol = $('<div style="flex: 2; min-width: 340px; display:flex; flex-direction:column; gap: 2em;"></div>');
+
+                    // Overview
+                    if (movie.overview) {
+                        leftCol.append($('<div>').css({fontSize:'1.25em', fontWeight:300, lineHeight:1.65, color:'#e8e8e8'}).text(movie.overview));
+                    }
+
+                    // Meta grid
+                    var metaGrid = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5em 2em;"></div>');
+                    var addMeta = function(label, val, isHtml) {
+                        if (!val && val !== 0) return;
+                        var wrap = $('<div></div>');
+                        wrap.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:'0.3em', fontWeight:'bold'}).text(label));
+                        var valEl = $('<div>').css({fontSize:'1em', fontWeight:500, color:'#f0f0f0'});
+                        if (isHtml) valEl.html(val); else valEl.text(String(val));
+                        wrap.append(valEl);
+                        metaGrid.append(wrap);
                     };
+
                     addMeta(t.release, movie.release_date || movie.first_air_date);
-                    
-                    var ratingHTML = movie.vote_average ? '<span style="border:1px solid #555; padding: 2px 6px; border-radius:4px; font-size:12px; margin-right:6px; color:#a0a0a0;">TMDB</span>' + movie.vote_average : '';
-                    if (ratingHTML) addMeta(t.rating, ratingHTML);
-                    
-                    var durationText = movie.runtime ? movie.runtime + ' ' + t.min : (movie.episode_run_time && movie.episode_run_time.length ? movie.episode_run_time[0] + ' ' + t.min : '');
-                    if (durationText) addMeta(t.duration, durationText);
-                    
+
+                    // Rating with star
+                    if (movie.vote_average) {
+                        var stars = Math.round(movie.vote_average / 2);
+                        var starStr = '';
+                        for (var s = 0; s < 5; s++) starStr += (s < stars ? '★' : '☆');
+                        var ratingHtml = '<span style="border:1px solid #444; padding:2px 7px; border-radius:4px; font-size:11px; color:#888; margin-right:6px;">TMDB</span>' +
+                            '<span style="font-size:1.1em; font-weight:700;">' + movie.vote_average.toFixed(1) + '</span>' +
+                            '<span style="color:#e5b109; font-size:0.9em; margin-left:6px;">' + starStr + '</span>' +
+                            (movie.vote_count ? '<span style="color:#666; font-size:0.8em; margin-left:6px;">(' + movie.vote_count.toLocaleString() + ')</span>' : '');
+                        addMeta(t.rating, ratingHtml, true);
+                    }
+
+                    // Duration
+                    var durationText = movie.runtime ? movie.runtime + ' ' + t.min
+                        : (movie.episode_run_time && movie.episode_run_time.length ? movie.episode_run_time[0] + ' ' + t.min : '');
+                    addMeta(t.duration, durationText);
+
                     if (movie.status) addMeta(t.state, movie.status);
-                    
+
                     addMeta(t.genres, movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
                     addMeta(t.countries, movie.production_countries ? movie.production_countries.map(function(c){return c.name;}).join(', ') : '');
-                    
-                    leftCol.append(metaGrid);
-                    
-                    var rightCol = $('<div style="flex: 1; min-width: 300px; display:flex; flex-direction:column; gap: 1.5em;"></div>');
-                    rightCol.append('<div style="font-size:0.75em; color:#a0a0a0; text-transform:uppercase; letter-spacing:0.1em; font-weight:bold;">'+t.cast+'</div>');
 
-                    var personsWrap = $('<div style="display:flex; flex-direction:column; gap: 1em;"></div>');
-                    personsWrap.append('<div style="color:#777;">'+t.loading+'</div>');
+                    if (movie.original_language) {
+                        addMeta(t.orig_lang || 'Original Language', movie.original_language.toUpperCase());
+                    }
+
+                    // Budget & Revenue (movie only)
+                    if (movie.budget && movie.budget > 0) {
+                        var fmt = function(n) { return '$' + (n/1000000).toFixed(1) + 'M'; };
+                        addMeta(t.budget || 'Budget', fmt(movie.budget));
+                    }
+                    if (movie.revenue && movie.revenue > 0) {
+                        addMeta(t.revenue || 'Revenue', fmt(movie.revenue));
+                    }
+
+                    // Production companies
+                    if (movie.production_companies && movie.production_companies.length) {
+                        addMeta(t.studio || 'Studio', movie.production_companies.slice(0,3).map(function(c){return c.name;}).join(', '));
+                    }
+
+                    leftCol.append(metaGrid);
+
+                    // ── Extra data from /details API ──
+                    var extraUrl = Lampa.TMDB.api(type + '/' + movie.id + '?api_key=' + Lampa.TMDB.key() + '&append_to_response=release_dates,content_ratings,keywords&language=' + langUi);
+                    $.get(extraUrl, function(detail) {
+                        // Quality badges from certifications
+                        var badges = '';
+
+                        // Try to get certification
+                        var cert = '';
+                        if (detail.release_dates && detail.release_dates.results) {
+                            var uaRes = detail.release_dates.results.find(function(r){ return r.iso_3166_1 === 'UA'; });
+                            var usRes = detail.release_dates.results.find(function(r){ return r.iso_3166_1 === 'US'; });
+                            var rel = uaRes || usRes;
+                            if (rel && rel.release_dates && rel.release_dates.length && rel.release_dates[0].certification) {
+                                cert = rel.release_dates[0].certification;
+                            }
+                        }
+                        if (!cert && detail.content_ratings && detail.content_ratings.results) {
+                            var usRating = detail.content_ratings.results.find(function(r){ return r.iso_3166_1 === 'US'; });
+                            if (usRating) cert = usRating.rating;
+                        }
+
+                        // Quality badge (we show 4K / HD based on year — TMDB doesn't have source resolution)
+                        var year = parseInt((movie.release_date || movie.first_air_date || '').substring(0, 4));
+                        var qualBadge = year >= 2013 ? '4K' : 'HD';
+                        var badgeStyle = 'display:inline-block; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.08em; margin-right:8px; margin-top:4px;';
+
+                        var badgeHtml = '<div style="margin-top:1.5em; display:flex; flex-wrap:wrap; gap:6px;">';
+                        badgeHtml += '<span style="' + badgeStyle + ' background:#1a3a6e; color:#5b9bd5; border:1px solid #2a5aa0;">' + qualBadge + '</span>';
+                        if (cert) badgeHtml += '<span style="' + badgeStyle + ' background:#3a1a1a; color:#e07070; border:1px solid #8a3030;">' + cert + '</span>';
+                        // IMDB badge
+                        if (detail.imdb_id) {
+                            badgeHtml += '<span style="' + badgeStyle + ' background:#2a2000; color:#e5b109; border:1px solid #8a6a00;">IMDb</span>';
+                        }
+                        // Season count for TV
+                        if (detail.number_of_seasons) {
+                            badgeHtml += '<span style="' + badgeStyle + ' background:#1a3a1a; color:#70c070; border:1px solid #2a7a2a;">' + detail.number_of_seasons + ' сез.</span>';
+                        }
+                        // Episode count for TV
+                        if (detail.number_of_episodes) {
+                            badgeHtml += '<span style="' + badgeStyle + ' background:#1a1a3a; color:#7070e0; border:1px solid #2a2a8a;">' + detail.number_of_episodes + ' еп.</span>';
+                        }
+                        badgeHtml += '</div>';
+                        leftCol.append($(badgeHtml));
+
+                        // Keywords
+                        var kws = (detail.keywords && (detail.keywords.keywords || detail.keywords.results)) || [];
+                        if (kws.length) {
+                            var kwWrap = $('<div style="margin-top:1em;"></div>');
+                            kwWrap.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:'0.5em', fontWeight:'bold'}).text('Теги'));
+                            var kwInner = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
+                            kws.slice(0,10).forEach(function(k) {
+                                kwInner.append($('<span>').css({
+                                    background:'rgba(255,255,255,0.07)', color:'#ccc', padding:'3px 10px',
+                                    borderRadius:'20px', fontSize:'0.82em', border:'1px solid rgba(255,255,255,0.1)'
+                                }).text(k.name));
+                            });
+                            kwWrap.append(kwInner);
+                            leftCol.append(kwWrap);
+                        }
+                    });
+
+                    // ── RIGHT COL: Cast ──
+                    var rightCol = $('<div style="flex: 1; min-width: 260px; display:flex; flex-direction:column; gap: 1.2em;"></div>');
+                    rightCol.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:'bold'}).text(t.cast));
+
+                    var personsWrap = $('<div style="display:flex; flex-direction:column; gap: 0.8em;"></div>');
+                    personsWrap.append($('<div>').css({color:'#666'}).text(t.loading));
                     rightCol.append(personsWrap);
 
-                    // Fetch actors — use jQuery DOM to avoid escape/onerror issues
+                    // Fetch actors
                     var creditsUrl = Lampa.TMDB.api(type + '/' + movie.id + '/credits?api_key=' + Lampa.TMDB.key() + '&language=' + langUi);
                     $.get(creditsUrl, function(data) {
                         if (data.cast && data.cast.length) {
-                            var topCast = data.cast.slice(0, 6);
                             personsWrap.empty();
-                            topCast.forEach(function(actor) {
+                            data.cast.slice(0, 8).forEach(function(actor) {
                                 var imgUrl = actor.profile_path ? Lampa.TMDB.image('t/p/w185' + actor.profile_path) : '';
-                                var row = $('<div>').css({display:'flex', alignItems:'center', gap:'1em', marginBottom:'0.5em'});
-                                var imgWrap = $('<div>').css({width:'50px', height:'50px', borderRadius:'50%', overflow:'hidden', background:'#333', flexShrink:'0'});
+                                var row = $('<div>').css({display:'flex', alignItems:'center', gap:'0.8em'});
+                                var imgWrap = $('<div>').css({width:'46px', height:'46px', borderRadius:'50%', overflow:'hidden', background:'#222', flexShrink:'0', border:'2px solid rgba(255,255,255,0.08)'});
                                 var img = $('<img>').attr('src', imgUrl).css({width:'100%', height:'100%', objectFit:'cover'});
-                                img.on('error', function() { imgWrap.css({display:'flex', alignItems:'center', justifyContent:'center'}).html('<svg viewBox="0 0 24 24" width="24" height="24" fill="#555"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>'); img.remove(); });
+                                img.on('error', function() {
+                                    imgWrap.css({display:'flex', alignItems:'center', justifyContent:'center'}).html('<svg viewBox="0 0 24 24" width="22" height="22" fill="#444"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>');
+                                    img.remove();
+                                });
                                 imgWrap.append(img);
-                                var info = $('<div>').css({overflow:'hidden'});
-                                info.append($('<div>').css({fontWeight:'bold', fontSize:'1.1em', color:'#f0f0f0'}).text(actor.name));
-                                info.append($('<div>').css({fontSize:'0.85em', color:'#a0a0a0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}).text(actor.character || ''));
+                                var info = $('<div>').css({overflow:'hidden', flex:1});
+                                info.append($('<div>').css({fontWeight:600, fontSize:'1em', color:'#f0f0f0', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}).text(actor.name));
+                                info.append($('<div>').css({fontSize:'0.8em', color:'#888', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}).text(actor.character || ''));
                                 row.append(imgWrap).append(info);
                                 personsWrap.append(row);
                             });
+                            // Director
+                            if (data.crew) {
+                                var director = data.crew.find(function(c){ return c.job === 'Director'; });
+                                if (director) {
+                                    rightCol.append($('<div>').css({marginTop:'1.5em'}));
+                                    rightCol.append($('<div>').css({fontSize:'0.7em', color:'#888', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:'bold', marginBottom:'0.5em'}).text(t.director || 'Режисер'));
+                                    var dirRow = $('<div>').css({display:'flex', alignItems:'center', gap:'0.8em'});
+                                    var dirImg = $('<div>').css({width:'42px', height:'42px', borderRadius:'50%', overflow:'hidden', background:'#222', flexShrink:'0', border:'2px solid rgba(255,255,255,0.08)'});
+                                    if (director.profile_path) {
+                                        dirImg.append($('<img>').attr('src', Lampa.TMDB.image('t/p/w185' + director.profile_path)).css({width:'100%', height:'100%', objectFit:'cover'}));
+                                    }
+                                    dirRow.append(dirImg).append($('<div>').css({fontWeight:600, color:'#f0f0f0'}).text(director.name));
+                                    rightCol.append(dirRow);
+                                }
+                            }
                         } else {
-                            personsWrap.html('<div style="color:#777;">'+t.desc_empty+'</div>');
+                            personsWrap.html('<div style="color:#555;">' + t.desc_empty + '</div>');
                         }
                     }).fail(function() {
-                        personsWrap.html('<div style="color:#777;">'+t.loading+'</div>');
+                        personsWrap.html('<div style="color:#555;">' + t.loading + '</div>');
                     });
 
                     grid.append(leftCol).append(rightCol);
@@ -428,10 +583,6 @@
                     
                     // Controller with immediate focus for TV remote — back closes overlay
                     Lampa.Controller.add('ntflx_details', {
-                        toggle: function () {
-                            Lampa.Controller.collectionSet(overlay);
-                            Lampa.Controller.collectionFocus(closeBtn[0], overlay);
-                        },
                         toggle: function () {
                             Lampa.Controller.collectionSet(overlay);
                             Lampa.Controller.collectionFocus(closeBtn[0], overlay);
