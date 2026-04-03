@@ -543,6 +543,7 @@
                     '.full-start-new__vote', '.full-start__vote',
                     '.full-start-new__bottom', '.full-start__bottom',
                     '.full-start-new__text', '.full-start__text',
+                    '.full-start-new__description', '.full-start__description',
                     '.full-start-new__tagline', '.full-start__tagline',
                     '.full-start-new__rate', '.full-start__rate',
                     '.full-start-new__status', '.full-start__status',
@@ -766,7 +767,7 @@ ${fontImport}
     --ntflx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
 }
 
-/* Hide extraneous hero info */
+/* Hide ALL extraneous hero info blocks */
 .full-start-new__tagline, .full-start__tagline,
 .full-start-new__rate, .full-start__rate,
 .full-start-new__status, .full-start__status,
@@ -776,6 +777,7 @@ ${fontImport}
 .full-start-new__vote, .full-start__vote,
 .full-start-new__bottom, .full-start__bottom,
 .full-start-new__text, .full-start__text,
+.full-start-new__description, .full-start__description,
 .full-start-new__rate-line, .full-start__rate-line,
 .full-start-new__tags, .full-start__tags,
 .full-start-new__info, .full-start__info,
@@ -1323,19 +1325,17 @@ ${ratingCSS}
     margin: 0 0 2px 0 !important;
 }
 
-/* Description text */
+/* Description text — hidden (moved to "Про фільм" overlay) */
 .full-start-new__text,
 .full-start__text,
 .full-start-new__description,
 .full-start__description {
-    font-family: var(--ntflx-font) !important;
-    font-weight: 500 !important;
-    color: rgba(255,255,255,0.72) !important;
-    font-size: 0.85em !important;
-    line-height: 1.4 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    max-width: 520px !important;
-    margin: 0 0 6px 0 !important;
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ── Premium Buttons ── */
