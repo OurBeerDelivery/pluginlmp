@@ -319,33 +319,6 @@
                 render[0].style.setProperty('--ntflx-mobile-bg', 'url(' + bgUrl + ')');
             }
 
-            // ── Smart Focus Tracking: scroll any focused .selector into view smoothly ──
-            // Solves navigation dead-zone feel — when Lampa focuses any element,
-            // we ensure it's always in view regardless of DOM layout
-            if (!render[0]._ntflxFocusObserver) {
-                var ntflxScrollFocus = function(el) {
-                    if (!el) return;
-                    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
-                    if (!rect) return;
-                    var viewH = window.innerHeight || 600;
-                    if (rect.top < 70 || rect.bottom > viewH - 70) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                };
-                var ntflxFocusObs = new MutationObserver(function(mutations) {
-                    for (var mi = 0; mi < mutations.length; mi++) {
-                        var m = mutations[mi];
-                        if (m.type === 'attributes' && m.attributeName === 'class') {
-                            var el = m.target;
-                            if (el.classList && (el.classList.contains('focus') || el.classList.contains('hover'))) {
-                                ntflxScrollFocus(el);
-                            }
-                        }
-                    }
-                });
-                ntflxFocusObs.observe(render[0], { attributes: true, subtree: true, attributeFilter: ['class'] });
-                render[0]._ntflxFocusObserver = ntflxFocusObs;
-            }
 
             // ── Inject "About" Button for Description ──
             var btnsParams = render.find('.full-start-new__buttons, .full-start__buttons');
@@ -509,8 +482,53 @@
             }
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
+            var actComp = e.object.activity.component;
             var ntflxClean = function() {
-                // Remove known class selectors
+                // Remove components from Lampa's internal array by content so empty items don't trap focus
+                if (actComp && actComp.items && Array.isArray(actComp.items)) {
+                    actComp.items = actComp.items.filter(function(item) {
+                        try {
+                            if (!item || !item.render) return true;
+                            var el = item.render();
+                            if (!el || el.length === 0) return true;
+                            
+                            var text = el.text().toLowerCase();
+                            var badMatch = /^коментар|^комментар|^реакц/i.test(text) || text.indexOf('коментар') > -1 || text.indexOf('комментар') > -1 || text.indexOf('реакц') > -1;
+                            var hasCommentClass = el.is('[class*="comment"]') || el.find('[class*="comment"]').length > 0;
+                            var hasActorsClass = el.has('.full-person').length > 0;
+                            var hasBadTitle = false;
+                            
+                            var titleEl = el.find('.items-line__title');
+                            if (titleEl.length) {
+                                var txt = titleEl.text().toLowerCase();
+                                var badWords = ['детально','детали','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review'];
+                                for (var i = 0; i < badWords.length; i++) {
+                                    if (txt.indexOf(badWords[i]) !== -1) {
+                                        hasBadTitle = true; break;
+                                    }
+                                }
+                            }
+
+                            if (badMatch || hasCommentClass || hasActorsClass || hasBadTitle) {
+                                // Save actors specifically before destroying
+                                if (hasActorsClass && !window._ntflx_saved_persons) {
+                                    window._ntflx_saved_persons = [];
+                                    el.find('.full-person').each(function(){
+                                        window._ntflx_saved_persons.push($(this).clone());
+                                    });
+                                }
+                                if (item.destroy) item.destroy();
+                                else el.remove();
+                                return false; // Filter this out of internal array
+                            }
+                            return true;
+                        } catch(err) {
+                            return true;
+                        }
+                    });
+                }
+
+                // Clean visual dom items that don't block component navigation
                 render.find([
                     '.full-start-new__details', '.full-start__details',
                     '.full-start-new__reactions', '.full-start__reactions',
@@ -524,50 +542,6 @@
                     '.full-start-new__rate-line', '.full-start__rate-line',
                     '.applecation__overlay', '.application__overlay'
                 ].join(', ')).remove();
-
-                // Remove comment blocks by wildcard class matching
-                render.find('[class*="comment"]').closest('.items-line').addBack('.items-line').remove();
-                // Also remove any standalone comment containers not inside items-line
-                render.find('[class*="comment"]').not('.items-line *').remove();
-
-                // Save actors for modal before removing persons row
-                var personsLine = render.find('.full-person').closest('.items-line');
-                if (personsLine.length && !window._ntflx_saved_persons) {
-                    window._ntflx_saved_persons = [];
-                    personsLine.find('.full-person').each(function(){
-                        window._ntflx_saved_persons.push($(this).clone());
-                    });
-                    personsLine.remove();
-                }
-
-                // Remove items-lines by title text (broadened word list incl. Ukrainian variants)
-                render.find('.items-line').each(function() {
-                    var titleEl = $(this).find('.items-line__title');
-                    var txt = titleEl.text().toLowerCase();
-                    var badWords = [
-                        'детально','детали','режисер','режиссер',
-                        'актори','актеры','в ролях',
-                        'коментар','комментар',  // prefix match covers plural/singular
-                        'director','comments','actors','review'
-                    ];
-                    for (var i = 0; i < badWords.length; i++) {
-                        if (txt.indexOf(badWords[i]) !== -1) {
-                            $(this).remove();
-                            return;
-                        }
-                    }
-                });
-                // Aggressive text match: find any tag with exact "Коментарі" text and destroy its wrapper
-                render.find('div, span').filter(function() {
-                    var childCount = $(this).children().length;
-                    if (childCount > 1) return false;
-                    var t = $(this).text().trim().toLowerCase();
-                    return /^коментар|^комментар|^реакц/i.test(t);
-                }).each(function() {
-                    var wrapper = $(this).closest('.items-line');
-                    if (wrapper.length) wrapper.remove();
-                    else $(this).parent().remove();
-                });
             };
 
             // Run cleanup immediately
