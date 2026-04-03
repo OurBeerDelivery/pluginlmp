@@ -373,7 +373,11 @@
                 
                 descBtn.css({'margin-left': '0.5em'}); // Fix overlap
                 
-                descBtn.on('click', function() {
+                var _overlayOpen = false;
+                descBtn.on('click hover:enter', function(e) {
+                    if (_overlayOpen) return;
+                    _overlayOpen = true;
+                    e.stopPropagation && e.stopPropagation();
                     var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(10,8,8,0.96); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); overflow-y: auto; padding: 4em 3em; display:flex; flex-direction:column; align-items:center;"></div>');
                     
                     var closeBtn = $('<div class="selector" style="position:absolute; top: 2.5em; right: 3em; cursor:pointer; color:#a0a0a0; padding:10px; border-radius:50%; transition: color 0.3s;"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
@@ -384,6 +388,7 @@
                         isClosing = true;
                         if (e && e.stopPropagation) e.stopPropagation();
                         overlay.remove();
+                        _overlayOpen = false; // reset guard
                         // Remove the controller cleanly from registry
                         if (Lampa.Controller.remove) {
                             Lampa.Controller.remove('ntflx_details');
@@ -633,10 +638,6 @@
                     Lampa.Controller.toggle('ntflx_details');
                 });
                 btnsParams.append(descBtn);
-                
-                descBtn.on('hover:enter', function(){
-                    descBtn.trigger('click');
-                });
             }
 
             // ── Kill applecation.js scroll dimming on the background image ──
