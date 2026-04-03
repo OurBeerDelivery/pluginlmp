@@ -506,9 +506,11 @@
                             var titleEl = el.find('.items-line__title');
                             if (titleEl.length) {
                                 var txt = titleEl.text().toLowerCase();
-                                var badWords = ['детально','детали','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review'];
-                                for (var i = 0; i < badWords.length; i++) {
-                                    if (txt.indexOf(badWords[i]) !== -1) {
+                                var badWords = ['детально','детали','подробно','описание','опис','обзор','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review','подобные','схожі'];
+                                // Warning: User wants recommendations ('рекоменд')! The word 'подобные'/'схожі' might be the recommendations themselves. Wait, 'подобные' is similar. Let's ONLY ban detailed descriptions, not recommendations!
+                                var banWords = ['детально','детали','подробно','описание','опис','обзор','режисер','режиссер','актори','актеры','в ролях','director','comments','actors','review'];
+                                for (var i = 0; i < banWords.length; i++) {
+                                    if (txt.indexOf(banWords[i]) !== -1) {
                                         hasBadTitle = true; break;
                                     }
                                 }
