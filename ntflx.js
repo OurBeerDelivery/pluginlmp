@@ -295,7 +295,7 @@
             }
 
             if (bgUrl && domTitle) {
-                render[0].style.setProperty('--nfx-mobile-bg', 'url(' + bgUrl + ')');
+                render[0].style.setProperty('--ntflx-mobile-bg', 'url(' + bgUrl + ')');
             }
 
             var lang = LogoEngine._getLang();
@@ -335,7 +335,7 @@
 
         // ── Suppress auto-focus scaling until user interacts ──
         function enableInteraction() {
-            document.body.classList.add('nfx-user-interacted');
+            document.body.classList.add('ntflx-user-interacted');
             document.removeEventListener('keydown', enableInteraction);
             document.removeEventListener('pointerdown', enableInteraction);
             document.removeEventListener('mousedown', enableInteraction);
@@ -350,14 +350,14 @@
                 var cards = rows[r].querySelectorAll('.card');
                 if (!cards.length) continue;
                 for (var c = 0; c < cards.length; c++) {
-                    cards[c].removeAttribute('data-nfx-edge');
-                    cards[c].removeAttribute('data-nfx-single');
+                    cards[c].removeAttribute('data-ntflx-edge');
+                    cards[c].removeAttribute('data-ntflx-single');
                 }
                 if (cards.length === 1) {
-                    cards[0].setAttribute('data-nfx-single', 'true');
+                    cards[0].setAttribute('data-ntflx-single', 'true');
                 } else {
-                    cards[0].setAttribute('data-nfx-edge', 'first');
-                    cards[cards.length - 1].setAttribute('data-nfx-edge', 'last');
+                    cards[0].setAttribute('data-ntflx-edge', 'first');
+                    cards[cards.length - 1].setAttribute('data-ntflx-edge', 'last');
                 }
             }
         }
@@ -367,7 +367,7 @@
             var badges = document.querySelectorAll('.card__vote');
             for (var i = 0; i < badges.length; i++) {
                 var el = badges[i];
-                if (el.getAttribute('data-nfx-colored')) continue;
+                if (el.getAttribute('data-ntflx-colored')) continue;
                 var text = (el.textContent || el.innerText || '').replace(',', '.').trim();
                 var val = parseFloat(text);
                 if (isNaN(val)) continue;
@@ -375,9 +375,9 @@
                 if (val >= 7.5) color = '#2ecc71'; // green
                 else if (val >= 6.5) color = '#f1c40f'; // yellow
                 else if (val >= 5.0) color = '#e67e22'; // orange
-                else color = 'var(--nfx-accent)'; // red
+                else color = 'var(--ntflx-accent)'; // red
                 el.style.setProperty('background', color, 'important');
-                el.setAttribute('data-nfx-colored', '1');
+                el.setAttribute('data-ntflx-colored', '1');
             }
         }
 
@@ -400,7 +400,7 @@
     // ─────────────────────────────────────────────────────────────────
 
     function injectCSS() {
-        var old = document.getElementById('nfx-premium-v9');
+        var old = document.getElementById('ntflx-premium-v9');
         if (old) old.remove();
 
         var accent = Lampa.Storage.get('ntflx_accent_color', '#e50914');
@@ -421,7 +421,7 @@
         }
 
         function getBorderColor(val) {
-            if (val === 'accent') return 'var(--nfx-accent)';
+            if (val === 'accent') return 'var(--ntflx-accent)';
             if (val === 'white') return '#ffffff';
             if (val === 'black') return '#000000';
             return 'transparent';
@@ -473,29 +473,29 @@
 ${fontImport}
 
 :root {
-    --nfx-bg: #0a0d12;
-    --nfx-accent: ${accent};
-    --nfx-accent-rgb: ${accentRgb};
-    --nfx-accent-gl: rgba(${accentRgb}, 0.5);
-    --nfx-accent-bg: rgba(${accentRgb}, 0.7);
-    --nfx-text: #f0f0f0;
-    --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: ${scale};
-    --nfx-shift: 25%;
-    --nfx-edge-nudge: ${shift};
-    --nfx-sb-blur: ${blur};
-    --nfx-duration: 420ms;
-    --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: ${cardRad};
-    --nfx-card-border-focus: ${bFocus};
-    --nfx-card-border-idle: ${bIdle};
-    --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
+    --ntflx-bg: #0a0d12;
+    --ntflx-accent: ${accent};
+    --ntflx-accent-rgb: ${accentRgb};
+    --ntflx-accent-gl: rgba(${accentRgb}, 0.5);
+    --ntflx-accent-bg: rgba(${accentRgb}, 0.7);
+    --ntflx-text: #f0f0f0;
+    --ntflx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
+    --ntflx-card-scale: ${scale};
+    --ntflx-shift: 25%;
+    --ntflx-edge-nudge: ${shift};
+    --ntflx-sb-blur: ${blur};
+    --ntflx-duration: 420ms;
+    --ntflx-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ntflx-radius: ${cardRad};
+    --ntflx-card-border-focus: ${bFocus};
+    --ntflx-card-border-idle: ${bIdle};
+    --ntflx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
 }
 
 body {
-    background-color: var(--nfx-bg) !important;
-    font-family: var(--nfx-font) !important;
-    color: var(--nfx-text) !important;
+    background-color: var(--ntflx-bg) !important;
+    font-family: var(--ntflx-font) !important;
+    color: var(--ntflx-text) !important;
 }
 
 
@@ -528,11 +528,11 @@ body {
 
 /* Category titles */
 .items-line__title {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 700 !important;
     font-size: 1.3em !important;
-    color: var(--nfx-text) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
+    color: var(--ntflx-text) !important;
+    text-shadow: var(--ntflx-shadow-text) !important;
     padding-left: 4% !important;
 }
 
@@ -543,7 +543,7 @@ body {
 
 .card {
     position: relative !important;
-    transition: transform var(--nfx-duration) var(--nfx-ease),
+    transition: transform var(--ntflx-duration) var(--ntflx-ease),
                 z-index 0s !important;
     z-index: 1 !important;
     will-change: transform !important;
@@ -553,12 +553,12 @@ body {
 }
 
 .card__view {
-    border-radius: var(--nfx-radius) !important;
+    border-radius: var(--ntflx-radius) !important;
     overflow: visible !important;
     position: relative !important;
     background: #16181d !important;
-    border: 3px solid var(--nfx-card-border-idle) !important;
-    transition: border-color var(--nfx-duration) var(--nfx-ease) !important;
+    border: 3px solid var(--ntflx-card-border-idle) !important;
+    transition: border-color var(--ntflx-duration) var(--ntflx-ease) !important;
 }
 
 /* Hardware-accelerated Glow Layer */
@@ -569,11 +569,11 @@ body {
     top: 0; left: 0; right: 0; bottom: 0;
     border-radius: inherit !important;
     /* Draw the heavy shadow once */
-    box-shadow: 0 0 20px var(--nfx-accent-gl), 0 20px 40px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 0 20px var(--ntflx-accent-gl), 0 20px 40px rgba(0,0,0,0.6) !important;
     opacity: 0 !important; /* Hidden by default */
     z-index: -1 !important; /* Sit behind the poster */
     pointer-events: none !important;
-    transition: opacity var(--nfx-duration) var(--nfx-ease) !important;
+    transition: opacity var(--ntflx-duration) var(--ntflx-ease) !important;
     will-change: opacity !important;
 }
 
@@ -613,16 +613,16 @@ body {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    border-radius: var(--nfx-radius) !important;
+    border-radius: var(--ntflx-radius) !important;
     display: block !important;
 }
 
 /* Card title below */
 .card__title {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-size: 0.85em !important;
     font-weight: 600 !important;
-    color: var(--nfx-text) !important;
+    color: var(--ntflx-text) !important;
     padding: 4px 2px 0px !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
@@ -646,7 +646,7 @@ body {
     border-radius: 4px !important;
     font-size: 0.7em !important;
     font-weight: 700 !important;
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.03em !important;
     line-height: 1.4 !important;
@@ -669,7 +669,7 @@ body {
     border-radius: 10px 0 10px 0 !important;
     font-size: 0.75em !important;
     font-weight: 800 !important;
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     line-height: 1.4 !important;
     pointer-events: none !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
@@ -683,24 +683,24 @@ body {
    ================================================================ */
 
 /* ── Suppress auto-focus until user interaction ── */
-body:not(.nfx-user-interacted) .card.focus,
-body:not(.nfx-user-interacted) .card.hover {
+body:not(.ntflx-user-interacted) .card.focus,
+body:not(.ntflx-user-interacted) .card.hover {
     transform: translate3d(0, 0, 0) !important;
     z-index: 1 !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus .card__view,
-body:not(.nfx-user-interacted) .card.hover .card__view {
-    border-color: var(--nfx-card-border-idle) !important;
+body:not(.ntflx-user-interacted) .card.focus .card__view,
+body:not(.ntflx-user-interacted) .card.hover .card__view {
+    border-color: var(--ntflx-card-border-idle) !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus .card__view::before,
-body:not(.nfx-user-interacted) .card.hover .card__view::before {
+body:not(.ntflx-user-interacted) .card.focus .card__view::before,
+body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     opacity: 0 !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus ~ .card,
-body:not(.nfx-user-interacted) .card.hover ~ .card {
+body:not(.ntflx-user-interacted) .card.focus ~ .card,
+body:not(.ntflx-user-interacted) .card.hover ~ .card {
     transform: translate3d(0, 0, 0) !important;
 }
 
@@ -713,14 +713,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.hover,
 .card:hover {
     z-index: 100 !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
 }
 
 /* Focused card — subtle red glow + clean shadow */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
-    border-color: var(--nfx-card-border-focus) !important;
+    border-color: var(--ntflx-card-border-focus) !important;
 }
 
 .card.focus .card__view::before,
@@ -733,50 +733,50 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus ~ .card,
 .card.hover ~ .card,
 .card:hover ~ .card {
-    transform: translate3d(var(--nfx-shift), 0, 0) !important;
+    transform: translate3d(var(--ntflx-shift), 0, 0) !important;
     z-index: 1 !important;
 }
 
 /* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
 
 /* First card: left-origin scale + 20px rightward nudge (no clip) */
-.card[data-nfx-edge="first"].focus,
-.card[data-nfx-edge="first"].hover,
-.card[data-nfx-edge="first"]:hover {
+.card[data-ntflx-edge="first"].focus,
+.card[data-ntflx-edge="first"].hover,
+.card[data-ntflx-edge="first"]:hover {
     transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(var(--nfx-edge-nudge), 0, 0) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
+               translate3d(var(--ntflx-edge-nudge), 0, 0) !important;
 }
 
 /* First card's neighbors: standard shift + extra 20px to compensate */
-.card[data-nfx-edge="first"].focus ~ .card,
-.card[data-nfx-edge="first"].hover ~ .card,
-.card[data-nfx-edge="first"]:hover ~ .card {
-    transform: translate3d(calc(var(--nfx-shift) + var(--nfx-edge-nudge)), 0, 0) !important;
+.card[data-ntflx-edge="first"].focus ~ .card,
+.card[data-ntflx-edge="first"].hover ~ .card,
+.card[data-ntflx-edge="first"]:hover ~ .card {
+    transform: translate3d(calc(var(--ntflx-shift) + var(--ntflx-edge-nudge)), 0, 0) !important;
 }
 
 /* Last card: right-origin scale + 20px leftward nudge (no clip) */
-.card[data-nfx-edge="last"].focus,
-.card[data-nfx-edge="last"].hover,
-.card[data-nfx-edge="last"]:hover {
+.card[data-ntflx-edge="last"].focus,
+.card[data-ntflx-edge="last"].hover,
+.card[data-ntflx-edge="last"]:hover {
     transform-origin: right center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(calc(var(--nfx-edge-nudge) * -1), 0, 0) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
+               translate3d(calc(var(--ntflx-edge-nudge) * -1), 0, 0) !important;
 }
 
 /* Reduce shift for the last card when a non-edge sibling is focused */
-.card.focus ~ .card[data-nfx-edge="last"],
-.card.hover ~ .card[data-nfx-edge="last"],
-.card:hover ~ .card[data-nfx-edge="last"] {
-    transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
+.card.focus ~ .card[data-ntflx-edge="last"],
+.card.hover ~ .card[data-ntflx-edge="last"],
+.card:hover ~ .card[data-ntflx-edge="last"] {
+    transform: translate3d(calc(var(--ntflx-shift) * 0.5), 0, 0) !important;
 }
 
 /* ── SINGLE CARD: use left-origin (no clip) but NO shift ── */
-.card[data-nfx-single="true"].focus,
-.card[data-nfx-single="true"].hover,
-.card[data-nfx-single="true"]:hover {
+.card[data-ntflx-single="true"].focus,
+.card[data-ntflx-single="true"].hover,
+.card[data-ntflx-single="true"]:hover {
     transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
 }
 
 
@@ -889,8 +889,8 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
     top: -6em !important; /* Match breakout */
     left: 0 !important; right: 0 !important; bottom: 0 !important;
     height: calc(100% + 6em) !important; /* Match breakout */
-    background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
-    opacity: var(--nfx-fog-level, 0.15) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.1s linear !important;
+    background: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
+    opacity: var(--ntflx-fog-level, 0.15) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.1s linear !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -934,7 +934,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* ── Hero Title / Logo — NO background, only text-shadow ── */
 .full-start-new__title,
 .full-start__title {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 800 !important;
     font-size: 2.6em !important;
     line-height: 1.08 !important;
@@ -964,7 +964,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* Head line (year, country) */
 .full-start-new__head,
 .full-start__head {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.85em !important;
     line-height: 1.3 !important;
@@ -976,7 +976,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* Tagline (quote) */
 .full-start-new__tagline,
 .full-start__tagline {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-style: italic !important;
     font-size: 0.88em !important;
@@ -991,7 +991,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 ${ratingCSS}
 .full-start-new__rate-line,
 .full-start__rate-line {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.82em !important;
     line-height: 1.3 !important;
@@ -1002,7 +1002,7 @@ ${ratingCSS}
 /* Details (genres, quality, etc.) */
 .full-start-new__details,
 .full-start__details {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.82em !important;
     line-height: 1.3 !important;
@@ -1016,7 +1016,7 @@ ${ratingCSS}
 .full-start__text,
 .full-start-new__description,
 .full-start__description {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     color: rgba(255,255,255,0.72) !important;
     font-size: 0.85em !important;
@@ -1031,7 +1031,7 @@ ${ratingCSS}
 /* Inactive buttons: grayish semi-transparent glass */
 .full-start__button,
 .full-start-new__button {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 600 !important;
     border-radius: 8px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
@@ -1052,12 +1052,12 @@ ${ratingCSS}
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: var(--nfx-accent-bg) !important;
+    background: var(--ntflx-accent-bg) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
     border: 1px solid rgba(255,255,255,0.3) !important;
     color: #ffffff !important;
-    box-shadow: 0 0 20px var(--nfx-accent-gl),
+    box-shadow: 0 0 20px var(--ntflx-accent-gl),
                0 8px 28px rgba(0,0,0,0.4) !important;
     transform: scale(1.04) !important;
 }
@@ -1079,8 +1079,8 @@ ${ratingCSS}
 /* Container: dark glossy glass, full-height coverage */
 .menu {
     ${menuCustomCSS}
-    backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
+    backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
@@ -1124,7 +1124,7 @@ ${ratingCSS}
 .menu__item.active {
     background: rgba(255, 255, 255, 0.1) !important;
     box-shadow: none !important;
-    border-left: 3px solid var(--nfx-accent) !important;
+    border-left: 3px solid var(--ntflx-accent) !important;
 }
 
 /* Active text: pure white */
@@ -1153,7 +1153,7 @@ ${ratingCSS}
 
 /* ── Inactive text: muted with subtle shadow ── */
 .menu__text {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     ${menuTextCustomCSS}
     color: rgba(255,255,255,0.5) !important;
@@ -1250,7 +1250,7 @@ ${ratingCSS}
     }
 
     .full-start-new, .full-start {
-        background-image: var(--nfx-mobile-bg) !important;
+        background-image: var(--ntflx-mobile-bg) !important;
         background-size: cover !important;
         background-position: center top !important;
         background-repeat: no-repeat !important;
@@ -1263,9 +1263,9 @@ ${ratingCSS}
     /* Gradient overlay to make text readable */
     .applecation__overlay, .application__overlay {
         display: block !important;
-        background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        background: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
         background-color: transparent !important;
-        background-image: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        background-image: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
         box-shadow: none !important;
         position: absolute !important;
         top: 0 !important;
@@ -1296,9 +1296,9 @@ ${ratingCSS}
         padding-bottom: 2.5em !important;
     }
     :root {
-        --nfx-card-scale: 1.1;
-        --nfx-shift: 8%;
-        --nfx-duration: 300ms;
+        --ntflx-card-scale: 1.1;
+        --ntflx-shift: 8%;
+        --ntflx-duration: 300ms;
     }
     .items-line {
         padding: 16px 0 !important;
@@ -1317,9 +1317,9 @@ ${ratingCSS}
         max-width: 85vw !important;
     }
     :root {
-        --nfx-card-scale: 1.25;
-        --nfx-shift: 18%;
-        --nfx-duration: 350ms;
+        --ntflx-card-scale: 1.25;
+        --ntflx-shift: 18%;
+        --ntflx-duration: 350ms;
     }
     .items-line {
         padding: 30px 0 !important;
@@ -1350,21 +1350,21 @@ ${ratingCSS}
         max-width: 1000px !important;
     }
     :root {
-        --nfx-card-scale: 1.45;
-        --nfx-shift: 30%;
-        --nfx-duration: 450ms;
+        --ntflx-card-scale: 1.45;
+        --ntflx-shift: 30%;
+        --ntflx-duration: 450ms;
     }
     .items-line {
         padding: 60px 0 !important;
     }
     .card__view {
-        border-radius: calc(var(--nfx-radius) * 1.5) !important;
+        border-radius: calc(var(--ntflx-radius) * 1.5) !important;
     }
 }
 `;
 
         var style = document.createElement('style');
-        style.id = 'nfx-premium-v9';
+        style.id = 'ntflx-premium-v9';
         style.textContent = css;
         document.head.appendChild(style);
     }
@@ -1621,7 +1621,7 @@ ${ratingCSS}
                         var hero = e.target.querySelector('.full-start-new, .full-start');
                         if (hero) {
                             var additionalFog = Math.min(st / 400, 0.8);
-                            hero.style.setProperty('--nfx-fog-level', 0.05 + additionalFog);
+                            hero.style.setProperty('--ntflx-fog-level', 0.05 + additionalFog);
                         }
                         isScrolling = false;
                     });
