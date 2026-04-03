@@ -362,7 +362,7 @@
 
                     // Fetch actors robustly
                     var creditsUrl = Lampa.TMDB.api(type + '/' + movie.id + '/credits?api_key=' + Lampa.TMDB.key() + '&language=' + langUi);
-                    Lampa.network.silent(creditsUrl, function(data) {
+                    $.get(creditsUrl, function(data) {
                         if (data.cast && data.cast.length) {
                             var topCast = data.cast.slice(0, 6);
                             personsWrap.empty();
@@ -373,7 +373,7 @@
                         } else {
                             personsWrap.html('<div style="color:#777;">'+t.desc_empty+'</div>');
                         }
-                    }, function() {
+                    }).fail(function() {
                         personsWrap.html('<div style="color:#e50914;">' + t.error + '</div>');
                     });
 
