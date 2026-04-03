@@ -491,6 +491,11 @@
                             if (!item || !item.render) return true;
                             var el = item.render();
                             if (!el || el.length === 0) return true;
+
+                            // MUST KEEP the main info block (which contains buttons and headers)
+                            if (el.hasClass('full-start-new') || el.hasClass('full-start') || el.hasClass('full-start__main')) {
+                                return true;
+                            }
                             
                             var text = el.text().toLowerCase();
                             var badMatch = /^коментар|^комментар|^реакц/i.test(text) || text.indexOf('коментар') > -1 || text.indexOf('комментар') > -1 || text.indexOf('реакц') > -1;
