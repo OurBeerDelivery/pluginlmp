@@ -710,8 +710,7 @@
             };
 
             var ntflxCleanDOM = function() {
-                // Clean visual dom items that don't block component navigation
-                render.find([
+                var unwanted = [
                     '.full-start-new__details', '.full-start__details',
                     '.full-start-new__reactions', '.full-start__reactions',
                     '.full-start-new__params', '.full-start__params',
@@ -727,7 +726,17 @@
                     '.full-start-new__info', '.full-start__info',
                     '.applecation__overlay', '.application__overlay',
                     '.full-start-new__persons', '.full-start__persons'
-                ].join(', ')).remove();
+                ];
+                render.find(unwanted.join(', ')).remove();
+
+                // Advanced: remove buttons in the main row by text content (e.g. "Реакції")
+                render.find('.full-start__button, .full-start-new__button').each(function() {
+                    var btn = $(this);
+                    var txt = btn.text().toLowerCase();
+                    if (txt.indexOf('реакц') !== -1 || txt.indexOf('реакц') !== -1) {
+                        btn.remove();
+                    }
+                });
             };
 
             // Run cleanup immediately
