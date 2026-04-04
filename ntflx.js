@@ -652,26 +652,22 @@
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
             var actComp = e.object.activity.component;
-            var _ntflxLastItemCount = -1;
-
             var ntflxFilterItems = function() {
                 if (!actComp || !actComp.items || !Array.isArray(actComp.items)) return;
-                // Only re-filter if items array grew (new items added by Lampa async)
-                if (actComp.items.length === _ntflxLastItemCount) return;
 
-                actComp.items = actComp.items.filter(function(item) {
+                // Loop backwards to safely splice items out mutating array in place
+                for (var i = actComp.items.length - 1; i >= 0; i--) {
+                    var item = actComp.items[i];
                     try {
-                        if (!item || !item.render) return true;
-                        // Skip items we already checked and approved
-                        if (item._ntflxChecked) return true;
-
+                        if (!item || !item.render) continue;
+                        
                         var el = item.render();
-                        if (!el || el.length === 0) { item._ntflxChecked = true; return true; }
+                        // If element is empty, Lampa might populate it later, so don't skip it forever
+                        if (!el || el.length === 0) continue;
 
                         // MUST KEEP the main info block (contains buttons and title)
                         if (el.hasClass('full-start-new') || el.hasClass('full-start') || el.hasClass('full-start__main')) {
-                            item._ntflxChecked = true;
-                            return true;
+                            continue;
                         }
 
                         // Check by CSS class (comment blocks)
@@ -688,8 +684,8 @@
                                             'режисер','режиссер','актори','актеры','в ролях',
                                             'коментар','комментар',
                                             'director','comments','actors','review'];
-                            for (var i = 0; i < banWords.length; i++) {
-                                if (txt.indexOf(banWords[i]) !== -1) {
+                            for (var w = 0; w < banWords.length; w++) {
+                                if (txt.indexOf(banWords[w]) !== -1) {
                                     hasBadTitle = true; break;
                                 }
                             }
@@ -705,16 +701,12 @@
                             }
                             if (item.destroy) item.destroy();
                             else el.remove();
-                            return false;
+                            
+                            // Splice the item out of the array safely
+                            actComp.items.splice(i, 1);
                         }
-                        item._ntflxChecked = true;
-                        return true;
-                    } catch(err) {
-                        return true;
-                    }
-                });
-
-                _ntflxLastItemCount = actComp.items.length;
+                    } catch(err) {}
+                }
             };
 
             var ntflxCleanDOM = function() {
