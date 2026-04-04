@@ -652,22 +652,25 @@
 
             // ── Remove ALL unwanted elements from DOM so Lampa scroll has zero dead zones ──
             var actComp = e.object.activity.component;
-            var _ntflxItemsFiltered = false;
+            var _ntflxLastItemCount = -1;
 
             var ntflxFilterItems = function() {
-                // Run items filter ONCE only — re-filtering a filtered array causes data loss
-                if (_ntflxItemsFiltered) return;
                 if (!actComp || !actComp.items || !Array.isArray(actComp.items)) return;
-                _ntflxItemsFiltered = true;
+                // Only re-filter if items array grew (new items added by Lampa async)
+                if (actComp.items.length === _ntflxLastItemCount) return;
 
                 actComp.items = actComp.items.filter(function(item) {
                     try {
                         if (!item || !item.render) return true;
+                        // Skip items we already checked and approved
+                        if (item._ntflxChecked) return true;
+
                         var el = item.render();
-                        if (!el || el.length === 0) return true;
+                        if (!el || el.length === 0) { item._ntflxChecked = true; return true; }
 
                         // MUST KEEP the main info block (contains buttons and title)
                         if (el.hasClass('full-start-new') || el.hasClass('full-start') || el.hasClass('full-start__main')) {
+                            item._ntflxChecked = true;
                             return true;
                         }
 
@@ -704,11 +707,14 @@
                             else el.remove();
                             return false;
                         }
+                        item._ntflxChecked = true;
                         return true;
                     } catch(err) {
                         return true;
                     }
                 });
+
+                _ntflxLastItemCount = actComp.items.length;
             };
 
             var ntflxCleanDOM = function() {
