@@ -1073,115 +1073,36 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
 
 
 /* ================================================================
-   5) SIDEBAR — Dark gloss glassmorphism, optimized for long text
+   5) SIDEBAR — Minimal Native Lampa Style + Accent Line
    ================================================================ */
 
-/* Container: dark glossy glass, full-height coverage */
 .menu {
     ${menuCustomCSS}
-    backdrop-filter: blur(var(--stitch-sb-blur)) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(var(--stitch-sb-blur)) saturate(150%) !important;
-    border-right: 1px solid rgba(255,255,255,0.08) !important;
-    border-left: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
 }
 
-.menu__list {
-    background: transparent !important;
-    padding: 0 !important;
+.menu__text {
+    ${menuTextCustomCSS}
 }
 
-/* ── Menu Items: geometry & text fit ── */
+/* We still need to respect Lampa's hidden items */
 .menu__item[style*="display: none"],
 .menu__item.hide,
 .menu__item.hidden {
     display: none !important;
 }
 
+/* Ensure items have transparent border so the layout doesn't shift when focused */
 .menu__item {
-    border-radius: 0 !important;
-    background: rgba(255, 255, 255, 0.04) !important;
     border-left: 3px solid transparent !important;
-    padding: 0.55em 1.4em 0.55em 1em !important;
-    margin: 0 !important;
-    transition: border-color 200ms ease,
-                background 200ms ease !important;
-    display: flex;
-    align-items: center !important;
-    gap: 0.7em !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
 }
 
-/* ── Active / focused: 3px red line + subtle white glass ── */
+/* Active / focused: Keep only the colored accent line */
 .menu__item.focus,
 .menu__item.hover,
 .menu__item.traverse,
 .menu__item.active {
-    background: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: none !important;
     border-left: 3px solid var(--stitch-accent) !important;
-}
-
-/* Active text: pure white */
-.menu__item.focus .menu__text,
-.menu__item.hover .menu__text,
-.menu__item.traverse .menu__text,
-.menu__item.active .menu__text {
-    color: #ffffff !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important;
-}
-
-/* Active icons: pure white */
-.menu__item.focus .menu__ico,
-.menu__item.hover .menu__ico,
-.menu__item.traverse .menu__ico,
-.menu__item.active .menu__ico {
-    color: #ffffff !important;
-}
-
-.menu__item.focus .menu__ico svg,
-.menu__item.hover .menu__ico svg,
-.menu__item.traverse .menu__ico svg,
-.menu__item.active .menu__ico svg {
-    fill: #ffffff !important;
-}
-
-/* ── Inactive text: muted with subtle shadow ── */
-.menu__text {
-    font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    ${menuTextCustomCSS}
-    color: rgba(255,255,255,0.5) !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
-    transition: color 200ms ease !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.3 !important;
-}
-
-/* ── Icons: slightly smaller ── */
-.menu__ico {
-    color: rgba(255,255,255,0.5) !important;
-    transition: color 200ms ease !important;
-    flex-shrink: 0 !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-    display: flex;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.menu__ico svg {
-    fill: rgba(255,255,255,0.5) !important;
-    transition: fill 200ms ease !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
 /* Make header float perfectly transparent over everything */
