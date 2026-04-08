@@ -967,10 +967,19 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
 
 /* Force flex reordering so that .full-start-new__head is ABOVE the title */
 .full-start-new__info,
-.full-start__info,
+.full-start__info {
+    display: contents !important;
+}
+
 .full-start-new__buttons,
 .full-start__buttons {
-    display: contents !important;
+    order: 4 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-top: 5px !important;
 }
 
 /* Head line (year, country) - placed at the top (order: 1) */
@@ -1023,7 +1032,6 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
 /* Inactive buttons: dark glass, squared-off */
 .full-start__button,
 .full-start-new__button {
-    order: 4 !important;
     font-family: var(--stitch-font) !important;
     font-weight: 600 !important;
     border-radius: 6px !important;
@@ -1034,25 +1042,24 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
     box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
     color: rgba(255,255,255,0.9) !important;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin-right: 12px !important;
-    margin-top: 15px !important;
+    margin: 0 !important;
     transition: background 300ms ease,
                 transform 200ms ease,
                 box-shadow 300ms ease,
                 border-color 300ms ease !important;
 }
 
-/* Active/focused button: tinted bright glass */
+/* Active/focused button: colored accent */
 .full-start__button.focus,
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
+    background: var(--stitch-accent-bg) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255,255,255,0.8) !important;
+    border: 1px solid var(--stitch-card-border-focus) !important;
     color: #ffffff !important;
-    box-shadow: 0 0 20px rgba(255,255,255,0.1),
+    box-shadow: 0 0 20px var(--stitch-accent-gl),
                0 8px 28px rgba(0,0,0,0.5) !important;
     transform: scale(1.05) !important;
 }
