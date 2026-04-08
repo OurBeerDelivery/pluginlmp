@@ -649,9 +649,8 @@ body {
     font-weight: 800 !important;
     font-family: 'Inter', var(--stitch-font) !important;
     text-transform: uppercase !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
     pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 
 
@@ -666,8 +665,7 @@ body {
     bottom: auto !important;
     left: auto !important;
     z-index: 20 !important;
-    background: rgba(0,0,0,0.7) !important;
-    backdrop-filter: blur(4px) !important;
+    background: rgba(15,15,15,0.9) !important;
     color: #fff !important;
     padding: 2px 6px !important;
     border-radius: 2px !important;
@@ -675,7 +673,6 @@ body {
     font-weight: 700 !important;
     font-family: 'Inter', var(--stitch-font) !important;
     pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 
 
@@ -1036,17 +1033,14 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
     font-weight: 600 !important;
     border-radius: 6px !important;
     border: 1px solid rgba(255,255,255,0.12) !important;
-    background: rgba(30, 30, 30, 0.4) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+    background: rgba(40, 40, 40, 0.95) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
     color: rgba(255,255,255,0.9) !important;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
     margin: 0 !important;
-    transition: background 300ms ease,
-                transform 200ms ease,
-                box-shadow 300ms ease,
-                border-color 300ms ease !important;
+    transition: transform 200ms ease,
+                background-color 300ms ease !important;
+    will-change: transform !important;
 }
 
 /* Active/focused button: colored accent */
@@ -1054,13 +1048,11 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: var(--stitch-accent-bg) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background-color: var(--stitch-accent) !important;
     border: 1px solid var(--stitch-card-border-focus) !important;
     color: #ffffff !important;
-    box-shadow: 0 0 20px var(--stitch-accent-gl),
-               0 8px 28px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 0 25px var(--stitch-accent-gl),
+               0 8px 28px rgba(0,0,0,0.6) !important;
     transform: scale(1.05) !important;
 }
 
@@ -1156,6 +1148,7 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
     -webkit-perspective: 1000 !important;
     perspective: 1000 !important;
     transform-style: preserve-3d !important;
+    transform: translateZ(0) !important;
     scroll-behavior: smooth !important;
     -webkit-overflow-scrolling: touch !important;
 }
