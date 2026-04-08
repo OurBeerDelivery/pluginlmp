@@ -1561,8 +1561,8 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
                         var st = e.target.scrollTop;
                         var hero = e.target.querySelector('.full-start-new, .full-start');
                         if (hero) {
-                            var additionalFog = Math.min(st / 400, 0.8);
-                            hero.style.setProperty('--stitch-fog-level', 0.05 + additionalFog);
+                            var additionalFog = Math.min(st / 100, 0.2);
+                            hero.style.setProperty('--stitch-fog-level', 0.02 + additionalFog);
                         }
                         isScrolling = false;
                     });
