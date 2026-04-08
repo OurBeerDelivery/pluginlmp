@@ -965,112 +965,101 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
 
 /* ── Compact Metadata Block (moved from blue → pink zone) ── */
 
-/* Head line (year, country) */
+/* Force flex reordering so that .full-start-new__head is ABOVE the title */
+.full-start-new__info,
+.full-start__info,
+.full-start-new__buttons,
+.full-start__buttons {
+    display: contents !important;
+}
+
+/* Head line (year, country) - placed at the top (order: 1) */
 .full-start-new__head,
 .full-start__head {
+    order: 1 !important;
     font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.85em !important;
+    font-weight: 600 !important;
+    font-size: 0.9em !important;
     line-height: 1.3 !important;
-    color: rgba(255,255,255,0.75) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
+    color: rgba(255,255,255,0.9) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
+    margin: 0 0 10px 0 !important;
 }
 
-/* Tagline (quote) */
+/* ── Hide everything else ON HERO to match hyper-minimalist screenshot ── */
 .full-start-new__tagline,
-.full-start__tagline {
-    font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    font-style: italic !important;
-    font-size: 0.88em !important;
-    line-height: 1.3 !important;
-    color: rgba(255,255,255,0.65) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 4px 0 !important;
-    padding: 0 !important;
-}
-
-/* Ratings (TMDB / KP) */
-${ratingCSS}
+.full-start__tagline,
 .full-start-new__rate-line,
-.full-start__rate-line {
-    font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.82em !important;
-    line-height: 1.3 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
-}
-
-/* Details (genres, quality, etc.) */
+.full-start__rate-line,
 .full-start-new__details,
-.full-start__details {
-    font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    font-size: 0.82em !important;
-    line-height: 1.3 !important;
-    color: rgba(255,255,255,0.72) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    margin: 0 0 2px 0 !important;
-}
-
-/* Description text */
+.full-start__details,
 .full-start-new__text,
 .full-start__text,
 .full-start-new__description,
 .full-start__description {
+    display: none !important;
+}
+
+/* ── Hero Title / Logo — moved below head (order: 2) ── */
+.full-start-new__title,
+.full-start__title {
+    order: 2 !important;
     font-family: var(--stitch-font) !important;
-    font-weight: 500 !important;
-    color: rgba(255,255,255,0.72) !important;
-    font-size: 0.85em !important;
-    line-height: 1.4 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    max-width: 520px !important;
-    margin: 0 0 6px 0 !important;
+    font-weight: 800 !important;
+    font-size: 2.6em !important;
+    line-height: 1.08 !important;
+    color: #fff !important;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7),
+                 0 6px 24px rgba(0,0,0,0.8) !important;
+    margin-bottom: 25px !important;
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
 }
 
 /* ── Premium Buttons ── */
 
-/* Inactive buttons: grayish semi-transparent glass */
+/* Inactive buttons: dark glass, squared-off */
 .full-start__button,
 .full-start-new__button {
+    order: 4 !important;
     font-family: var(--stitch-font) !important;
     font-weight: 600 !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    background: rgba(120, 120, 120, 0.2) !important;
+    border-radius: 6px !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    background: rgba(30, 30, 30, 0.4) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-    color: rgba(255,255,255,0.8) !important;
+    color: rgba(255,255,255,0.9) !important;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    margin-right: 12px !important;
+    margin-top: 15px !important;
     transition: background 300ms ease,
                 transform 200ms ease,
                 box-shadow 300ms ease,
                 border-color 300ms ease !important;
 }
 
-/* Active/focused button: tinted red glass, pure white text */
+/* Active/focused button: tinted bright glass */
 .full-start__button.focus,
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: var(--stitch-accent-bg) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
     color: #ffffff !important;
-    box-shadow: 0 0 20px var(--stitch-accent-gl),
-               0 8px 28px rgba(0,0,0,0.4) !important;
-    transform: scale(1.04) !important;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1),
+               0 8px 28px rgba(0,0,0,0.5) !important;
+    transform: scale(1.05) !important;
 }
 
-/* Ensure button text/icons are always white when focused */
-.full-start__button.focus *,
-.full-start__button:hover *,
-.full-start-new__button.focus *,
-.full-start-new__button:hover * {
+/* Ensure button text/icons are always white */
+.full-start__button *,
+.full-start-new__button * {
     color: #ffffff !important;
     fill: #ffffff !important;
 }
