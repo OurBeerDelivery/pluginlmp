@@ -1105,6 +1105,26 @@ body:not(.stitch-user-interacted) .card.hover ~ .card {
     background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
+/* Ensure active text and icons are pure white for readability */
+.menu__item.focus .menu__text,
+.menu__item.hover .menu__text,
+.menu__item.traverse .menu__text,
+.menu__item.active .menu__text {
+    color: #ffffff !important;
+}
+
+.menu__item.focus .menu__ico,
+.menu__item.hover .menu__ico,
+.menu__item.traverse .menu__ico,
+.menu__item.active .menu__ico,
+.menu__item.focus .menu__ico svg,
+.menu__item.hover .menu__ico svg,
+.menu__item.traverse .menu__ico svg,
+.menu__item.active .menu__ico svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
 /* Make header float perfectly transparent over everything */
 .head {
     position: absolute !important;
