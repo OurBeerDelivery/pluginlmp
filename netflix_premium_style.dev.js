@@ -465,30 +465,30 @@
         var accentRgb = hexToRgb(accent);
         var fontImport = '@import url("https://fonts.googleapis.com/css2?family=' + fontFam.replace(/ /g, '+') + ':wght@400;500;600;700;800;900&display=swap");';
 
-        var css = `
+        var css = \`
 /* ================================================================
    Netflix Premium Style v8.0 — UI Customization
    ================================================================ */
 
-${fontImport}
+\${fontImport}
 
 :root {
     --nfx-bg: #0a0d12;
-    --nfx-accent: ${accent};
-    --nfx-accent-rgb: ${accentRgb};
-    --nfx-accent-gl: rgba(${accentRgb}, 0.5);
-    --nfx-accent-bg: rgba(${accentRgb}, 0.7);
+    --nfx-accent: \${accent};
+    --nfx-accent-rgb: \${accentRgb};
+    --nfx-accent-gl: rgba(\${accentRgb}, 0.5);
+    --nfx-accent-bg: rgba(\${accentRgb}, 0.7);
     --nfx-text: #f0f0f0;
-    --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: ${scale};
+    --nfx-font: '\${fontFam}', 'Helvetica Neue', Arial, sans-serif;
+    --nfx-card-scale: \${scale};
     --nfx-shift: 25%;
-    --nfx-edge-nudge: ${shift};
-    --nfx-sb-blur: ${blur};
+    --nfx-edge-nudge: \${shift};
+    --nfx-sb-blur: \${blur};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: ${cardRad};
-    --nfx-card-border-focus: ${bFocus};
-    --nfx-card-border-idle: ${bIdle};
+    --nfx-radius: \${cardRad};
+    --nfx-card-border-focus: \${bFocus};
+    --nfx-card-border-idle: \${bIdle};
     --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
 }
 
@@ -515,15 +515,14 @@ body {
 .items-line {
     overflow: visible !important;
     position: relative !important;
-    z-index: 1 !important;
     padding: 45px 0 !important;
 }
 
-/* Row with a focused card sits above everything */
+/* Row with a focused card sits above everything gently */
 .items-line:has(.card.focus),
 .items-line:has(.card.hover),
 .items-line:has(.card:hover) {
-    z-index: 20 !important;
+    /* Rely on native Lampa z-index */
 }
 
 /* Category titles */
@@ -543,14 +542,12 @@ body {
 
 .card {
     position: relative !important;
-    transition: transform var(--nfx-duration) var(--nfx-ease),
-                z-index 0s !important;
-    z-index: 1 !important;
+    transition: transform var(--nfx-duration) var(--nfx-ease) !important;
     will-change: transform !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
     transform: translate3d(0, 0, 0) !important;
-    margin-bottom: 35px !important; /* FIX OVERLAPS */
+    margin-bottom: 35px !important; /* Fix overlapping grids */
     padding-bottom: 5px !important;
 }
 
@@ -688,7 +685,6 @@ body {
 body:not(.nfx-user-interacted) .card.focus,
 body:not(.nfx-user-interacted) .card.hover {
     transform: translate3d(0, 0, 0) !important;
-    z-index: 1 !important;
 }
 
 body:not(.nfx-user-interacted) .card.focus .card__view,
@@ -714,7 +710,6 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus,
 .card.hover,
 .card:hover {
-    z-index: 10 !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
@@ -736,7 +731,6 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.hover ~ .card,
 .card:hover ~ .card {
     transform: translate3d(var(--nfx-shift), 0, 0) !important;
-    z-index: 1 !important;
 }
 
 /* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
@@ -990,7 +984,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* Ratings (TMDB / KP) */
-${ratingCSS}
+\${ratingCSS}
 .full-start-new__rate-line,
 .full-start__rate-line {
     font-family: var(--nfx-font) !important;
@@ -1080,7 +1074,7 @@ ${ratingCSS}
 
 /* Container: dark glossy glass, full-height coverage */
 .menu {
-    ${menuCustomCSS}
+    \${menuCustomCSS}
     backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
@@ -1089,7 +1083,6 @@ ${ratingCSS}
     border-bottom: none !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
-    z-index: 150 !important;
 }
 
 .menu__list {
@@ -1104,12 +1097,13 @@ ${ratingCSS}
     display: none !important;
 }
 
+/* Added small margin and slightly softer radius to separate items properly */
 .menu__item {
-    border-radius: 6px !important; /* Soften edges */
+    border-radius: 6px !important;
     background: rgba(255, 255, 255, 0.04) !important;
     border-left: 3px solid transparent !important;
     padding: 0.65em 1.4em 0.65em 1em !important;
-    margin: 0 0 8px 0 !important; /* Prevent sticking */
+    margin: 0 0 8px 0 !important; /* Space separating sidebar buttons */
     transition: border-color 200ms ease,
                 background 200ms ease !important;
     display: flex;
@@ -1158,7 +1152,7 @@ ${ratingCSS}
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    ${menuTextCustomCSS}
+    \${menuTextCustomCSS}
     color: rgba(255,255,255,0.5) !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
@@ -1187,18 +1181,15 @@ ${ratingCSS}
     height: 1.1em !important;
 }
 
-/* Make header float perfectly transparent over everything */
+/* Make header float perfectly transparent over everything. 
+   Removing aggressive z-indexing allows Lampa natively to overlay Modals 
+   and Settings correctly over the absolute header. */
 .head {
     position: absolute !important;
     top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important;
     background: transparent !important; background-color: transparent !important; background-image: none !important;
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-    border: none !important; box-shadow: none !important; z-index: 100 !important;
-}
-
-/* Ensure root layers ALWAYS cover head! Do NOT target internal folders to preserve native depth */
-.layer--settings, .layer--modal, .modal, .notice {
-    z-index: 500 !important;
+    border: none !important; box-shadow: none !important;
 }
 
 .head__actions {
@@ -1369,7 +1360,7 @@ ${ratingCSS}
         border-radius: calc(var(--nfx-radius) * 1.5) !important;
     }
 }
-`;
+\`;
 
         var style = document.createElement('style');
         style.id = 'nfx-premium-v8';
@@ -1638,7 +1629,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NFX Premium DEV] v8.22 — Ultimate Performance & TV Compatibility');
+        console.log('[NFX Premium] v8.22 — Ultimate Performance & TV Compatibility');
     }
 
     if (window.Lampa && Lampa.Listener) {
