@@ -550,6 +550,8 @@ body {
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
     transform: translate3d(0, 0, 0) !important;
+    margin-bottom: 35px !important; /* FIX OVERLAPS */
+    padding-bottom: 5px !important;
 }
 
 .card__view {
@@ -1102,11 +1104,11 @@ ${ratingCSS}
 }
 
 .menu__item {
-    border-radius: 0 !important;
+    border-radius: 6px !important; /* Soften edges */
     background: rgba(255, 255, 255, 0.04) !important;
     border-left: 3px solid transparent !important;
-    padding: 0.55em 1.4em 0.55em 1em !important;
-    margin: 0 !important;
+    padding: 0.65em 1.4em 0.65em 1em !important;
+    margin: 0 0 8px 0 !important; /* Prevent sticking */
     transition: border-color 200ms ease,
                 background 200ms ease !important;
     display: flex;
@@ -1190,7 +1192,18 @@ ${ratingCSS}
     top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important;
     background: transparent !important; background-color: transparent !important; background-image: none !important;
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-    border: none !important; box-shadow: none !important; z-index: 100 !important;
+    border: none !important; box-shadow: none !important; z-index: 50 !important;
+    pointer-events: none !important; /* Let clicks pass to layers underneath if needed */
+}
+
+/* Re-enable pointer events for actual buttons inside head */
+.head__actions, .head__time {
+    pointer-events: auto !important;
+}
+
+/* Ensure settings / modals ALWAYS cover head */
+.layer--wits, .settings, .settings-folder, .modal, .notice, .layer--settings {
+    z-index: 500 !important;
 }
 
 .head__actions {
