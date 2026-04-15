@@ -1193,16 +1193,10 @@ ${ratingCSS}
     background: transparent !important; background-color: transparent !important; background-image: none !important;
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     border: none !important; box-shadow: none !important; z-index: 50 !important;
-    pointer-events: none !important; /* Let clicks pass to layers underneath if needed */
-}
-
-/* Re-enable pointer events for actual buttons inside head */
-.head__actions, .head__time {
-    pointer-events: auto !important;
 }
 
 /* Ensure settings / modals ALWAYS cover head */
-.layer--wits, .settings, .settings-folder, .modal, .notice, .layer--settings {
+.settings, .settings-folder, .modal, .notice, .layer--settings {
     z-index: 500 !important;
 }
 
