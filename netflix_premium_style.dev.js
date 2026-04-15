@@ -465,30 +465,30 @@
         var accentRgb = hexToRgb(accent);
         var fontImport = '@import url("https://fonts.googleapis.com/css2?family=' + fontFam.replace(/ /g, '+') + ':wght@400;500;600;700;800;900&display=swap");';
 
-        var css = \`
+        var css = `
 /* ================================================================
    Netflix Premium Style v8.0 — UI Customization
    ================================================================ */
 
-\${fontImport}
+${fontImport}
 
 :root {
     --nfx-bg: #0a0d12;
-    --nfx-accent: \${accent};
-    --nfx-accent-rgb: \${accentRgb};
-    --nfx-accent-gl: rgba(\${accentRgb}, 0.5);
-    --nfx-accent-bg: rgba(\${accentRgb}, 0.7);
+    --nfx-accent: ${accent};
+    --nfx-accent-rgb: ${accentRgb};
+    --nfx-accent-gl: rgba(${accentRgb}, 0.5);
+    --nfx-accent-bg: rgba(${accentRgb}, 0.7);
     --nfx-text: #f0f0f0;
-    --nfx-font: '\${fontFam}', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: \${scale};
+    --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
+    --nfx-card-scale: ${scale};
     --nfx-shift: 25%;
-    --nfx-edge-nudge: \${shift};
-    --nfx-sb-blur: \${blur};
+    --nfx-edge-nudge: ${shift};
+    --nfx-sb-blur: ${blur};
     --nfx-duration: 420ms;
     --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: \${cardRad};
-    --nfx-card-border-focus: \${bFocus};
-    --nfx-card-border-idle: \${bIdle};
+    --nfx-radius: ${cardRad};
+    --nfx-card-border-focus: ${bFocus};
+    --nfx-card-border-idle: ${bIdle};
     --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
 }
 
@@ -984,7 +984,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 }
 
 /* Ratings (TMDB / KP) */
-\${ratingCSS}
+${ratingCSS}
 .full-start-new__rate-line,
 .full-start__rate-line {
     font-family: var(--nfx-font) !important;
@@ -1074,7 +1074,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 
 /* Container: dark glossy glass, full-height coverage */
 .menu {
-    \${menuCustomCSS}
+    ${menuCustomCSS}
     backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
@@ -1152,7 +1152,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .menu__text {
     font-family: var(--nfx-font) !important;
     font-weight: 500 !important;
-    \${menuTextCustomCSS}
+    ${menuTextCustomCSS}
     color: rgba(255,255,255,0.5) !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
     transition: color 200ms ease !important;
@@ -1360,7 +1360,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
         border-radius: calc(var(--nfx-radius) * 1.5) !important;
     }
 }
-\`;
+`;
 
         var style = document.createElement('style');
         style.id = 'nfx-premium-v8';
