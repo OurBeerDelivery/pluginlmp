@@ -523,7 +523,7 @@ body {
 .items-line:has(.card.focus),
 .items-line:has(.card.hover),
 .items-line:has(.card:hover) {
-    z-index: 50 !important;
+    z-index: 20 !important;
 }
 
 /* Category titles */
@@ -714,7 +714,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus,
 .card.hover,
 .card:hover {
-    z-index: 100 !important;
+    z-index: 10 !important;
     transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
 }
 
@@ -1089,6 +1089,7 @@ ${ratingCSS}
     border-bottom: none !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
+    z-index: 150 !important;
 }
 
 .menu__list {
@@ -1192,7 +1193,7 @@ ${ratingCSS}
     top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important;
     background: transparent !important; background-color: transparent !important; background-image: none !important;
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-    border: none !important; box-shadow: none !important; z-index: 50 !important;
+    border: none !important; box-shadow: none !important; z-index: 100 !important;
 }
 
 /* Ensure settings / modals ALWAYS cover head */
@@ -1637,7 +1638,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NFX Premium] v8.22 — Ultimate Performance & TV Compatibility');
+        console.log('[NFX Premium DEV] v8.22 — Ultimate Performance & TV Compatibility');
     }
 
     if (window.Lampa && Lampa.Listener) {
