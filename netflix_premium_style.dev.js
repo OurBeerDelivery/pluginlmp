@@ -1196,8 +1196,8 @@ ${ratingCSS}
     border: none !important; box-shadow: none !important; z-index: 100 !important;
 }
 
-/* Ensure settings / modals ALWAYS cover head */
-.settings, .settings-folder, .modal, .notice, .layer--settings {
+/* Ensure root layers ALWAYS cover head! Do NOT target internal folders to preserve native depth */
+.layer--settings, .layer--modal, .modal, .notice {
     z-index: 500 !important;
 }
 
