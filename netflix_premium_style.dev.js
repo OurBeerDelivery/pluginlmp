@@ -576,12 +576,14 @@
                 var val = parseFloat(text);
                 if (isNaN(val)) continue;
                 var color;
-                if (val >= 7.5) color = '#2ecc71'; // emerald green
-                else if (val >= 6.5) color = '#f1c40f'; // sunflower yellow
-                else if (val >= 5.0) color = '#e67e22'; // carrot orange
-                else color = '#e74c3c'; // alizarin red
+                if (val >= 7.5) color = '#2ecc71'; // High
+                else if (val >= 6.5) color = '#f1c40f'; // Good
+                else if (val >= 5.0) color = '#e67e22'; // Average
+                else color = '#e74c3c'; // Low
                 el.style.setProperty('background', color, 'important');
-                el.style.setProperty('color', (val >= 6.5 ? '#000' : '#fff'), 'important'); // Dark text on light backgrounds
+                // Use black text for high contrast on green/yellow, white for orange/red
+                el.style.setProperty('color', (val >= 6.5 ? '#000000' : '#ffffff'), 'important');
+                el.style.setProperty('text-shadow', (val >= 6.5 ? 'none' : '0 1px 2px rgba(0,0,0,0.5)'), 'important');
                 el.setAttribute('data-ntflx-colored', '1');
             }
         }
@@ -843,12 +845,13 @@ body {
     position: absolute !important;
     top: 8px !important;
     bottom: auto !important;
-    padding: 2px 6px !important;
-    font-size: 0.65em !important;
-    font-weight: 900 !important;
-    border-radius: 4px !important;
+    padding: 3px 7px !important;
+    font-size: 0.75em !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
     z-index: 5 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important; /* Lighter shadow for perf */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5) !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2) !important;
 }
 
 .card__vote {
