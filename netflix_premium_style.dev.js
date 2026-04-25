@@ -687,7 +687,7 @@ ${fontImport}
     --ntflx-text: #ffffff;
     --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
     --ntflx-card-scale: 1.08; /* Minimal scale to prevent edge overlap */
-    --ntflx-shift: 18%;
+    --ntflx-shift: 8%; /* Reduced for smoother, less jittery movement */
     --ntflx-duration: 300ms; /* Faster for snappier UI */
     --ntflx-ease: cubic-bezier(0.25, 1, 0.5, 1);
     --ntflx-radius: 12px; /* Uniform premium radius */
