@@ -4,14 +4,14 @@
     var isExoticOS = /Vidaa|Web0S|Tizen|SmartTV|Metrological|NetCast/i.test(navigator.userAgent);
 
     /* ================================================================
-     *  Netflix Premium Style v8.0  —  Multi-screen, Custom UI
+     *  NTFLX Premium Style v9.0  —  Cinematic, Ultra-Premium UI
      *
      *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
-     *  ✦ Hero           → Clean backdrop, NO gradients, text-shadow only
-     *  ✦ Sidebar        → Glassy blur, red left-border active item
-     *  ✦ Cards          → No ghost masks, clean box-shadow, multi-scale
-     *  ✦ GPU            → translate3d / scale3d everywhere (60fps optimized)
-     *  ✦ Multi-screen   → Native support for Phones, Tablets, TVs, and 4K
+     *  ✦ Hero           → Deep fog, glassmorphic buttons, 900-weight typography
+     *  ✦ Sidebar        → Sliding active indicator, deep saturation glass
+     *  ✦ Cards          → Modern pill-badges, refined scale transitions
+     *  ✦ GPU            → optimized for 120Hz (ProMotion / Fluid)
+     *  ✦ Compatibility  → Full support for Android TV, WebOS, Tizen, Mobile
      * ================================================================ */
 
     // ─────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@
     // ─────────────────────────────────────────────────────────────────
 
     var LogoEngine = {
-        _cachePrefix: 'nfx_logo_v7_',
+        _cachePrefix: 'ntflx_logo_v7_',
 
         _key: function (type, id, lang) {
             return this._cachePrefix + type + '_' + id + '_' + lang;
@@ -118,7 +118,7 @@
         },
 
         _getLang: function () {
-            var manual = Lampa.Storage.get('nfx_logo_lang', 'auto');
+            var manual = Lampa.Storage.get('ntflx_logo_lang', 'auto');
             if (manual && manual !== 'auto') return manual;
             var u = Lampa.Storage.get('logo_lang', '');
             return u || Lampa.Storage.get('language', 'uk') || 'uk';
@@ -168,7 +168,7 @@
     // ─────────────────────────────────────────────────────────────────
 
     function applyLogoStyles(img) {
-        var logoH = Lampa.Storage.get('nfx_logo_height', '200px');
+        var logoH = Lampa.Storage.get('ntflx_logo_height', '200px');
         img.style.display = 'block';
         img.style.maxWidth = '100%';
         img.style.maxHeight = logoH;
@@ -265,8 +265,8 @@
     }
 
     function initHeroProcessor() {
-        if (window.__nfx_hero_bound) return;
-        window.__nfx_hero_bound = true;
+        if (window.__ntflx_hero_bound) return;
+        window.__ntflx_hero_bound = true;
 
         Lampa.Listener.follow('full', function (e) {
             if (e.type !== 'complite') return;
@@ -295,8 +295,170 @@
             }
 
             if (bgUrl && domTitle) {
-                render[0].style.setProperty('--nfx-mobile-bg', 'url(' + bgUrl + ')');
+                render[0].style.setProperty('--ntflx-mobile-bg', 'url(' + bgUrl + ')');
             }
+
+            // ── Inject "About" Button for Description ──
+            var btnsParams = render.find('.full-start-new__buttons, .full-start__buttons');
+            if (btnsParams.length && !render.find('.ntflx-desc-btn').length) {
+                var langUi = Lampa.Storage.get('language') || 'uk';
+                var i18n = {
+                    'uk': {
+                        about_movie: 'Про фільм', about_tv: 'Про серіал',
+                        details: 'Детальна Інформація', desc_empty: 'Опис відсутній',
+                        release: 'Дата релізу', rating: 'Рейтинг', genres: 'Жанри',
+                        countries: 'Країни', cast: 'У ролях', loading: 'Завантаження...',
+                        duration: 'Тривалість', min: 'хв.', state: 'Статус',
+                        orig_lang: 'Мова оригіналу', budget: 'Бюджет', revenue: 'Касові збори',
+                        studio: 'Студія', director: 'Режисер', keywords: 'Теги'
+                    },
+                    'ru': {
+                        about_movie: 'О фильме', about_tv: 'О сериале',
+                        details: 'Подробная Информация', desc_empty: 'Описание отсутствует',
+                        release: 'Дата релиза', rating: 'Рейтинг', genres: 'Жанры',
+                        countries: 'Страны', cast: 'В ролях', loading: 'Загрузка...',
+                        duration: 'Продолжительность', min: 'мин.', state: 'Статус',
+                        orig_lang: 'Язык оригинала', budget: 'Бюджет', revenue: 'Кассовые сборы',
+                        studio: 'Студия', director: 'Режиссёр', keywords: 'Теги'
+                    },
+                    'en': {
+                        about_movie: 'About Movie', about_tv: 'About Show',
+                        details: 'Detailed Information', desc_empty: 'No description',
+                        release: 'Release Date', rating: 'Rating', genres: 'Genres',
+                        countries: 'Countries', cast: 'Top Cast', loading: 'Loading...',
+                        duration: 'Duration', min: 'min.', state: 'Status',
+                        orig_lang: 'Original Language', budget: 'Budget', revenue: 'Revenue',
+                        studio: 'Studio', director: 'Director', keywords: 'Keywords'
+                    }
+                };
+                var t = i18n[langUi] || i18n['uk'];
+
+                var btnText = type === 'tv' ? t.about_tv : t.about_movie;
+                var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
+                var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
+                
+                descBtn.css({'margin-left': '0.5em'});
+
+                var _overlayOpen = false;
+                descBtn.on('click hover:enter', function(e) {
+                    if (_overlayOpen) return;
+                    _overlayOpen = true;
+                    e.stopPropagation && e.stopPropagation();
+                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); overflow-y: auto; padding: 4em 3em; display:flex; flex-direction:column; align-items:center;"></div>');
+                    
+                    var closeBtn = $('<div class="selector" style="position:absolute; top: 2.5em; right: 3em; cursor:pointer; color:#fff; padding:12px; border-radius:50%; transition: all 0.3s;"><svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
+                    
+                    var isClosing = false;
+                    var closeUI = function(e) {
+                        if (isClosing) return;
+                        isClosing = true;
+                        if (e && e.stopPropagation) e.stopPropagation();
+                        overlay.remove();
+                        _overlayOpen = false;
+                        if (Lampa.Controller.remove) Lampa.Controller.remove('ntflx_details');
+                        else if (Lampa.Controller.controllers) delete Lampa.Controller.controllers['ntflx_details'];
+                        if (Lampa.Controller.previous) Lampa.Controller.previous();
+                        else Lampa.Controller.toggle('full');
+                    };
+                    closeBtn.on('hover:enter click', closeUI);
+                    
+                    var container = $('<div style="max-width: 1000px; width: 100%; display:flex; flex-direction:column; gap: 3em; padding-top: 2em;"></div>');
+                    var headerBlock = $('<div style="text-align:center; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:1em;"></div>');
+                    var logoWrap = $('<div style="display:flex; justify-content:center; align-items:flex-end; max-height:140px;"></div>');
+                    var titleFallback = $('<h2 style="font-size:3.5em; font-weight:900; line-height:1.1; margin:0; letter-spacing:-0.03em;">' + (movie.title || movie.name) + '</h2>');
+                    logoWrap.append(titleFallback);
+                    var detailsLabel = $('<div style="color:var(--ntflx-accent); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em;">' + t.details + '</div>');
+                    headerBlock.append(logoWrap).append(detailsLabel);
+                    container.append(headerBlock);
+
+                    // Fetch logo
+                    var logoLang = langUi === 'uk' ? 'uk' : (langUi === 'ru' ? 'ru' : 'en');
+                    var imagesUrl = Lampa.TMDB.api(type + '/' + movie.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + logoLang + ',ru,en,null');
+                    $.get(imagesUrl, function(imgData) {
+                        var logos = imgData.logos || [];
+                        logos.sort(function(a, b) {
+                            var la = (a.iso_639_1 === logoLang) ? 2 : (a.iso_639_1 === 'en') ? 1 : 0;
+                            var lb = (b.iso_639_1 === logoLang) ? 2 : (b.iso_639_1 === 'en') ? 1 : 0;
+                            return lb !== la ? lb - la : (b.vote_average || 0) - (a.vote_average || 0);
+                        });
+                        if (logos.length) {
+                            var imgUrl = Lampa.TMDB.image('t/p/w500' + logos[0].file_path.replace('.svg', '.png'));
+                            var logoImg = $('<img>').attr('src', imgUrl).css({ maxHeight: '130px', maxWidth: '100%', objectFit: 'contain', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.5))', opacity: 0, transition: 'opacity 0.4s' });
+                            logoImg.on('load', function() { titleFallback.remove(); logoImg.css('opacity', 1); });
+                            logoWrap.empty().append(logoImg);
+                        }
+                    });
+
+                    var grid = $('<div style="display:flex; gap: 4em; flex-wrap: wrap;"></div>');
+                    var leftCol = $('<div style="flex: 2; min-width: 320px; display:flex; flex-direction:column; gap: 2.5em;"></div>');
+                    if (movie.overview) leftCol.append($('<div>').css({fontSize:'1.2em', fontWeight:400, lineHeight:1.7, color:'rgba(255,255,255,0.8)'}).text(movie.overview));
+                    
+                    var metaGrid = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2em;"></div>');
+                    var addMeta = function(label, val, isHtml) {
+                        if (!val) return;
+                        var wrap = $('<div></div>');
+                        wrap.append($('<div>').css({fontSize:'0.65em', color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:'0.5em', fontWeight:900}).text(label));
+                        var valEl = $('<div>').css({fontSize:'1.1em', fontWeight:600, color:'#fff'});
+                        if (isHtml) valEl.html(val); else valEl.text(val);
+                        wrap.append(valEl);
+                        metaGrid.append(wrap);
+                    };
+
+                    addMeta(t.release, movie.release_date || movie.first_air_date);
+                    if (movie.vote_average) {
+                        var stars = ''; for (var s=0; s<5; s++) stars += (s < Math.round(movie.vote_average/2) ? '★' : '☆');
+                        addMeta(t.rating, '<span style="font-weight:900; color:var(--ntflx-accent);">' + movie.vote_average.toFixed(1) + '</span> <span style="color:#e5b109; margin-left:8px;">' + stars + '</span>', true);
+                    }
+                    addMeta(t.duration, movie.runtime ? movie.runtime + ' ' + t.min : '');
+                    addMeta(t.genres, movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
+                    leftCol.append(metaGrid);
+
+                    var rightCol = $('<div style="flex: 1; min-width: 250px; display:flex; flex-direction:column; gap: 1.5em;"></div>');
+                    rightCol.append($('<div>').css({fontSize:'0.65em', color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:900}).text(t.cast));
+                    var castWrap = $('<div style="display:flex; flex-direction:column; gap: 1em;"></div>');
+                    rightCol.append(castWrap);
+
+                    var creditsUrl = Lampa.TMDB.api(type + '/' + movie.id + '/credits?api_key=' + Lampa.TMDB.key() + '&language=' + langUi);
+                    $.get(creditsUrl, function(data) {
+                        if (data.cast) data.cast.slice(0, 6).forEach(function(actor) {
+                            var row = $('<div style="display:flex; align-items:center; gap:1em;"></div>');
+                            var img = $('<div style="width:44px; height:44px; border-radius:50%; background:#222; overflow:hidden; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);"></div>');
+                            if (actor.profile_path) img.append($('<img>').attr('src', Lampa.TMDB.image('t/p/w185' + actor.profile_path)).css({width:'100%', height:'100%', objectFit:'cover'}));
+                            row.append(img).append($('<div>').append($('<div style="font-weight:600; font-size:0.95em;">' + actor.name + '</div>')).append($('<div style="font-size:0.75em; color:rgba(255,255,255,0.5);">' + (actor.character || '') + '</div>')));
+                            castWrap.append(row);
+                        });
+                    });
+
+                    grid.append(leftCol).append(rightCol);
+                    container.append(grid);
+                    overlay.append(closeBtn).append(container);
+                    $('body').append(overlay);
+
+                    Lampa.Controller.add('ntflx_details', {
+                        toggle: function () { Lampa.Controller.collectionSet(overlay); Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
+                        up: function() { Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
+                        back: closeUI
+                    });
+                    Lampa.Controller.toggle('ntflx_details');
+                });
+                btnsParams.append(descBtn);
+            }
+
+            // ── DOM Cleanup Logic ──
+            var ntflxCleanDOM = function() {
+                var unwanted = [
+                    '.full-start-new__details', '.full-start__details',
+                    '.full-start-new__reactions', '.full-start__reactions',
+                    '.full-start-new__text', '.full-start__text',
+                    '.full-start-new__description', '.full-start__description',
+                    '.full-start-new__tagline', '.full-start__tagline',
+                    '.full-start-new__rate-line', '.full-start__rate-line'
+                ];
+                render.find(unwanted.join(', ')).remove();
+            };
+            ntflxCleanDOM();
+            var observer = new MutationObserver(ntflxCleanDOM);
+            observer.observe(render[0], { childList: true, subtree: true });
 
             var lang = LogoEngine._getLang();
             var cacheKey = LogoEngine._key(type, movie.id, lang);
@@ -315,12 +477,8 @@
                     return;
                 }
             }
-
             if (cached === 'none') return;
-
-            LogoEngine.resolve(movie, function (logoUrl) {
-                if (logoUrl) startLogoAnimation(logoUrl, titleElem, domTitle);
-            });
+            LogoEngine.resolve(movie, function (logoUrl) { if (logoUrl) startLogoAnimation(logoUrl, titleElem, domTitle); });
         });
     }
 
@@ -330,12 +488,12 @@
     // ─────────────────────────────────────────────────────────────────
 
     function initCardProcessor() {
-        if (window.__nfx_cards_bound) return;
-        window.__nfx_cards_bound = true;
+        if (window.__ntflx_cards_bound) return;
+        window.__ntflx_cards_bound = true;
 
         // ── Suppress auto-focus scaling until user interacts ──
         function enableInteraction() {
-            document.body.classList.add('nfx-user-interacted');
+            document.body.classList.add('ntflx-user-interacted');
             document.removeEventListener('keydown', enableInteraction);
             document.removeEventListener('pointerdown', enableInteraction);
             document.removeEventListener('mousedown', enableInteraction);
@@ -350,14 +508,14 @@
                 var cards = rows[r].querySelectorAll('.card');
                 if (!cards.length) continue;
                 for (var c = 0; c < cards.length; c++) {
-                    cards[c].removeAttribute('data-nfx-edge');
-                    cards[c].removeAttribute('data-nfx-single');
+                    cards[c].removeAttribute('data-ntflx-edge');
+                    cards[c].removeAttribute('data-ntflx-single');
                 }
                 if (cards.length === 1) {
-                    cards[0].setAttribute('data-nfx-single', 'true');
+                    cards[0].setAttribute('data-ntflx-single', 'true');
                 } else {
-                    cards[0].setAttribute('data-nfx-edge', 'first');
-                    cards[cards.length - 1].setAttribute('data-nfx-edge', 'last');
+                    cards[0].setAttribute('data-ntflx-edge', 'first');
+                    cards[cards.length - 1].setAttribute('data-ntflx-edge', 'last');
                 }
             }
         }
@@ -367,17 +525,18 @@
             var badges = document.querySelectorAll('.card__vote');
             for (var i = 0; i < badges.length; i++) {
                 var el = badges[i];
-                if (el.getAttribute('data-nfx-colored')) continue;
+                if (el.getAttribute('data-ntflx-colored')) continue;
                 var text = (el.textContent || el.innerText || '').replace(',', '.').trim();
                 var val = parseFloat(text);
                 if (isNaN(val)) continue;
                 var color;
-                if (val >= 7.5) color = '#2ecc71'; // green
-                else if (val >= 6.5) color = '#f1c40f'; // yellow
-                else if (val >= 5.0) color = '#e67e22'; // orange
-                else color = 'var(--nfx-accent)'; // red
+                if (val >= 7.5) color = '#2ecc71'; // emerald green
+                else if (val >= 6.5) color = '#f1c40f'; // sunflower yellow
+                else if (val >= 5.0) color = '#e67e22'; // carrot orange
+                else color = '#e74c3c'; // alizarin red
                 el.style.setProperty('background', color, 'important');
-                el.setAttribute('data-nfx-colored', '1');
+                el.style.setProperty('color', (val >= 6.5 ? '#000' : '#fff'), 'important'); // Dark text on light backgrounds
+                el.setAttribute('data-ntflx-colored', '1');
             }
         }
 
@@ -400,18 +559,18 @@
     // ─────────────────────────────────────────────────────────────────
 
     function injectCSS() {
-        var old = document.getElementById('nfx-premium-v8');
+        var old = document.getElementById('ntflx-premium-v8');
         if (old) old.remove();
 
-        var accent = Lampa.Storage.get('nfx_accent_color', '#e50914');
-        var fontFam = Lampa.Storage.get('nfx_font_family', 'Montserrat');
-        var fontSb = Lampa.Storage.get('nfx_font_size_sidebar', '1.1em');
-        var scale = Lampa.Storage.get('nfx_card_scale', '1.35');
-        var shift = Lampa.Storage.get('nfx_edge_shift', '20px');
-        var logoH = Lampa.Storage.get('nfx_logo_height', '200px');
-        var blur = Lampa.Storage.get('nfx_backdrop_blur', '30px');
-        var sbWidth = Lampa.Storage.get('nfx_sidebar_width', '280px');
-        var sbOpacity = Lampa.Storage.get('nfx_sidebar_opacity', '0.45');
+        var accent = Lampa.Storage.get('ntflx_accent_color', '#e50914');
+        var fontFam = Lampa.Storage.get('ntflx_font_family', 'Montserrat');
+        var fontSb = Lampa.Storage.get('ntflx_font_size_sidebar', '1.1em');
+        var scale = Lampa.Storage.get('ntflx_card_scale', '1.35');
+        var shift = Lampa.Storage.get('ntflx_edge_shift', '20px');
+        var logoH = Lampa.Storage.get('ntflx_logo_height', '200px');
+        var blur = Lampa.Storage.get('ntflx_backdrop_blur', '30px');
+        var sbWidth = Lampa.Storage.get('ntflx_sidebar_width', '280px');
+        var sbOpacity = Lampa.Storage.get('ntflx_sidebar_opacity', '0.45');
 
         // AUTO LITE-MODE FOR LOW-END TVS
         if (isExoticOS) {
@@ -421,15 +580,15 @@
         }
 
         function getBorderColor(val) {
-            if (val === 'accent') return 'var(--nfx-accent)';
+            if (val === 'accent') return 'var(--ntflx-accent)';
             if (val === 'white') return '#ffffff';
             if (val === 'black') return '#000000';
             return 'transparent';
         }
 
-        var bFocus = getBorderColor(Lampa.Storage.get('nfx_card_border_focus', 'accent'));
-        var bIdle = getBorderColor(Lampa.Storage.get('nfx_card_border_idle', 'transparent'));
-        var cardRad = Lampa.Storage.get('nfx_card_radius', '8px');
+        var bFocus = getBorderColor(Lampa.Storage.get('ntflx_card_border_focus', 'accent'));
+        var bIdle = getBorderColor(Lampa.Storage.get('ntflx_card_border_idle', 'transparent'));
+        var cardRad = Lampa.Storage.get('ntflx_card_radius', '8px');
 
         var menuCustomCSS = '';
         if (sbOpacity !== 'native') {
@@ -449,7 +608,7 @@
             return r ? parseInt(r[1], 16) + ',' + parseInt(r[2], 16) + ',' + parseInt(r[3], 16) : '229, 9, 20';
         }
 
-        var ratingSet = Lampa.Storage.get('nfx_rating_set', 'no_kp');
+        var ratingSet = Lampa.Storage.get('ntflx_rating_set', 'no_kp');
         var ratingCSS = '';
 
         if (ratingSet === 'no_kp') {
@@ -467,35 +626,37 @@
 
         var css = `
 /* ================================================================
-   Netflix Premium Style v8.0 — UI Customization
+   NTFLX Premium Style v8.0 — UI Customization
    ================================================================ */
 
 ${fontImport}
 
 :root {
-    --nfx-bg: #0a0d12;
-    --nfx-accent: ${accent};
-    --nfx-accent-rgb: ${accentRgb};
-    --nfx-accent-gl: rgba(${accentRgb}, 0.5);
-    --nfx-accent-bg: rgba(${accentRgb}, 0.7);
-    --nfx-text: #f0f0f0;
-    --nfx-font: '${fontFam}', 'Helvetica Neue', Arial, sans-serif;
-    --nfx-card-scale: ${scale};
-    --nfx-shift: 25%;
-    --nfx-edge-nudge: ${shift};
-    --nfx-sb-blur: ${blur};
-    --nfx-duration: 420ms;
-    --nfx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --nfx-radius: ${cardRad};
-    --nfx-card-border-focus: ${bFocus};
-    --nfx-card-border-idle: ${bIdle};
-    --nfx-shadow-text: 0 2px 10px rgba(0,0,0,0.8);
+    --ntflx-bg: #07090c; /* Deeper black for higher contrast */
+    --ntflx-accent: ${accent};
+    --ntflx-accent-rgb: ${accentRgb};
+    --ntflx-accent-gl: rgba(${accentRgb}, 0.6);
+    --ntflx-accent-bg: rgba(${accentRgb}, 0.8);
+    --ntflx-text: #ffffff;
+    --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
+    --ntflx-card-scale: ${scale};
+    --ntflx-shift: 25%;
+    --ntflx-edge-nudge: ${shift};
+    --ntflx-sb-blur: ${blur};
+    --ntflx-duration: 450ms; /* Slightly slower, more cinematic */
+    --ntflx-ease: cubic-bezier(0.2, 0.8, 0.2, 1); /* Modern "out-back" feel */
+    --ntflx-radius: ${cardRad};
+    --ntflx-card-border-focus: ${bFocus};
+    --ntflx-card-border-idle: ${bIdle};
+    --ntflx-shadow-text: 0 4px 12px rgba(0,0,0,0.9);
+    --ntflx-glass-border: rgba(255, 255, 255, 0.12);
+    --ntflx-glass-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
 body {
-    background-color: var(--nfx-bg) !important;
-    font-family: var(--nfx-font) !important;
-    color: var(--nfx-text) !important;
+    background-color: var(--ntflx-bg) !important;
+    font-family: var(--ntflx-font) !important;
+    color: var(--ntflx-text) !important;
 }
 
 
@@ -527,11 +688,11 @@ body {
 
 /* Category titles */
 .items-line__title {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 700 !important;
     font-size: 1.3em !important;
-    color: var(--nfx-text) !important;
-    text-shadow: var(--nfx-shadow-text) !important;
+    color: var(--ntflx-text) !important;
+    text-shadow: var(--ntflx-shadow-text) !important;
     padding-left: 4% !important;
 }
 
@@ -542,7 +703,7 @@ body {
 
 .card {
     position: relative !important;
-    transition: transform var(--nfx-duration) var(--nfx-ease) !important;
+    transition: transform var(--ntflx-duration) var(--ntflx-ease) !important;
     will-change: transform !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
@@ -552,12 +713,12 @@ body {
 }
 
 .card__view {
-    border-radius: var(--nfx-radius) !important;
+    border-radius: var(--ntflx-radius) !important;
     overflow: visible !important;
     position: relative !important;
     background: #16181d !important;
-    border: 3px solid var(--nfx-card-border-idle) !important;
-    transition: border-color var(--nfx-duration) var(--nfx-ease) !important;
+    border: 3px solid var(--ntflx-card-border-idle) !important;
+    transition: border-color var(--ntflx-duration) var(--ntflx-ease) !important;
 }
 
 /* Hardware-accelerated Glow Layer */
@@ -568,11 +729,11 @@ body {
     top: 0; left: 0; right: 0; bottom: 0;
     border-radius: inherit !important;
     /* Draw the heavy shadow once */
-    box-shadow: 0 0 20px var(--nfx-accent-gl), 0 20px 40px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 0 20px var(--ntflx-accent-gl), 0 20px 40px rgba(0,0,0,0.6) !important;
     opacity: 0 !important; /* Hidden by default */
     z-index: -1 !important; /* Sit behind the poster */
     pointer-events: none !important;
-    transition: opacity var(--nfx-duration) var(--nfx-ease) !important;
+    transition: opacity var(--ntflx-duration) var(--ntflx-ease) !important;
     will-change: opacity !important;
 }
 
@@ -612,16 +773,16 @@ body {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    border-radius: var(--nfx-radius) !important;
+    border-radius: var(--ntflx-radius) !important;
     display: block !important;
 }
 
 /* Card title below */
 .card__title {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-size: 0.85em !important;
     font-weight: 600 !important;
-    color: var(--nfx-text) !important;
+    color: var(--ntflx-text) !important;
     padding: 4px 2px 0px !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
@@ -630,48 +791,43 @@ body {
     text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
 }
 
-/* ── QUALITY BADGE — bottom-left, green, always on top ── */
+/* ── QUALITY BADGE — modern pill shape ── */
 .card__quality {
     display: block !important;
     position: absolute !important;
-    bottom: 6px !important;
-    left: 6px !important;
-    top: auto !important;
-    right: auto !important;
+    bottom: 8px !important;
+    left: 8px !important;
     z-index: 20 !important;
-    background: rgba(46, 204, 113, 0.88) !important;
-    color: #fff !important;
-    padding: 2px 8px !important;
-    border-radius: 4px !important;
-    font-size: 0.7em !important;
-    font-weight: 700 !important;
-    font-family: var(--nfx-font) !important;
+    background: rgba(46, 204, 113, 0.95) !important;
+    color: #000 !important; /* Dark text on green badge for readability */
+    padding: 2px 10px !important;
+    border-radius: 20px !important;
+    font-size: 0.65em !important;
+    font-weight: 900 !important;
+    font-family: var(--ntflx-font) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    line-height: 1.4 !important;
+    letter-spacing: 0.05em !important;
     pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
 }
 
-/* ── RATING BADGE — bottom-right, "leaf" shape, color set by JS ── */
+/* ── RATING BADGE — modern circle/pill ── */
 .card__vote {
     display: block !important;
     position: absolute !important;
-    bottom: 6px !important;
-    right: 6px !important;
-    top: auto !important;
-    left: auto !important;
+    bottom: 8px !important;
+    right: 8px !important;
     z-index: 20 !important;
-    background: rgba(120, 120, 120, 0.6) !important;
+    background: rgba(20, 20, 20, 0.8) !important;
     color: #fff !important;
-    padding: 2px 8px !important;
-    border-radius: 10px 0 10px 0 !important;
-    font-size: 0.75em !important;
-    font-weight: 800 !important;
-    font-family: var(--nfx-font) !important;
-    line-height: 1.4 !important;
+    padding: 2px 10px !important;
+    border-radius: 20px !important;
+    font-size: 0.7em !important;
+    font-weight: 900 !important;
+    font-family: var(--ntflx-font) !important;
     pointer-events: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
 }
 
 .card__age { display: none !important; }
@@ -682,23 +838,23 @@ body {
    ================================================================ */
 
 /* ── Suppress auto-focus until user interaction ── */
-body:not(.nfx-user-interacted) .card.focus,
-body:not(.nfx-user-interacted) .card.hover {
+body:not(.ntflx-user-interacted) .card.focus,
+body:not(.ntflx-user-interacted) .card.hover {
     transform: translate3d(0, 0, 0) !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus .card__view,
-body:not(.nfx-user-interacted) .card.hover .card__view {
-    border-color: var(--nfx-card-border-idle) !important;
+body:not(.ntflx-user-interacted) .card.focus .card__view,
+body:not(.ntflx-user-interacted) .card.hover .card__view {
+    border-color: var(--ntflx-card-border-idle) !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus .card__view::before,
-body:not(.nfx-user-interacted) .card.hover .card__view::before {
+body:not(.ntflx-user-interacted) .card.focus .card__view::before,
+body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     opacity: 0 !important;
 }
 
-body:not(.nfx-user-interacted) .card.focus ~ .card,
-body:not(.nfx-user-interacted) .card.hover ~ .card {
+body:not(.ntflx-user-interacted) .card.focus ~ .card,
+body:not(.ntflx-user-interacted) .card.hover ~ .card {
     transform: translate3d(0, 0, 0) !important;
 }
 
@@ -710,14 +866,14 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus,
 .card.hover,
 .card:hover {
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
 }
 
 /* Focused card — subtle red glow + clean shadow */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
-    border-color: var(--nfx-card-border-focus) !important;
+    border-color: var(--ntflx-card-border-focus) !important;
 }
 
 .card.focus .card__view::before,
@@ -730,49 +886,49 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 .card.focus ~ .card,
 .card.hover ~ .card,
 .card:hover ~ .card {
-    transform: translate3d(var(--nfx-shift), 0, 0) !important;
+    transform: translate3d(var(--ntflx-shift), 0, 0) !important;
 }
 
 /* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
 
 /* First card: left-origin scale + 20px rightward nudge (no clip) */
-.card[data-nfx-edge="first"].focus,
-.card[data-nfx-edge="first"].hover,
-.card[data-nfx-edge="first"]:hover {
+.card[data-ntflx-edge="first"].focus,
+.card[data-ntflx-edge="first"].hover,
+.card[data-ntflx-edge="first"]:hover {
     transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(var(--nfx-edge-nudge), 0, 0) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
+               translate3d(var(--ntflx-edge-nudge), 0, 0) !important;
 }
 
 /* First card's neighbors: standard shift + extra 20px to compensate */
-.card[data-nfx-edge="first"].focus ~ .card,
-.card[data-nfx-edge="first"].hover ~ .card,
-.card[data-nfx-edge="first"]:hover ~ .card {
-    transform: translate3d(calc(var(--nfx-shift) + var(--nfx-edge-nudge)), 0, 0) !important;
+.card[data-ntflx-edge="first"].focus ~ .card,
+.card[data-ntflx-edge="first"].hover ~ .card,
+.card[data-ntflx-edge="first"]:hover ~ .card {
+    transform: translate3d(calc(var(--ntflx-shift) + var(--ntflx-edge-nudge)), 0, 0) !important;
 }
 
 /* Last card: right-origin scale + 20px leftward nudge (no clip) */
-.card[data-nfx-edge="last"].focus,
-.card[data-nfx-edge="last"].hover,
-.card[data-nfx-edge="last"]:hover {
+.card[data-ntflx-edge="last"].focus,
+.card[data-ntflx-edge="last"].hover,
+.card[data-ntflx-edge="last"]:hover {
     transform-origin: right center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1)
-               translate3d(calc(var(--nfx-edge-nudge) * -1), 0, 0) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
+               translate3d(calc(var(--ntflx-edge-nudge) * -1), 0, 0) !important;
 }
 
 /* Reduce shift for the last card when a non-edge sibling is focused */
-.card.focus ~ .card[data-nfx-edge="last"],
-.card.hover ~ .card[data-nfx-edge="last"],
-.card:hover ~ .card[data-nfx-edge="last"] {
-    transform: translate3d(calc(var(--nfx-shift) * 0.5), 0, 0) !important;
+.card.focus ~ .card[data-ntflx-edge="last"],
+.card.hover ~ .card[data-ntflx-edge="last"],
+.card:hover ~ .card[data-ntflx-edge="last"] {
+    transform: translate3d(calc(var(--ntflx-shift) * 0.5), 0, 0) !important;
 }
 
 /* ── SINGLE CARD: use left-origin (no clip) but NO shift ── */
-.card[data-nfx-single="true"].focus,
-.card[data-nfx-single="true"].hover,
-.card[data-nfx-single="true"]:hover {
+.card[data-ntflx-single="true"].focus,
+.card[data-ntflx-single="true"].hover,
+.card[data-ntflx-single="true"]:hover {
     transform-origin: left center !important;
-    transform: scale3d(var(--nfx-card-scale), var(--nfx-card-scale), 1) !important;
+    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
 }
 
 
@@ -882,11 +1038,11 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* ── DYNAMIC SCROLL FOG LAYER ── */
 .full-start-new::before, .full-start::before {
     content: "" !important; display: block !important; position: absolute !important;
-    top: -6em !important; /* Match breakout */
+    top: -6em !important; 
     left: 0 !important; right: 0 !important; bottom: 0 !important;
-    height: calc(100% + 6em) !important; /* Match breakout */
-    background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 35%, transparent 80%) !important;
-    opacity: var(--nfx-fog-level, 0.15) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.1s linear !important;
+    height: calc(100% + 6em) !important; 
+    background: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(7,9,12,0.95) 45%, rgba(7,9,12,0.4) 75%, transparent 100%) !important;
+    opacity: var(--ntflx-fog-level, 0.25) !important; z-index: 1 !important; pointer-events: none !important; transition: opacity 0.2s ease !important;
 }
 
 /* ── HIDE REACTIONS (Pink zone) ── */
@@ -930,14 +1086,15 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* ── Hero Title / Logo — NO background, only text-shadow ── */
 .full-start-new__title,
 .full-start__title {
-    font-family: var(--nfx-font) !important;
-    font-weight: 800 !important;
-    font-size: 2.6em !important;
-    line-height: 1.08 !important;
+    font-family: var(--ntflx-font) !important;
+    font-weight: 900 !important; /* Ultra-bold for cinematic feel */
+    font-size: clamp(2em, 5vw, 3.5em) !important; /* Responsive fluid typography */
+    letter-spacing: -0.02em !important;
+    line-height: 1.05 !important;
     color: #fff !important;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.7),
-                 0 6px 24px rgba(0,0,0,0.8) !important;
-    margin-bottom: 8px !important;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.8),
+                 0 8px 32px rgba(0,0,0,0.6) !important;
+    margin-bottom: 12px !important;
     background: none !important;
     background-color: transparent !important;
     box-shadow: none !important;
@@ -960,7 +1117,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* Head line (year, country) */
 .full-start-new__head,
 .full-start__head {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.85em !important;
     line-height: 1.3 !important;
@@ -972,7 +1129,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 /* Tagline (quote) */
 .full-start-new__tagline,
 .full-start__tagline {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-style: italic !important;
     font-size: 0.88em !important;
@@ -987,7 +1144,7 @@ body:not(.nfx-user-interacted) .card.hover ~ .card {
 ${ratingCSS}
 .full-start-new__rate-line,
 .full-start__rate-line {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.82em !important;
     line-height: 1.3 !important;
@@ -998,7 +1155,7 @@ ${ratingCSS}
 /* Details (genres, quality, etc.) */
 .full-start-new__details,
 .full-start__details {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     font-size: 0.82em !important;
     line-height: 1.3 !important;
@@ -1012,7 +1169,7 @@ ${ratingCSS}
 .full-start__text,
 .full-start-new__description,
 .full-start__description {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     color: rgba(255,255,255,0.72) !important;
     font-size: 0.85em !important;
@@ -1024,47 +1181,44 @@ ${ratingCSS}
 
 /* ── Premium Buttons ── */
 
-/* Inactive buttons: grayish semi-transparent glass */
+/* Inactive buttons: grayish semi-transparent glass with border */
 .full-start__button,
 .full-start-new__button {
-    font-family: var(--nfx-font) !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    background: rgba(120, 120, 120, 0.2) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-    color: rgba(255,255,255,0.8) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
-    transition: background 300ms ease,
-                transform 200ms ease,
-                box-shadow 300ms ease,
-                border-color 300ms ease !important;
+    font-family: var(--ntflx-font) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase !important;
+    font-size: 0.85em !important;
+    border-radius: 50px !important; /* Pill shape */
+    border: 1px solid var(--ntflx-glass-border) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+    color: #fff !important;
+    padding: 0.8em 2em !important;
+    margin-right: 12px !important;
+    transition: all 400ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
 }
 
-/* Active/focused button: tinted red glass, pure white text */
+/* Active/focused button: Intense accent glass with inner glow */
 .full-start__button.focus,
 .full-start__button:hover,
 .full-start-new__button.focus,
 .full-start-new__button:hover {
-    background: var(--nfx-accent-bg) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 20px var(--nfx-accent-gl),
-               0 8px 28px rgba(0,0,0,0.4) !important;
-    transform: scale(1.04) !important;
+    background: var(--ntflx-accent) !important;
+    border-color: rgba(255,255,255,0.4) !important;
+    box-shadow: 0 0 30px var(--ntflx-accent-gl),
+                0 12px 36px rgba(0,0,0,0.5),
+                inset 0 0 12px rgba(255,255,255,0.3) !important;
+    transform: translateY(-4px) scale(1.05) !important;
+    color: #fff !important;
 }
 
-/* Ensure button text/icons are always white when focused */
 .full-start__button.focus *,
-.full-start__button:hover *,
-.full-start-new__button.focus *,
-.full-start-new__button:hover * {
-    color: #ffffff !important;
-    fill: #ffffff !important;
+.full-start-new__button.focus * {
+    color: #fff !important;
+    fill: #fff !important;
 }
 
 
@@ -1075,8 +1229,8 @@ ${ratingCSS}
 /* Container: dark glossy glass, full-height coverage */
 .menu {
     ${menuCustomCSS}
-    backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(var(--nfx-sb-blur)) saturate(150%) !important;
+    backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
     border-right: 1px solid rgba(255,255,255,0.08) !important;
     border-left: none !important;
     border-top: none !important;
@@ -1099,29 +1253,29 @@ ${ratingCSS}
 
 /* Added small margin and slightly softer radius to separate items properly */
 .menu__item {
-    border-radius: 6px !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border-left: 3px solid transparent !important;
-    padding: 0.65em 1.4em 0.65em 1em !important;
-    margin: 0 0 8px 0 !important; /* Space separating sidebar buttons */
-    transition: border-color 200ms ease,
-                background 200ms ease !important;
+    border-radius: 12px !important; /* Softer corners */
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    padding: 0.8em 1.4em 0.8em 1.2em !important;
+    margin: 4px 12px !important; /* Inset items for better focus visual */
+    transition: all 300ms var(--ntflx-ease) !important;
     display: flex;
     align-items: center !important;
-    gap: 0.7em !important;
+    gap: 1em !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    position: relative !important;
 }
 
-/* ── Active / focused: 3px red line + subtle white glass ── */
+/* ── Active / focused: Glowing pill effect ── */
 .menu__item.focus,
 .menu__item.hover,
 .menu__item.traverse,
 .menu__item.active {
-    background: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: none !important;
-    border-left: 3px solid var(--nfx-accent) !important;
+    background: var(--ntflx-accent) !important;
+    border-color: rgba(255,255,255,0.2) !important;
+    box-shadow: 0 4px 15px var(--ntflx-accent-gl) !important;
 }
 
 /* Active text: pure white */
@@ -1130,7 +1284,8 @@ ${ratingCSS}
 .menu__item.traverse .menu__text,
 .menu__item.active .menu__text {
     color: #ffffff !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
 }
 
 /* Active icons: pure white */
@@ -1150,7 +1305,7 @@ ${ratingCSS}
 
 /* ── Inactive text: muted with subtle shadow ── */
 .menu__text {
-    font-family: var(--nfx-font) !important;
+    font-family: var(--ntflx-font) !important;
     font-weight: 500 !important;
     ${menuTextCustomCSS}
     color: rgba(255,255,255,0.5) !important;
@@ -1249,7 +1404,7 @@ ${ratingCSS}
     }
 
     .full-start-new, .full-start {
-        background-image: var(--nfx-mobile-bg) !important;
+        background-image: var(--ntflx-mobile-bg) !important;
         background-size: cover !important;
         background-position: center top !important;
         background-repeat: no-repeat !important;
@@ -1262,9 +1417,9 @@ ${ratingCSS}
     /* Gradient overlay to make text readable */
     .applecation__overlay, .application__overlay {
         display: block !important;
-        background: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        background: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
         background-color: transparent !important;
-        background-image: linear-gradient(to top, var(--nfx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
+        background-image: linear-gradient(to top, var(--ntflx-bg) 0%, rgba(10,13,18,0.85) 40%, rgba(10,13,18,0.2) 75%, transparent 100%) !important;
         box-shadow: none !important;
         position: absolute !important;
         top: 0 !important;
@@ -1295,9 +1450,9 @@ ${ratingCSS}
         padding-bottom: 2.5em !important;
     }
     :root {
-        --nfx-card-scale: 1.1;
-        --nfx-shift: 8%;
-        --nfx-duration: 300ms;
+        --ntflx-card-scale: 1.1;
+        --ntflx-shift: 8%;
+        --ntflx-duration: 300ms;
     }
     .items-line {
         padding: 16px 0 !important;
@@ -1316,9 +1471,9 @@ ${ratingCSS}
         max-width: 85vw !important;
     }
     :root {
-        --nfx-card-scale: 1.25;
-        --nfx-shift: 18%;
-        --nfx-duration: 350ms;
+        --ntflx-card-scale: 1.25;
+        --ntflx-shift: 18%;
+        --ntflx-duration: 350ms;
     }
     .items-line {
         padding: 30px 0 !important;
@@ -1349,21 +1504,36 @@ ${ratingCSS}
         max-width: 1000px !important;
     }
     :root {
-        --nfx-card-scale: 1.45;
-        --nfx-shift: 30%;
-        --nfx-duration: 450ms;
+        --ntflx-card-scale: 1.45;
+        --ntflx-shift: 30%;
+        --ntflx-duration: 450ms;
     }
     .items-line {
         padding: 60px 0 !important;
     }
     .card__view {
-        border-radius: calc(var(--nfx-radius) * 1.5) !important;
+        border-radius: calc(var(--ntflx-radius) * 1.5) !important;
     }
+}
+/* ── NTFLX DETAILS OVERLAY ── */
+.ntflx-overlay {
+    animation: ntflx_fade_in 0.4s ease-out;
+}
+
+@keyframes ntflx_fade_in {
+    from { opacity: 0; transform: scale(1.05); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.ntflx-overlay .selector.focus {
+    background: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1) !important;
 }
 `;
 
         var style = document.createElement('style');
-        style.id = 'nfx-premium-v8';
+        style.id = 'ntflx-premium-v8';
         style.textContent = css;
         document.head.appendChild(style);
     }
@@ -1381,14 +1551,14 @@ ${ratingCSS}
 
         var i18n = {
             'en': {
-                'ps_title': 'Premium Style',
+                'ps_title': 'Premium Style v9.0',
                 'accent_color': 'Accent Color',
                 'red': 'Netflix Red',
-                'green': 'Green',
-                'blue': 'Blue',
-                'orange': 'Orange',
-                'purple': 'Purple',
-                'pink': 'Pink',
+                'gold': 'Cinematic Gold',
+                'silver': 'Modern Silver',
+                'blue': 'Electric Blue',
+                'purple': 'Royal Purple',
+                'green': 'Emerald Green',
                 'font_family': 'Font Family',
                 'sidebar_font_size': 'Sidebar Font Size',
                 'small': 'Small',
@@ -1437,14 +1607,14 @@ ${ratingCSS}
                 'r_none': 'Hide All Ratings'
             },
             'uk': {
-                'ps_title': 'Premium Style',
+                'ps_title': 'Premium Style v9.0',
                 'accent_color': 'Акцентний колір',
                 'red': 'Червоний (Netflix)',
-                'green': 'Зелений',
-                'blue': 'Синій',
-                'orange': 'Помаранчевий',
-                'purple': 'Фіолетовий',
-                'pink': 'Рожевий',
+                'gold': 'Кінематографічне золото',
+                'silver': 'Сучасне срібло',
+                'blue': 'Електричний синій',
+                'purple': 'Королівський фіолетовий',
+                'green': 'Смарагдовий зелений',
                 'font_family': 'Шрифт',
                 'sidebar_font_size': 'Розмір шрифту бокового меню',
                 'small': 'Малий',
@@ -1493,14 +1663,14 @@ ${ratingCSS}
                 'r_none': 'Приховати всі'
             },
             'ru': {
-                'ps_title': 'Premium Style',
+                'ps_title': 'Premium Style v9.0',
                 'accent_color': 'Акцентный цвет',
                 'red': 'Красный (Netflix)',
-                'green': 'Зеленый',
-                'blue': 'Синий',
-                'orange': 'Оранжевый',
-                'purple': 'Фиолетовый',
-                'pink': 'Розовый',
+                'gold': 'Кинематографическое золото',
+                'silver': 'Современное серебро',
+                'blue': 'Электрический синий',
+                'purple': 'Королевский фиолетовый',
+                'green': 'Изумрудный зеленый',
                 'font_family': 'Шрифт',
                 'sidebar_font_size': 'Размер шрифта бокового меню',
                 'small': 'Маленький',
@@ -1556,26 +1726,26 @@ ${ratingCSS}
         }
 
         Lampa.SettingsApi.addComponent({
-            component: 'nfx_premium',
+            component: 'ntflx_premium',
             name: t('ps_title'),
             icon: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>'
         });
 
         var prm = [
-            { name: 'nfx_accent_color', type: 'select', values: { '#e50914': t('red'), '#2ecc71': t('green'), '#3498db': t('blue'), '#e67e22': t('orange'), '#9b59b6': t('purple'), '#e91e63': t('pink') }, default: '#e50914', title: t('accent_color') },
-            { name: 'nfx_logo_lang', type: 'select', values: { 'auto': t('auto'), 'uk': 'Ukrainian (UK/UA)', 'ru': 'Russian (RU)', 'en': 'English (EN)' }, default: 'auto', title: t('logo_lang') },
-            { name: 'nfx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: t('font_family') },
-            { name: 'nfx_card_border_focus', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white') }, default: 'accent', title: t('card_border_focus') },
-            { name: 'nfx_card_border_idle', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white'), 'black': t('black') }, default: 'transparent', title: t('card_border_idle') },
-            { name: 'nfx_card_radius', type: 'select', values: { '0px': t('square'), '4px': t('small_rad'), '8px': t('med_rad') + ' (' + t('default') + ')', '12px': t('large_rad'), '16px': t('xl_rad') }, default: '8px', title: t('card_radius') },
-            { name: 'nfx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
-            { name: 'nfx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '220px': t('compact'), '280px': t('normal') + ' (' + t('default') + ')', '340px': t('wide'), '400px': t('uwide') }, default: '280px', title: t('sb_width') },
-            { name: 'nfx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
-            { name: 'nfx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
-            { name: 'nfx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
-            { name: 'nfx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '200px', title: t('logo_height') },
-            { name: 'nfx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') },
-            { name: 'nfx_rating_set', type: 'select', values: { 'all': t('r_all'), 'no_kp': t('r_no_kp'), 'west': t('r_west'), 'tmdb': t('r_tmdb'), 'none': t('r_none') }, default: 'no_kp', title: t('rating_set') }
+            { name: 'ntflx_accent_color', type: 'select', values: { '#e50914': t('red'), '#d4af37': t('gold'), '#c0c0c0': t('silver'), '#007aff': t('blue'), '#5856d6': t('purple'), '#2ecc71': t('green') }, default: '#e50914', title: t('accent_color') },
+            { name: 'ntflx_logo_lang', type: 'select', values: { 'auto': t('auto'), 'uk': 'Ukrainian (UK/UA)', 'ru': 'Russian (RU)', 'en': 'English (EN)' }, default: 'auto', title: t('logo_lang') },
+            { name: 'ntflx_font_family', type: 'select', values: { 'Montserrat': 'Montserrat', 'Roboto': 'Roboto', 'Open Sans': 'Open Sans', 'Inter': 'Inter' }, default: 'Montserrat', title: t('font_family') },
+            { name: 'ntflx_card_border_focus', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white') }, default: 'accent', title: t('card_border_focus') },
+            { name: 'ntflx_card_border_idle', type: 'select', values: { 'transparent': t('transparent'), 'accent': t('accent_color'), 'white': t('white'), 'black': t('black') }, default: 'transparent', title: t('card_border_idle') },
+            { name: 'ntflx_card_radius', type: 'select', values: { '0px': t('square'), '4px': t('small_rad'), '8px': t('med_rad') + ' (' + t('default') + ')', '12px': t('large_rad'), '16px': t('xl_rad') }, default: '8px', title: t('card_radius') },
+            { name: 'ntflx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
+            { name: 'ntflx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '220px': t('compact'), '280px': t('normal') + ' (' + t('default') + ')', '340px': t('wide'), '400px': t('uwide') }, default: '280px', title: t('sb_width') },
+            { name: 'ntflx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
+            { name: 'ntflx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
+            { name: 'ntflx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
+            { name: 'ntflx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '200px', title: t('logo_height') },
+            { name: 'ntflx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') },
+            { name: 'ntflx_rating_set', type: 'select', values: { 'all': t('r_all'), 'no_kp': t('r_no_kp'), 'west': t('r_west'), 'tmdb': t('r_tmdb'), 'none': t('r_none') }, default: 'no_kp', title: t('rating_set') }
         ];
 
         prm.forEach(function (p) {
@@ -1583,7 +1753,7 @@ ${ratingCSS}
             if (p.values) paramConfig.values = p.values;
 
             Lampa.SettingsApi.addParam({
-                component: 'nfx_premium',
+                component: 'ntflx_premium',
                 param: paramConfig,
                 field: { name: p.title },
                 onChange: function () { injectCSS(); }
@@ -1592,8 +1762,8 @@ ${ratingCSS}
     }
 
     function bootstrap() {
-        if (window.__nfx_premium_v8) return;
-        window.__nfx_premium_v8 = true;
+        if (window.__ntflx_premium_v8) return;
+        window.__ntflx_premium_v8 = true;
 
         initSettings();
         injectCSS();
@@ -1604,7 +1774,7 @@ ${ratingCSS}
 
         if (window.Lampa && Lampa.Storage && Lampa.Storage.listener) {
             Lampa.Storage.listener.follow('change', function (e) {
-                if (e.name && e.name.indexOf('nfx_') === 0) {
+                if (e.name && e.name.indexOf('ntflx_') === 0) {
                     injectCSS();
                 }
             });
@@ -1620,7 +1790,7 @@ ${ratingCSS}
                         var hero = e.target.querySelector('.full-start-new, .full-start');
                         if (hero) {
                             var additionalFog = Math.min(st / 400, 0.8);
-                            hero.style.setProperty('--nfx-fog-level', 0.05 + additionalFog);
+                            hero.style.setProperty('--ntflx-fog-level', 0.05 + additionalFog);
                         }
                         isScrolling = false;
                     });
@@ -1629,7 +1799,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NFX Premium] v8.22 — Ultimate Performance & TV Compatibility');
+        console.log('[NTFLX Premium] v8.22 — Ultimate Performance & TV Compatibility');
     }
 
     if (window.Lampa && Lampa.Listener) {
