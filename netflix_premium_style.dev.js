@@ -363,8 +363,12 @@
                         // Return focus to the details page and specifically the button
                         setTimeout(function() {
                             Lampa.Controller.toggle('full');
-                            Lampa.Controller.collectionFocus(descBtn[0], btnsParams[0]);
-                        }, 100);
+                            // Find the first button on the page (Watch or Torrent) and focus it
+                            var firstBtn = render.find('.selector').first();
+                            if (firstBtn.length) {
+                                Lampa.Controller.collectionFocus(firstBtn[0], render[0]);
+                            }
+                        }, 150);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -667,22 +671,19 @@
 ${fontImport}
 
 :root {
-    --ntflx-bg: #000000; /* Pure black for maximum contrast */
+    --ntflx-bg: #0a0a0a; /* Ultra-dark grey for premium feel */
     --ntflx-accent: ${accent};
     --ntflx-accent-rgb: ${accentRgb};
-    --ntflx-accent-gl: rgba(${accentRgb}, 0.6);
-    --ntflx-accent-bg: rgba(${accentRgb}, 0.9);
+    --ntflx-accent-gl: rgba(${accentRgb}, 0.5);
     --ntflx-text: #ffffff;
     --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
-    --ntflx-card-scale: 1.1; /* Slightly more noticeable but still safe */
-    --ntflx-shift: 15%;
-    --ntflx-duration: 450ms;
-    --ntflx-ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --ntflx-radius: ${cardRad};
-    --ntflx-card-border-focus: ${bFocus};
-    --ntflx-card-border-idle: rgba(255,255,255,0.08);
-    --ntflx-glass: rgba(255, 255, 255, 0.03);
-    --ntflx-glass-border: rgba(255, 255, 255, 0.12);
+    --ntflx-card-scale: 1.12;
+    --ntflx-shift: 18%;
+    --ntflx-duration: 400ms;
+    --ntflx-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --ntflx-radius: 12px; /* Uniform premium radius */
+    --ntflx-card-border-focus: #ffffff; /* Clean white focus */
+    --ntflx-card-border-idle: rgba(255,255,255,0.05);
 }
 
 body {
@@ -813,67 +814,46 @@ body {
 .card__title {
     position: relative !important;
     font-family: var(--ntflx-font) !important;
-    font-size: 0.75em !important;
-    font-weight: 800 !important;
-    color: rgba(255,255,255,0.6) !important;
-    padding: 10px 4px 0px !important;
+    font-size: 0.8em !important;
+    font-weight: 500 !important;
+    color: rgba(255,255,255,0.7) !important;
+    padding: 10px 2px 0px !important;
     line-height: 1.2 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     text-align: center !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    transition: all 0.3s var(--ntflx-ease) !important;
+    transition: color 0.3s ease !important;
 }
 
-/* Make title pop when card is focused */
-.card.focus .card__title,
-.card.hover .card__title,
-.card:hover .card__title {
+.card.focus .card__title {
     color: #fff !important;
-    transform: translateY(2px) !important;
-    text-shadow: 0 0 10px rgba(255,255,255,0.3) !important;
+    font-weight: 700 !important;
 }
 
-/* ── PREMIUM LEAF RATING ── */
-.card__vote {
+/* ── PREMIUM BADGES ── */
+.card__vote, .card__quality {
     position: absolute !important;
     top: 8px !important;
-    right: 8px !important;
     bottom: auto !important;
-    left: auto !important;
-    background: var(--ntflx-accent) !important;
-    color: #fff !important;
-    font-size: 0.7em !important;
+    padding: 2px 8px !important;
+    font-size: 0.65em !important;
     font-weight: 900 !important;
-    padding: 3px 8px !important;
-    border-radius: 12px 2px 12px 12px !important; /* Modern Leaf Shape */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    border-radius: 4px !important;
     z-index: 5 !important;
-    transform: scale(0.9) !important;
-    transition: transform 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
 }
 
-.card.focus .card__vote {
-    transform: scale(1.1) !important;
+.card__vote {
+    right: 8px !important;
+    background: var(--ntflx-accent) !important;
+    color: #fff !important;
 }
 
 .card__quality {
-    position: absolute !important;
-    top: 8px !important;
     left: 8px !important;
-    bottom: auto !important;
-    right: auto !important;
-    background: rgba(255,255,255,0.15) !important;
-    backdrop-filter: blur(4px);
-    color: #fff !important;
-    font-size: 0.6em !important;
-    font-weight: 900 !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    z-index: 5 !important;
-    text-transform: uppercase !important;
+    background: #fff !important;
+    color: #000 !important;
 }
 
 
@@ -914,16 +894,13 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     z-index: 10 !important; /* Ensure focused card pops over neighbors */
 }
 
-/* Focused card — Bloom + 3D Shadow */
+/* Focused card — Apple TV style elevation */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
-    border-color: var(--ntflx-card-border-focus) !important;
-    box-shadow: 
-        0 20px 40px rgba(0,0,0,0.9), 
-        0 0 0 1px rgba(255,255,255,0.1),
-        0 0 25px var(--ntflx-accent-gl) !important;
-    transform: translateY(-5px) !important;
+    border: 3px solid var(--ntflx-card-border-focus) !important;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.9) !important;
+    transform: translateY(-8px) !important;
 }
 
 .card.focus .card__view::before,
