@@ -347,18 +347,23 @@
                     var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); overflow-y: auto; overflow-x: hidden; padding: 5vh 5vw; display:flex; flex-direction:column; align-items:center; scroll-behavior: smooth;"></div>');
                     
                     var closeBtn = $('<div class="selector" style="position:absolute; top: 5vh; right: 5vw; cursor:pointer; color:#fff; padding:12px; border-radius:50%; transition: all 0.3s;"><svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
-                    
                     var isClosing = false;
                     var closeUI = function(e) {
                         if (isClosing) return;
                         isClosing = true;
                         if (e && e.stopPropagation) e.stopPropagation();
+                        
                         overlay.remove();
                         _overlayOpen = false;
+                        
+                        // Clean up controller
                         if (Lampa.Controller.remove) Lampa.Controller.remove('ntflx_details');
                         else if (Lampa.Controller.controllers) delete Lampa.Controller.controllers['ntflx_details'];
-                        if (Lampa.Controller.previous) Lampa.Controller.previous();
-                        else Lampa.Controller.toggle('full');
+                        
+                        // Return focus to the details page
+                        setTimeout(function() {
+                            Lampa.Controller.toggle('full');
+                        }, 50);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
