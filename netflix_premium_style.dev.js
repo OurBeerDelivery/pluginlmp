@@ -336,15 +336,21 @@
                 var btnText = type === 'tv' ? t.about_tv : t.about_movie;
                 var btnSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
                 var descBtn = $('<div class="full-start__button selector ntflx-desc-btn" style="display:inline-flex; align-items:center;">' + btnSvg + '<div>' + btnText + '</div></div>');
-                
                 descBtn.css({'margin-left': '0.5em'});
 
                 var _overlayOpen = false;
+                var lastFocusedElement = null; // Explicit focus tracking
+                
                 descBtn.on('click hover:enter', function(e) {
                     if (_overlayOpen) return;
+                    
+                    // Capture focus before overlay opens
+                    var activeFocus = $('.focus')[0] || $('.selector')[0];
+                    if (activeFocus) lastFocusedElement = activeFocus;
+                    
                     _overlayOpen = true;
                     e.stopPropagation && e.stopPropagation();
-                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); overflow-y: auto; overflow-x: hidden; padding: 5vh 5vw; display:flex; flex-direction:column; align-items:center; scroll-behavior: smooth;"></div>');
+                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); overflow-y: auto; overflow-x: hidden; padding: 5vh 5vw; display:flex; flex-direction:column; align-items:center; scroll-behavior: smooth;"></div>');
                     
                     var closeBtn = $('<div class="selector" style="position:absolute; top: 5vh; right: 5vw; cursor:pointer; color:#fff; padding:12px; border-radius:50%; transition: all 0.3s;"><svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
                     var isClosing = false;
@@ -360,15 +366,16 @@
                         if (Lampa.Controller.remove) Lampa.Controller.remove('ntflx_details');
                         else if (Lampa.Controller.controllers) delete Lampa.Controller.controllers['ntflx_details'];
                         
-                        // Return focus to the details page and specifically the button
+                        // Explicitly restore focus
                         setTimeout(function() {
                             Lampa.Controller.toggle('full');
-                            // Find the first button on the page (Watch or Torrent) and focus it
-                            var firstBtn = render.find('.selector').first();
-                            if (firstBtn.length) {
-                                Lampa.Controller.collectionFocus(firstBtn[0], render[0]);
+                            if (lastFocusedElement && $(lastFocusedElement).closest('body').length) {
+                                Lampa.Controller.collectionFocus(lastFocusedElement, render[0]);
+                            } else {
+                                var firstBtn = render.find('.selector').first();
+                                if (firstBtn.length) Lampa.Controller.collectionFocus(firstBtn[0], render[0]);
                             }
-                        }, 150);
+                        }, 50);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -665,7 +672,7 @@
 
         var css = `
 /* ================================================================
-   NTFLX Premium Style v10.0 — UI Customization
+   NTFLX Premium Style v12.0 (Ultimate) — UI Customization
    ================================================================ */
 
 ${fontImport}
@@ -677,10 +684,10 @@ ${fontImport}
     --ntflx-accent-gl: rgba(${accentRgb}, 0.5);
     --ntflx-text: #ffffff;
     --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
-    --ntflx-card-scale: 1.12;
+    --ntflx-card-scale: 1.08; /* Minimal scale to prevent edge overlap */
     --ntflx-shift: 18%;
-    --ntflx-duration: 400ms;
-    --ntflx-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --ntflx-duration: 300ms; /* Faster for snappier UI */
+    --ntflx-ease: cubic-bezier(0.25, 1, 0.5, 1);
     --ntflx-radius: 12px; /* Uniform premium radius */
     --ntflx-card-border-focus: #ffffff; /* Clean white focus */
     --ntflx-card-border-idle: rgba(255,255,255,0.05);
@@ -814,21 +821,21 @@ body {
 .card__title {
     position: relative !important;
     font-family: var(--ntflx-font) !important;
-    font-size: 0.8em !important;
+    font-size: 0.85em !important;
     font-weight: 500 !important;
     color: rgba(255,255,255,0.7) !important;
-    padding: 10px 2px 0px !important;
+    padding: 8px 2px 0px !important;
     line-height: 1.2 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     text-align: center !important;
-    transition: color 0.3s ease !important;
+    transition: color 0.2s ease !important;
 }
 
 .card.focus .card__title {
     color: #fff !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
 }
 
 /* ── PREMIUM BADGES ── */
@@ -836,12 +843,12 @@ body {
     position: absolute !important;
     top: 8px !important;
     bottom: auto !important;
-    padding: 2px 8px !important;
+    padding: 2px 6px !important;
     font-size: 0.65em !important;
     font-weight: 900 !important;
     border-radius: 4px !important;
     z-index: 5 !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important; /* Lighter shadow for perf */
 }
 
 .card__vote {
@@ -852,9 +859,11 @@ body {
 
 .card__quality {
     left: 8px !important;
-    background: #fff !important;
+    background: rgba(255,255,255,0.9) !important;
     color: #000 !important;
 }
+
+.card__age { display: none !important; }
 
 
 /* ================================================================
@@ -894,13 +903,12 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     z-index: 10 !important; /* Ensure focused card pops over neighbors */
 }
 
-/* Focused card — Apple TV style elevation */
+/* Focused card — Fast, lag-free elevation */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
     border: 3px solid var(--ntflx-card-border-focus) !important;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.9) !important;
-    transform: translateY(-8px) !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8) !important; /* Reduced shadow size for perf */
 }
 
 .card.focus .card__view::before,
@@ -1234,9 +1242,6 @@ ${ratingCSS}
     border-radius: 50px !important; /* Pill shape */
     border: 1px solid var(--ntflx-glass-border) !important;
     background: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
     color: #fff !important;
     padding: 0.8em 2em !important;
     margin-right: 12px !important;
@@ -1250,9 +1255,6 @@ ${ratingCSS}
 .full-start-new__button:hover {
     background: var(--ntflx-accent) !important;
     border-color: rgba(255,255,255,0.4) !important;
-    box-shadow: 0 0 30px var(--ntflx-accent-gl),
-                0 12px 36px rgba(0,0,0,0.5),
-                inset 0 0 12px rgba(255,255,255,0.3) !important;
     transform: translateY(-4px) scale(1.05) !important;
     color: #fff !important;
 }
@@ -1263,122 +1265,7 @@ ${ratingCSS}
     fill: #fff !important;
 }
 
-
-/* ================================================================
-   5) SIDEBAR — Dark gloss glassmorphism, optimized for long text
-   ================================================================ */
-
-/* Container: dark glossy glass, full-height coverage */
-.menu {
-    ${menuCustomCSS}
-    backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(var(--ntflx-sb-blur)) saturate(150%) !important;
-    border-right: 1px solid rgba(255,255,255,0.08) !important;
-    border-left: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-}
-
-.menu__list {
-    background: transparent !important;
-    padding: 0 !important;
-}
-
-/* ── Menu Items: geometry & text fit ── */
-.menu__item[style*="display: none"],
-.menu__item.hide,
-.menu__item.hidden {
-    display: none !important;
-}
-
-/* Added small margin and slightly softer radius to separate items properly */
-.menu__item {
-    border-radius: 12px !important; /* Softer corners */
-    background: transparent !important;
-    border: 1px solid transparent !important;
-    padding: 0.8em 1.4em 0.8em 1.2em !important;
-    margin: 4px 12px !important; /* Inset items for better focus visual */
-    transition: all 300ms var(--ntflx-ease) !important;
-    display: flex;
-    align-items: center !important;
-    gap: 1em !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    position: relative !important;
-}
-
-/* ── Active / focused: Glowing pill effect ── */
-.menu__item.focus,
-.menu__item.hover,
-.menu__item.traverse,
-.menu__item.active {
-    background: var(--ntflx-accent) !important;
-    border-color: rgba(255,255,255,0.3) !important;
-    box-shadow: 0 8px 25px var(--ntflx-accent-gl),
-                inset 0 0 10px rgba(255,255,255,0.2) !important;
-    transform: scale(1.02) !important;
-}
-
-/* Active text: pure white */
-.menu__item.focus .menu__text,
-.menu__item.hover .menu__text,
-.menu__item.traverse .menu__text,
-.menu__item.active .menu__text {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
-}
-
-/* Active icons: pure white */
-.menu__item.focus .menu__ico,
-.menu__item.hover .menu__ico,
-.menu__item.traverse .menu__ico,
-.menu__item.active .menu__ico {
-    color: #ffffff !important;
-}
-
-.menu__item.focus .menu__ico svg,
-.menu__item.hover .menu__ico svg,
-.menu__item.traverse .menu__ico svg,
-.menu__item.active .menu__ico svg {
-    fill: #ffffff !important;
-}
-
-/* ── Inactive text: muted with subtle shadow ── */
-.menu__text {
-    font-family: var(--ntflx-font) !important;
-    font-weight: 500 !important;
-    ${menuTextCustomCSS}
-    color: rgba(255,255,255,0.5) !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
-    transition: color 200ms ease !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.3 !important;
-}
-
-/* ── Icons: slightly smaller ── */
-.menu__ico {
-    color: rgba(255,255,255,0.5) !important;
-    transition: color 200ms ease !important;
-    flex-shrink: 0 !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-    display: flex;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.menu__ico svg {
-    fill: rgba(255,255,255,0.5) !important;
-    transition: fill 200ms ease !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-}
+/* Custom menu styles removed */
 
 /* Make header float perfectly transparent over everything. 
    Removing aggressive z-indexing allows Lampa natively to overlay Modals 
@@ -1626,7 +1513,7 @@ ${ratingCSS}
 
         var i18n = {
             'en': {
-                'ps_title': 'Premium Style v10.0',
+                'ps_title': 'Premium Style v12.0 (Ultimate)',
                 'accent_color': 'Accent Color',
                 'red': 'Netflix Red',
                 'gold': 'Cinematic Gold',
@@ -1682,7 +1569,7 @@ ${ratingCSS}
                 'r_none': 'Hide All Ratings'
             },
             'uk': {
-                'ps_title': 'Premium Style v10.0',
+                'ps_title': 'Premium Style v12.0 (Ultimate)',
                 'accent_color': 'Акцентний колір',
                 'red': 'Червоний (Netflix)',
                 'gold': 'Кінематографічне золото',
@@ -1738,7 +1625,7 @@ ${ratingCSS}
                 'r_none': 'Приховати всі'
             },
             'ru': {
-                'ps_title': 'Premium Style v10.0',
+                'ps_title': 'Premium Style v12.0 (Ultimate)',
                 'accent_color': 'Акцентный цвет',
                 'red': 'Красный (Netflix)',
                 'gold': 'Кинематографическое золото',
@@ -1874,7 +1761,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NTFLX Premium] v10.0 — Cinematic Wow & OLED Optimized');
+        console.log('[NTFLX Premium] v12.0 (Ultimate) — Perfected Native Edition');
     }
 
     if (window.Lampa && Lampa.Listener) {
