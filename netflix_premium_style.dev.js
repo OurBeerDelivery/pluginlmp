@@ -689,7 +689,7 @@ ${fontImport}
     --ntflx-duration: 300ms; /* Faster for snappier UI */
     --ntflx-ease: cubic-bezier(0.25, 1, 0.5, 1);
     --ntflx-radius: 12px; /* Uniform premium radius */
-    --ntflx-card-border-focus: #ffffff; /* Clean white focus */
+    --ntflx-card-border-focus: var(--ntflx-accent); /* Dynamic accent focus */
     --ntflx-card-border-idle: rgba(255,255,255,0.05);
 }
 
