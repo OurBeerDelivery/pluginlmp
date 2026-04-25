@@ -4,7 +4,7 @@
     var isExoticOS = /Vidaa|Web0S|Tizen|SmartTV|Metrological|NetCast/i.test(navigator.userAgent);
 
     /* ================================================================
-     *  NTFLX Premium Style v9.0  —  Cinematic, Ultra-Premium UI
+     *  NTFLX Premium Style v10.0 — Cinematic, Ultra-Premium WOW UI
      *
      *  ✦ Logo Engine    → Lampa.TMDB.api() + Lampa.TMDB.key()
      *  ✦ Hero           → Deep fog, glassmorphic buttons, 900-weight typography
@@ -360,10 +360,11 @@
                         if (Lampa.Controller.remove) Lampa.Controller.remove('ntflx_details');
                         else if (Lampa.Controller.controllers) delete Lampa.Controller.controllers['ntflx_details'];
                         
-                        // Return focus to the details page
+                        // Return focus to the details page and specifically the button
                         setTimeout(function() {
                             Lampa.Controller.toggle('full');
-                        }, 50);
+                            Lampa.Controller.collectionFocus(descBtn[0], btnsParams[0]);
+                        }, 100);
                     };
                     closeBtn.on('hover:enter click', closeUI);
                     
@@ -660,7 +661,7 @@
 
         var css = `
 /* ================================================================
-   NTFLX Premium Style v8.0 — UI Customization
+   NTFLX Premium Style v10.0 — UI Customization
    ================================================================ */
 
 ${fontImport}
@@ -1648,7 +1649,7 @@ ${ratingCSS}
 
         var i18n = {
             'en': {
-                'ps_title': 'Premium Style v9.0',
+                'ps_title': 'Premium Style v10.0',
                 'accent_color': 'Accent Color',
                 'red': 'Netflix Red',
                 'gold': 'Cinematic Gold',
@@ -1704,7 +1705,7 @@ ${ratingCSS}
                 'r_none': 'Hide All Ratings'
             },
             'uk': {
-                'ps_title': 'Premium Style v9.0',
+                'ps_title': 'Premium Style v10.0',
                 'accent_color': 'Акцентний колір',
                 'red': 'Червоний (Netflix)',
                 'gold': 'Кінематографічне золото',
@@ -1760,7 +1761,7 @@ ${ratingCSS}
                 'r_none': 'Приховати всі'
             },
             'ru': {
-                'ps_title': 'Premium Style v9.0',
+                'ps_title': 'Premium Style v10.0',
                 'accent_color': 'Акцентный цвет',
                 'red': 'Красный (Netflix)',
                 'gold': 'Кинематографическое золото',
@@ -1896,7 +1897,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NTFLX Premium] v8.22 — Ultimate Performance & TV Compatibility');
+        console.log('[NTFLX Premium] v10.0 — Cinematic Wow & OLED Optimized');
     }
 
     if (window.Lampa && Lampa.Listener) {
