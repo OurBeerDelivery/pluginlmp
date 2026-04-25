@@ -899,6 +899,7 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
 
 /* All cards: center origin, uniform easing */
 .card {
+    position: relative !important;
     transform-origin: center center !important;
 }
 
