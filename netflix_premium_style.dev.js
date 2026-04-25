@@ -1764,7 +1764,7 @@ ${ratingCSS}
             }
         }, true);
 
-        console.log('[NTFLX Premium] v12.0 (Ultimate) — Perfected Native Edition');
+        console.log('[NTFLX Premium] v12.0.3 (Ultimate) — Perfected Native Edition');
     }
 
     if (window.Lampa && Lampa.Listener) {
