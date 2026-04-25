@@ -661,25 +661,22 @@
 ${fontImport}
 
 :root {
-    --ntflx-bg: #07090c; /* Deeper black for higher contrast */
+    --ntflx-bg: #000000; /* Pure black for maximum contrast */
     --ntflx-accent: ${accent};
     --ntflx-accent-rgb: ${accentRgb};
-    --ntflx-accent-gl: rgba(${accentRgb}, 0.5);
-    --ntflx-accent-bg: rgba(${accentRgb}, 0.85);
+    --ntflx-accent-gl: rgba(${accentRgb}, 0.6);
+    --ntflx-accent-bg: rgba(${accentRgb}, 0.9);
     --ntflx-text: #ffffff;
     --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
-    --ntflx-card-scale: ${scale};
-    --ntflx-shift: 25%;
-    --ntflx-edge-nudge: ${shift};
-    --ntflx-sb-blur: ${blur};
-    --ntflx-duration: 400ms;
-    --ntflx-ease: cubic-bezier(0.23, 1, 0.32, 1); /* Smoother cinematic ease */
+    --ntflx-card-scale: 1.1; /* Slightly more noticeable but still safe */
+    --ntflx-shift: 15%;
+    --ntflx-duration: 450ms;
+    --ntflx-ease: cubic-bezier(0.4, 0, 0.2, 1);
     --ntflx-radius: ${cardRad};
     --ntflx-card-border-focus: ${bFocus};
-    --ntflx-card-border-idle: ${bIdle};
-    --ntflx-shadow-text: 0 4px 16px rgba(0,0,0,0.9);
+    --ntflx-card-border-idle: rgba(255,255,255,0.08);
+    --ntflx-glass: rgba(255, 255, 255, 0.03);
     --ntflx-glass-border: rgba(255, 255, 255, 0.12);
-    --ntflx-glass-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
 body {
@@ -810,17 +807,18 @@ body {
 .card__title {
     position: relative !important;
     font-family: var(--ntflx-font) !important;
-    font-size: 0.85em !important;
-    font-weight: 600 !important;
-    color: var(--ntflx-text) !important;
-    padding: 8px 4px 0px !important;
+    font-size: 0.75em !important;
+    font-weight: 800 !important;
+    color: rgba(255,255,255,0.6) !important;
+    padding: 10px 4px 0px !important;
     line-height: 1.2 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     text-align: center !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
-    transition: color 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    transition: all 0.3s var(--ntflx-ease) !important;
 }
 
 /* Make title pop when card is focused */
@@ -828,8 +826,48 @@ body {
 .card.hover .card__title,
 .card:hover .card__title {
     color: #fff !important;
-    font-weight: 800 !important;
-    text-shadow: 0 2px 8px var(--ntflx-accent-gl) !important;
+    transform: translateY(2px) !important;
+    text-shadow: 0 0 10px rgba(255,255,255,0.3) !important;
+}
+
+/* ── PREMIUM LEAF RATING ── */
+.card__vote {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    bottom: auto !important;
+    left: auto !important;
+    background: var(--ntflx-accent) !important;
+    color: #fff !important;
+    font-size: 0.7em !important;
+    font-weight: 900 !important;
+    padding: 3px 8px !important;
+    border-radius: 12px 2px 12px 12px !important; /* Modern Leaf Shape */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    z-index: 5 !important;
+    transform: scale(0.9) !important;
+    transition: transform 0.3s ease !important;
+}
+
+.card.focus .card__vote {
+    transform: scale(1.1) !important;
+}
+
+.card__quality {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    bottom: auto !important;
+    right: auto !important;
+    background: rgba(255,255,255,0.15) !important;
+    backdrop-filter: blur(4px);
+    color: #fff !important;
+    font-size: 0.6em !important;
+    font-weight: 900 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    z-index: 5 !important;
+    text-transform: uppercase !important;
 }
 
 
@@ -870,18 +908,23 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     z-index: 10 !important; /* Ensure focused card pops over neighbors */
 }
 
-/* Focused card — glow + clean shadow */
+/* Focused card — Bloom + 3D Shadow */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
     border-color: var(--ntflx-card-border-focus) !important;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.8), 0 0 20px var(--ntflx-accent-gl) !important;
+    box-shadow: 
+        0 20px 40px rgba(0,0,0,0.9), 
+        0 0 0 1px rgba(255,255,255,0.1),
+        0 0 25px var(--ntflx-accent-gl) !important;
+    transform: translateY(-5px) !important;
 }
 
 .card.focus .card__view::before,
 .card.hover .card__view::before,
 .card:hover .card__view::before {
     opacity: 1 !important;
+    box-shadow: inset 0 0 20px var(--ntflx-accent-gl) !important;
 }
 
 /* ── NEIGHBOR SHIFTING (GPU translate3d) ── */
