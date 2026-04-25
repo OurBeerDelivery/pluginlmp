@@ -344,9 +344,9 @@
                     if (_overlayOpen) return;
                     _overlayOpen = true;
                     e.stopPropagation && e.stopPropagation();
-                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); overflow-y: auto; padding: 4em 3em; display:flex; flex-direction:column; align-items:center;"></div>');
+                    var overlay = $('<div class="ntflx-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background: rgba(7,9,12,0.98); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); overflow-y: auto; overflow-x: hidden; padding: 5vh 5vw; display:flex; flex-direction:column; align-items:center; scroll-behavior: smooth;"></div>');
                     
-                    var closeBtn = $('<div class="selector" style="position:absolute; top: 2.5em; right: 3em; cursor:pointer; color:#fff; padding:12px; border-radius:50%; transition: all 0.3s;"><svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
+                    var closeBtn = $('<div class="selector" style="position:absolute; top: 5vh; right: 5vw; cursor:pointer; color:#fff; padding:12px; border-radius:50%; transition: all 0.3s;"><svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>');
                     
                     var isClosing = false;
                     var closeUI = function(e) {
@@ -363,11 +363,11 @@
                     closeBtn.on('hover:enter click', closeUI);
                     
                     var container = $('<div style="max-width: 1000px; width: 100%; display:flex; flex-direction:column; gap: 3em; padding-top: 2em;"></div>');
-                    var headerBlock = $('<div style="text-align:center; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:1em;"></div>');
-                    var logoWrap = $('<div style="display:flex; justify-content:center; align-items:flex-end; max-height:140px;"></div>');
-                    var titleFallback = $('<h2 style="font-size:3.5em; font-weight:900; line-height:1.1; margin:0; letter-spacing:-0.03em;">' + (movie.title || movie.name) + '</h2>');
+                    var headerBlock = $('<div style="text-align:center; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:0.8em; margin-bottom: 1em;"></div>');
+                    var logoWrap = $('<div style="display:flex; justify-content:center; align-items:flex-end; max-height:160px; width:100%;"></div>');
+                    var titleFallback = $('<h2 style="font-size: clamp(2.5em, 6vw, 4.5em); font-weight:900; line-height:0.95; margin:0; letter-spacing:-0.04em; text-transform:uppercase; max-width: 800px;">' + (movie.title || movie.name) + '</h2>');
                     logoWrap.append(titleFallback);
-                    var detailsLabel = $('<div style="color:var(--ntflx-accent); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em;">' + t.details + '</div>');
+                    var detailsLabel = $('<div style="color:var(--ntflx-accent); font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.25em; opacity: 0.9;">' + t.details + '</div>');
                     headerBlock.append(logoWrap).append(detailsLabel);
                     container.append(headerBlock);
 
@@ -406,8 +406,14 @@
 
                     addMeta(t.release, movie.release_date || movie.first_air_date);
                     if (movie.vote_average) {
-                        var stars = ''; for (var s=0; s<5; s++) stars += (s < Math.round(movie.vote_average/2) ? '★' : '☆');
-                        addMeta(t.rating, '<span style="font-weight:900; color:var(--ntflx-accent);">' + movie.vote_average.toFixed(1) + '</span> <span style="color:#e5b109; margin-left:8px;">' + stars + '</span>', true);
+                        var val = movie.vote_average.toFixed(1);
+                        var stars = '';
+                        var filled = Math.round(movie.vote_average / 2);
+                        for (var s = 0; s < 5; s++) {
+                            if (s < filled) stars += '★';
+                            else stars += '<span style="opacity: 0.25;">★</span>';
+                        }
+                        addMeta(t.rating, '<span style="font-weight:900; color:var(--ntflx-accent); font-size: 1.2em;">' + val + '</span> <span style="color:#e5b109; margin-left:10px; letter-spacing: 2px;">' + stars + '</span>', true);
                     }
                     addMeta(t.duration, movie.runtime ? movie.runtime + ' ' + t.min : '');
                     addMeta(t.genres, movie.genres ? movie.genres.map(function(g){return g.name;}).join(', ') : '');
@@ -434,9 +440,27 @@
                     overlay.append(closeBtn).append(container);
                     $('body').append(overlay);
 
+                    // TV Remote Spatial Navigation logic
                     Lampa.Controller.add('ntflx_details', {
                         toggle: function () { Lampa.Controller.collectionSet(overlay); Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
-                        up: function() { Lampa.Controller.collectionFocus(closeBtn[0], overlay); },
+                        up: function() { 
+                            var currentScroll = overlay.scrollTop();
+                            if (currentScroll > 50) {
+                                overlay[0].scrollBy({ top: -300, behavior: 'smooth' });
+                            } else {
+                                overlay[0].scrollTo({ top: 0, behavior: 'smooth' });
+                                Lampa.Controller.collectionFocus(closeBtn[0], overlay);
+                            }
+                        },
+                        down: function() {
+                            var currentScroll = overlay.scrollTop();
+                            var maxScroll = overlay[0].scrollHeight - overlay.height();
+                            if (currentScroll < maxScroll - 10) {
+                                overlay[0].scrollBy({ top: 300, behavior: 'smooth' });
+                            }
+                        },
+                        right: function() { /* Trap focus */ },
+                        left: function() { /* Trap focus */ },
                         back: closeUI
                     });
                     Lampa.Controller.toggle('ntflx_details');
@@ -492,15 +516,20 @@
         window.__ntflx_cards_bound = true;
 
         // ── Suppress auto-focus scaling until user interacts ──
+        // (Supports D-pad, Magic Remote, and standard mouse)
         function enableInteraction() {
             document.body.classList.add('ntflx-user-interacted');
             document.removeEventListener('keydown', enableInteraction);
             document.removeEventListener('pointerdown', enableInteraction);
             document.removeEventListener('mousedown', enableInteraction);
+            document.removeEventListener('mousemove', enableInteraction);
+            document.removeEventListener('wheel', enableInteraction);
         }
         document.addEventListener('keydown', enableInteraction, { once: true });
         document.addEventListener('pointerdown', enableInteraction, { once: true });
         document.addEventListener('mousedown', enableInteraction, { once: true });
+        document.addEventListener('mousemove', enableInteraction, { once: true });
+        document.addEventListener('wheel', enableInteraction, { once: true });
 
         function tagEdges() {
             var rows = document.querySelectorAll('.scroll__body');
@@ -565,7 +594,7 @@
         var accent = Lampa.Storage.get('ntflx_accent_color', '#e50914');
         var fontFam = Lampa.Storage.get('ntflx_font_family', 'Montserrat');
         var fontSb = Lampa.Storage.get('ntflx_font_size_sidebar', '1.1em');
-        var scale = Lampa.Storage.get('ntflx_card_scale', '1.35');
+        var scale = Lampa.Storage.get('ntflx_card_scale', '1.08');
         var shift = Lampa.Storage.get('ntflx_edge_shift', '20px');
         var logoH = Lampa.Storage.get('ntflx_logo_height', '200px');
         var blur = Lampa.Storage.get('ntflx_backdrop_blur', '30px');
@@ -635,20 +664,20 @@ ${fontImport}
     --ntflx-bg: #07090c; /* Deeper black for higher contrast */
     --ntflx-accent: ${accent};
     --ntflx-accent-rgb: ${accentRgb};
-    --ntflx-accent-gl: rgba(${accentRgb}, 0.6);
-    --ntflx-accent-bg: rgba(${accentRgb}, 0.8);
+    --ntflx-accent-gl: rgba(${accentRgb}, 0.5);
+    --ntflx-accent-bg: rgba(${accentRgb}, 0.85);
     --ntflx-text: #ffffff;
     --ntflx-font: '${fontFam}', 'Inter', system-ui, -apple-system, sans-serif;
     --ntflx-card-scale: ${scale};
     --ntflx-shift: 25%;
     --ntflx-edge-nudge: ${shift};
     --ntflx-sb-blur: ${blur};
-    --ntflx-duration: 450ms; /* Slightly slower, more cinematic */
-    --ntflx-ease: cubic-bezier(0.2, 0.8, 0.2, 1); /* Modern "out-back" feel */
+    --ntflx-duration: 400ms;
+    --ntflx-ease: cubic-bezier(0.23, 1, 0.32, 1); /* Smoother cinematic ease */
     --ntflx-radius: ${cardRad};
     --ntflx-card-border-focus: ${bFocus};
     --ntflx-card-border-idle: ${bIdle};
-    --ntflx-shadow-text: 0 4px 12px rgba(0,0,0,0.9);
+    --ntflx-shadow-text: 0 4px 16px rgba(0,0,0,0.9);
     --ntflx-glass-border: rgba(255, 255, 255, 0.12);
     --ntflx-glass-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
@@ -777,25 +806,36 @@ body {
     display: block !important;
 }
 
-/* Card title below */
+/* ── CARD TITLE (Inside Poster) ── */
 .card__title {
+    position: absolute !important;
+    bottom: 5px !important; /* Above the padding */
+    left: 3px !important;   /* Inside the border */
+    right: 3px !important;  /* Inside the border */
+    z-index: 15 !important;
     font-family: var(--ntflx-font) !important;
     font-size: 0.85em !important;
-    font-weight: 600 !important;
-    color: var(--ntflx-text) !important;
-    padding: 4px 2px 0px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    padding: 35px 12px 10px 12px !important;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%) !important;
+    border-bottom-left-radius: calc(var(--ntflx-radius) - 1px) !important;
+    border-bottom-right-radius: calc(var(--ntflx-radius) - 1px) !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9) !important;
+    text-align: center !important;
+    margin: 0 !important;
+    pointer-events: none !important;
 }
 
-/* ── QUALITY BADGE — modern pill shape ── */
+/* ── QUALITY BADGE — moved to top-left ── */
 .card__quality {
     display: block !important;
     position: absolute !important;
-    bottom: 8px !important;
+    top: 8px !important;
     left: 8px !important;
     z-index: 20 !important;
     background: rgba(46, 204, 113, 0.95) !important;
@@ -811,23 +851,23 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
 }
 
-/* ── RATING BADGE — modern circle/pill ── */
+/* ── RATING BADGE — moved to top-right ── */
 .card__vote {
     display: block !important;
     position: absolute !important;
-    bottom: 8px !important;
+    top: 8px !important;
     right: 8px !important;
     z-index: 20 !important;
-    background: rgba(20, 20, 20, 0.8) !important;
+    background: rgba(20, 20, 20, 0.85) !important;
     color: #fff !important;
     padding: 2px 10px !important;
     border-radius: 20px !important;
-    font-size: 0.7em !important;
+    font-size: 0.75em !important;
     font-weight: 900 !important;
     font-family: var(--ntflx-font) !important;
     pointer-events: none !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
 }
 
 .card__age { display: none !important; }
@@ -839,7 +879,11 @@ body {
 
 /* ── Suppress auto-focus until user interaction ── */
 body:not(.ntflx-user-interacted) .card.focus,
-body:not(.ntflx-user-interacted) .card.hover {
+body:not(.ntflx-user-interacted) .card.hover,
+body:not(.ntflx-user-interacted) .card:has(~ .card.focus),
+body:not(.ntflx-user-interacted) .card:has(~ .card.hover),
+body:not(.ntflx-user-interacted) .card.focus ~ .card,
+body:not(.ntflx-user-interacted) .card.hover ~ .card {
     transform: translate3d(0, 0, 0) !important;
 }
 
@@ -853,11 +897,6 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
     opacity: 0 !important;
 }
 
-body:not(.ntflx-user-interacted) .card.focus ~ .card,
-body:not(.ntflx-user-interacted) .card.hover ~ .card {
-    transform: translate3d(0, 0, 0) !important;
-}
-
 /* All cards: center origin, uniform easing */
 .card {
     transform-origin: center center !important;
@@ -867,9 +906,10 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
 .card.hover,
 .card:hover {
     transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
+    z-index: 10 !important; /* Ensure focused card pops over neighbors */
 }
 
-/* Focused card — subtle red glow + clean shadow */
+/* Focused card — glow + clean shadow */
 .card.focus .card__view,
 .card.hover .card__view,
 .card:hover .card__view {
@@ -883,52 +923,29 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
 }
 
 /* ── NEIGHBOR SHIFTING (GPU translate3d) ── */
-.card.focus ~ .card,
-.card.hover ~ .card,
-.card:hover ~ .card {
-    transform: translate3d(var(--ntflx-shift), 0, 0) !important;
-}
+/* 
+   Apple TV / Generic TV fallback: 
+   If :has() is NOT supported, we do NOT shift anything. 
+   Cards scale from center and overlap equally. This looks like a deliberate 3D pop.
+   
+   Netflix Premium (Modern TV):
+   If :has() is supported, we shift left cards left, and right cards right. 
+   This perfectly prevents overlaps without breaking edge cards.
+*/
+@supports selector(:has(a)) {
+    /* Shift cards BEFORE the focused card to the left */
+    .items-line .card:has(~ .card.focus),
+    .items-line .card:has(~ .card.hover),
+    .items-line .card:has(~ .card:hover) {
+        transform: translate3d(calc(var(--ntflx-shift) * -1), 0, 0) !important;
+    }
 
-/* ── EDGE CARDS: origin + translate3d offset to prevent clipping ── */
-
-/* First card: left-origin scale + 20px rightward nudge (no clip) */
-.card[data-ntflx-edge="first"].focus,
-.card[data-ntflx-edge="first"].hover,
-.card[data-ntflx-edge="first"]:hover {
-    transform-origin: left center !important;
-    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
-               translate3d(var(--ntflx-edge-nudge), 0, 0) !important;
-}
-
-/* First card's neighbors: standard shift + extra 20px to compensate */
-.card[data-ntflx-edge="first"].focus ~ .card,
-.card[data-ntflx-edge="first"].hover ~ .card,
-.card[data-ntflx-edge="first"]:hover ~ .card {
-    transform: translate3d(calc(var(--ntflx-shift) + var(--ntflx-edge-nudge)), 0, 0) !important;
-}
-
-/* Last card: right-origin scale + 20px leftward nudge (no clip) */
-.card[data-ntflx-edge="last"].focus,
-.card[data-ntflx-edge="last"].hover,
-.card[data-ntflx-edge="last"]:hover {
-    transform-origin: right center !important;
-    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1)
-               translate3d(calc(var(--ntflx-edge-nudge) * -1), 0, 0) !important;
-}
-
-/* Reduce shift for the last card when a non-edge sibling is focused */
-.card.focus ~ .card[data-ntflx-edge="last"],
-.card.hover ~ .card[data-ntflx-edge="last"],
-.card:hover ~ .card[data-ntflx-edge="last"] {
-    transform: translate3d(calc(var(--ntflx-shift) * 0.5), 0, 0) !important;
-}
-
-/* ── SINGLE CARD: use left-origin (no clip) but NO shift ── */
-.card[data-ntflx-single="true"].focus,
-.card[data-ntflx-single="true"].hover,
-.card[data-ntflx-single="true"]:hover {
-    transform-origin: left center !important;
-    transform: scale3d(var(--ntflx-card-scale), var(--ntflx-card-scale), 1) !important;
+    /* Shift cards AFTER the focused card to the right */
+    .items-line .card.focus ~ .card,
+    .items-line .card.hover ~ .card,
+    .items-line .card:hover ~ .card {
+        transform: translate3d(var(--ntflx-shift), 0, 0) !important;
+    }
 }
 
 
@@ -1126,6 +1143,43 @@ body:not(.ntflx-user-interacted) .card.hover ~ .card {
     margin: 0 0 2px 0 !important;
 }
 
+.full-start__button,
+.full-start-new__button {
+    font-family: var(--ntflx-font) !important;
+    font-weight: 700 !important;
+    font-size: 0.85em !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 0.8em 1.8em !important;
+    border-radius: 50px !important; /* Pill shape */
+    border: 1px solid var(--ntflx-glass-border) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    transition: all 400ms var(--ntflx-ease) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 0.8em !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+}
+
+.full-start__button.focus,
+.full-start__button:hover,
+.full-start-new__button.focus,
+.full-start-new__button:hover {
+    background: var(--ntflx-accent) !important;
+    border-color: rgba(255,255,255,0.4) !important;
+    color: #fff !important;
+    box-shadow: 0 0 40px var(--ntflx-accent-gl),
+                0 15px 45px rgba(0,0,0,0.6),
+                inset 0 0 15px rgba(255,255,255,0.4) !important;
+    transform: translateY(-5px) scale(1.04) !important;
+    z-index: 10 !important;
+}
+
 /* Tagline (quote) */
 .full-start-new__tagline,
 .full-start__tagline {
@@ -1274,8 +1328,10 @@ ${ratingCSS}
 .menu__item.traverse,
 .menu__item.active {
     background: var(--ntflx-accent) !important;
-    border-color: rgba(255,255,255,0.2) !important;
-    box-shadow: 0 4px 15px var(--ntflx-accent-gl) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+    box-shadow: 0 8px 25px var(--ntflx-accent-gl),
+                inset 0 0 10px rgba(255,255,255,0.2) !important;
+    transform: scale(1.02) !important;
 }
 
 /* Active text: pure white */
@@ -1517,18 +1573,49 @@ ${ratingCSS}
 }
 /* ── NTFLX DETAILS OVERLAY ── */
 .ntflx-overlay {
-    animation: ntflx_fade_in 0.4s ease-out;
+    animation: ntflx_fade_in 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @keyframes ntflx_fade_in {
-    from { opacity: 0; transform: scale(1.05); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: translateY(20px) scale(1.02); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .ntflx-overlay .selector.focus {
-    background: rgba(255,255,255,0.1) !important;
+    background: rgba(255,255,255,0.12) !important;
     color: #fff !important;
-    box-shadow: 0 0 20px rgba(255,255,255,0.1) !important;
+    box-shadow: 0 0 30px rgba(255,255,255,0.15), inset 0 0 10px rgba(255,255,255,0.1) !important;
+    transform: scale(1.1) !important;
+}
+
+/* ── MODALS (Lampa Native) ── */
+.modal {
+    background: rgba(7,9,12,0.92) !important;
+    backdrop-filter: blur(30px) !important;
+    -webkit-backdrop-filter: blur(30px) !important;
+    border-radius: 24px !important;
+    border: 1px solid var(--ntflx-glass-border) !important;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.8) !important;
+}
+
+.modal__title {
+    font-family: var(--ntflx-font) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* ── TABS (Notifications, Filters) ── */
+.tabs__item {
+    border-radius: 50px !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.03) !important;
+    transition: all 0.3s ease !important;
+}
+
+.tabs__item.active {
+    background: var(--ntflx-accent) !important;
+    box-shadow: 0 5px 15px var(--ntflx-accent-gl) !important;
+    border-color: rgba(255,255,255,0.2) !important;
 }
 `;
 
@@ -1741,7 +1828,7 @@ ${ratingCSS}
             { name: 'ntflx_font_size_sidebar', type: 'select', values: { 'native': t('native_off'), '0.9em': t('small'), '1.0em': t('normal'), '1.1em': t('large'), '1.2em': t('xlarge') }, default: '1.1em', title: t('sidebar_font_size') },
             { name: 'ntflx_sidebar_width', type: 'select', values: { 'native': t('native_off'), '220px': t('compact'), '280px': t('normal') + ' (' + t('default') + ')', '340px': t('wide'), '400px': t('uwide') }, default: '280px', title: t('sb_width') },
             { name: 'ntflx_sidebar_opacity', type: 'select', values: { 'native': t('native_off'), '0.1': t('clear'), '0.45': t('glassy'), '0.75': t('dark_glass'), '0.95': t('solid') }, default: '0.45', title: t('sb_opacity') },
-            { name: 'ntflx_card_scale', type: 'select', values: { '1.1': '1.10x', '1.25': '1.25x', '1.35': '1.35x (' + t('default') + ')', '1.45': '1.45x' }, default: '1.35', title: t('card_scale') },
+            { name: 'ntflx_card_scale', type: 'select', values: { '1.05': '1.05x', '1.08': '1.08x (' + t('default') + ')', '1.15': '1.15x', '1.25': '1.25x', '1.35': '1.35x', '1.45': '1.45x' }, default: '1.08', title: t('card_scale') },
             { name: 'ntflx_edge_shift', type: 'select', values: { '10px': '10px', '20px': '20px', '30px': '30px' }, default: '20px', title: t('edge_shift') },
             { name: 'ntflx_logo_height', type: 'select', values: { '80px': t('micro'), '120px': t('tiny'), '150px': t('small'), '200px': t('medium'), '250px': t('large'), '300px': t('xlarge') }, default: '200px', title: t('logo_height') },
             { name: 'ntflx_backdrop_blur', type: 'select', values: { '10px': t('light'), '30px': t('premium'), '50px': t('heavy') }, default: '30px', title: t('sb_blur') },
