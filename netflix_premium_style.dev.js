@@ -806,71 +806,31 @@ body {
     display: block !important;
 }
 
-/* ── CARD TITLE (Inside Poster) ── */
+/* ── CARD TITLE ── */
 .card__title {
-    position: absolute !important;
-    bottom: 5px !important; /* Above the padding */
-    left: 3px !important;   /* Inside the border */
-    right: 3px !important;  /* Inside the border */
-    z-index: 15 !important;
+    position: relative !important;
     font-family: var(--ntflx-font) !important;
     font-size: 0.85em !important;
-    font-weight: 700 !important;
-    color: #fff !important;
-    padding: 35px 12px 10px 12px !important;
-    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%) !important;
-    border-bottom-left-radius: calc(var(--ntflx-radius) - 1px) !important;
-    border-bottom-right-radius: calc(var(--ntflx-radius) - 1px) !important;
-    line-height: 1.1 !important;
+    font-weight: 600 !important;
+    color: var(--ntflx-text) !important;
+    padding: 8px 4px 0px !important;
+    line-height: 1.2 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.9) !important;
     text-align: center !important;
-    margin: 0 !important;
-    pointer-events: none !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+    transition: color 0.3s ease !important;
 }
 
-/* ── QUALITY BADGE — moved to top-left ── */
-.card__quality {
-    display: block !important;
-    position: absolute !important;
-    top: 8px !important;
-    left: 8px !important;
-    z-index: 20 !important;
-    background: rgba(46, 204, 113, 0.95) !important;
-    color: #000 !important; /* Dark text on green badge for readability */
-    padding: 2px 10px !important;
-    border-radius: 20px !important;
-    font-size: 0.65em !important;
-    font-weight: 900 !important;
-    font-family: var(--ntflx-font) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    pointer-events: none !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-}
-
-/* ── RATING BADGE — moved to top-right ── */
-.card__vote {
-    display: block !important;
-    position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    z-index: 20 !important;
-    background: rgba(20, 20, 20, 0.85) !important;
+/* Make title pop when card is focused */
+.card.focus .card__title,
+.card.hover .card__title,
+.card:hover .card__title {
     color: #fff !important;
-    padding: 2px 10px !important;
-    border-radius: 20px !important;
-    font-size: 0.75em !important;
-    font-weight: 900 !important;
-    font-family: var(--ntflx-font) !important;
-    pointer-events: none !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 8px var(--ntflx-accent-gl) !important;
 }
-
-.card__age { display: none !important; }
 
 
 /* ================================================================
@@ -915,6 +875,7 @@ body:not(.ntflx-user-interacted) .card.hover .card__view::before {
 .card.hover .card__view,
 .card:hover .card__view {
     border-color: var(--ntflx-card-border-focus) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.8), 0 0 20px var(--ntflx-accent-gl) !important;
 }
 
 .card.focus .card__view::before,
