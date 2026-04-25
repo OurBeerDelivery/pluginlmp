@@ -1268,7 +1268,20 @@ ${ratingCSS}
     fill: #fff !important;
 }
 
-/* Custom menu styles removed */
+/* ── Premium Sidebar Accent ── */
+.menu__item.focus {
+    background-color: var(--ntflx-accent) !important;
+    color: #ffffff !important;
+}
+
+.menu__item.focus .menu__text,
+.menu__item.focus .menu__ico {
+    color: #ffffff !important;
+}
+
+.menu__item.focus .menu__ico svg {
+    fill: #ffffff !important;
+}
 
 /* Make header float perfectly transparent over everything. 
    Removing aggressive z-indexing allows Lampa natively to overlay Modals 
