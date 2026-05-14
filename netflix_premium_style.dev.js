@@ -1269,6 +1269,21 @@ ${ratingCSS}
 }
 
 /* ── Premium Sidebar Accent ── */
+.menu__item {
+    padding-left: 0.8em !important;
+    gap: 0.4em !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.menu__ico {
+    margin-right: 0 !important;
+}
+
+.menu__text {
+    padding-left: 0 !important;
+}
+
 .menu__item.focus {
     background-color: var(--ntflx-accent) !important;
     color: #ffffff !important;
